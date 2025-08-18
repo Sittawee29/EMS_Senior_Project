@@ -1,0 +1,23 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "Dart & Flutter",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "Flutter Web Release on port 80",
+            "type": "dart",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "program": "lib/main.dart",
+            "flutterMode": "release",
+            "toolArgs": ["-d", "web-server","--web-hostname", "0.0.0.0","--web-port", "80"]        
+        }
+    ]
+}
