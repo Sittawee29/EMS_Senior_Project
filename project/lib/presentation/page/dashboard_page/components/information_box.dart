@@ -8,6 +8,7 @@ class _InformationBox extends StatelessWidget {
     required this.percent,
     required this.text,
     required this.haveIncreased,
+    // ignore: unused_element_parameter
     this.showPercent = false,
   });
 
