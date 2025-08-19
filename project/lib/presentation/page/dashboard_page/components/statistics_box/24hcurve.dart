@@ -43,64 +43,68 @@ class _LineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LineChart(
-      LineChartData(
-        maxY: 1500,
-        lineTouchData: LineTouchData(enabled: true),
-        titlesData: FlTitlesData(
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 40,
-              interval: 0.25,
-              getTitlesWidget: (value, _) => SideTitleWidget(
-                axisSide: AxisSide.left,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    '$value',
-                    style: TextStyles.myriadProRegular13DarkBlue60,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 200, maxWidth: 366),
+      child: LineChart(
+        LineChartData(
+          maxY: 1500,
+          lineTouchData: LineTouchData(enabled: true),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 40,
+                getTitlesWidget: (value, _) => SideTitleWidget(
+                  axisSide: AxisSide.left,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '$value',
+                      style: TextStyles.myriadProRegular13DarkBlue60,
+                    ),
                   ),
                 ),
               ),
             ),
+            bottomTitles: const AxisTitles(),
+            topTitles: const AxisTitles(),
+            rightTitles: const AxisTitles(),
           ),
-          bottomTitles: const AxisTitles(),
-          topTitles: const AxisTitles(),
-          rightTitles: const AxisTitles(),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (_) => const FlLine(
+              color: Palette.darkGrey,
+              strokeWidth: 1,
+            ),
+          ),
+          borderData: FlBorderData(
+            show: true,
+            border: const Border(
+              top: BorderSide(color: Palette.darkGrey, width: 1),
+            ),
+          ),
+
+          // 🔹 ใช้ lineBarsData (ไม่ใช่ lineGroups)
+          lineBarsData: [
+            LineChartBarData(
+              isCurved: false,
+              color: Palette.lightBlue,
+              barWidth: 3,
+              spots: activeUsersData.entries
+                  .map((e) => FlSpot(e.key.toDouble(), e.value.first))
+                  .toList(),
+            ),
+            LineChartBarData(
+              isCurved: false,
+              color: Palette.orange,
+              barWidth: 3,
+              spots: activeUsersData.entries
+                  .map((e) => FlSpot(e.key.toDouble(), e.value.last))
+                  .toList(),
+            ),
+          ],
         ),
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          getDrawingHorizontalLine: (_) => const FlLine(
-            color: Palette.darkGrey,
-            strokeWidth: 1,
-          ),
-        ),
-        borderData: FlBorderData(
-          show: true,
-          border: const Border(
-            top: BorderSide(color: Palette.darkGrey, width: 1),
-          ),
-        ),
-        lineBarsData: [
-          LineChartBarData(
-            isCurved: false,
-            color: Palette.lightBlue,
-            barWidth: 3,
-            spots: activeUsersData.entries
-                .map((e) => FlSpot(e.key.toDouble(), e.value.first))
-                .toList(),
-          ),
-          LineChartBarData(
-            isCurved: false,
-            color: Palette.orange,
-            barWidth: 3,
-            spots: activeUsersData.entries
-                .map((e) => FlSpot(e.key.toDouble(), e.value.last))
-                .toList(),
-          ),
-        ],
       ),
     );
   }
