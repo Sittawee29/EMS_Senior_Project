@@ -60,7 +60,7 @@ class _LineChart extends StatelessWidget {
                   // barSpot.y → ค่าของจุด y
                   // barSpot.x → ค่าของจุด x
                   return LineTooltipItem(
-                    '${barSpot.y.toStringAsFixed(0)} kWh',
+                    '${barSpot.y.toStringAsFixed(0)} kW',
                     const TextStyle(
                         color: Colors.white, fontWeight: FontWeight.bold),
                   );
