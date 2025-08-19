@@ -84,7 +84,7 @@ class _LineChart extends StatelessWidget {
                   return LineTooltipItem(
                     '$lineName: ${barSpot.y.toStringAsFixed(0)} kW',
                     TextStyle(
-                      fontSize: 10,
+                      fontSize: 9,
                       color: Colors.white,
                     ),
                   );
