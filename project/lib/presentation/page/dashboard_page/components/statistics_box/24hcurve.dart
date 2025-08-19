@@ -75,7 +75,7 @@ class _LineChart extends StatelessWidget {
             show: true,
             drawVerticalLine: false,
             getDrawingHorizontalLine: (_) => const FlLine(
-              color: Palette.darkGrey,
+              color: Palette.mediumGrey40,
               strokeWidth: 1,
             ),
           ),
