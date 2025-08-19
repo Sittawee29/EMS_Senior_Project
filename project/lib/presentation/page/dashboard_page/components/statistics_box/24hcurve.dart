@@ -156,10 +156,13 @@ class _LineChart extends StatelessWidget {
               ),
               color: Palette.lightBlue,
               barWidth: 3,
-              spots: PowerData.entries
-                  .where((e) => e.value.first != null)
-                  .map((e) => FlSpot(e.key.toDouble(), e.value.first!))
-                  .toList(),
+              spots: List.generate(96, (i) {
+                // 24 ชั่วโมง * 4 (15 นาที/step)
+                final data = PowerData[i];
+                if (data == null || data.first == null)
+                  return null; // spot เป็น null → เส้นหยุด
+                return FlSpot(i.toDouble(), data.first!);
+              }).whereType<FlSpot>().toList(),
             ),
             LineChartBarData(
               isCurved: false,
