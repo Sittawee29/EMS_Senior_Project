@@ -1,7 +1,7 @@
 part of '../../page.dart';
 
 class H_Curve extends StatelessWidget {
-  const H_Curve();
+  const H_Curve({super.key});
 
   @override
   Widget build(BuildContext context) {
