@@ -35,6 +35,7 @@ const Map<int, List<double?>> activeUsersData = <int, List<double?>>{
   17: [null, null],
   18: [null, null],
   19: [null, null],
+  //
   20: [null, null],
   21: [null, null],
   22: [null, null],
@@ -45,6 +46,7 @@ const Map<int, List<double?>> activeUsersData = <int, List<double?>>{
   27: [null, null],
   28: [null, null],
   29: [null, null],
+  //
   30: [null, null],
   31: [null, null],
   32: [null, null],
