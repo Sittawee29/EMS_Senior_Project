@@ -124,7 +124,7 @@ class _LineChart extends StatelessWidget {
                   return SideTitleWidget(
                     axisSide: AxisSide.bottom,
                     child: Transform.rotate(
-                      angle: -90 * 3.1415926535 / 180, // หมุน -90 องศา
+                      angle: 90 * 3.1415926535 / 180, // หมุน -90 องศา
                       child: Text(
                         label,
                         style: TextStyles.myriadProRegular13DarkBlue60,
