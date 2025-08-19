@@ -91,22 +91,32 @@ class _LineChart extends StatelessWidget {
               }).toList();
             },
             touchTooltipData: LineTouchTooltipData(
-              tooltipPadding: const EdgeInsets.all(6),
+              tooltipPadding: const EdgeInsets.all(8),
               getTooltipItems: (touchedSpots) {
-                return touchedSpots.map((barSpot) {
-                  final index = barSpot.x.toInt();
-                  final time = (index >= 0 && index < timeLabels.length)
-                      ? timeLabels[index]
-                      : index.toString(); // fallback ถ้า index นอก range
-                  final lineName = lineNames[barSpot.barIndex];
-                  return LineTooltipItem(
-                    '$lineName: ${barSpot.y.toStringAsFixed(0)} kW $time',
+                if (touchedSpots.isEmpty) return [];
+
+                final index = touchedSpots.first.x.toInt();
+                final time = (index >= 0 && index < timeLabels.length)
+                    ? timeLabels[index]
+                    : '--:--';
+
+                // สร้างข้อความหลายบรรทัด
+                final buffer = StringBuffer();
+                buffer.writeln(time);
+                for (var spot in touchedSpots) {
+                  final lineName = lineNames[spot.barIndex];
+                  buffer.writeln('$lineName: ${spot.y.toStringAsFixed(0)} kW');
+                }
+
+                return [
+                  LineTooltipItem(
+                    buffer.toString(),
                     const TextStyle(
                       fontSize: 12,
                       color: Colors.white,
                     ),
-                  );
-                }).toList();
+                  )
+                ];
               },
             ),
           ),
