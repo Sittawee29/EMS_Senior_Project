@@ -94,4 +94,13 @@ const Map<String, List<double?>> PowerData = <String, List<double?>>{
   "17:15": [null, null], // 17:15
   "17:30": [null, null], // 17:30
   "17:45": [null, null], // 17:45
+  //
+  "18:00": [null, null], // 18:00
+  "18:15": [null, null], // 18:15
+  "18:30": [null, null], // 18:30
+  "18:45": [null, null], // 18:45
+  "19:00": [null, null], // 19:00
+  "19:15": [null, null], // 19:15
+  "19:30": [null, null], // 19:30
+  "19:45": [null, null], // 19:45
 };
