@@ -171,8 +171,7 @@ class _LineChart extends StatelessWidget {
               barWidth: 3,
               spots: List.generate(96, (i) {
                 final data = PowerData[i];
-                if (data == null || data.last == null)
-                  return null; // ✅ เช็ก last
+                if (data == null || data.last == null) return null;
                 return FlSpot(i.toDouble(), data.last!);
               }).whereType<FlSpot>().toList(),
             ),
