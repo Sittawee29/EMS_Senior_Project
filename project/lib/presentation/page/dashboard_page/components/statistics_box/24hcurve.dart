@@ -73,7 +73,7 @@ class _LineChart extends StatelessWidget {
           ),
           gridData: FlGridData(
             show: true,
-            drawVerticalLine: false,
+            drawVerticalLine: true,
             getDrawingHorizontalLine: (_) => const FlLine(
               color: Palette.mediumGrey40,
               strokeWidth: 1,
