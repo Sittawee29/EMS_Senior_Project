@@ -53,8 +53,8 @@ class _LineChart extends StatelessWidget {
       return FlSpot(i.toDouble(), data[0]!);
     }).whereType<FlSpot>().toList();
 
+    // Power Consumption
     final spotsCons = List.generate(timeLabels.length, (i) {
-      // Power Consumption
       final data = PowerData[timeLabels[i]];
       if (data == null || data[1] == null) return null;
       return FlSpot(i.toDouble(), data[1]!);
