@@ -70,4 +70,13 @@ const Map<int, List<double?>> activeUsersData = <int, List<double?>>{
   49: [null, null],
   //
   50: [null, null],
+  51: [null, null],
+  52: [null, null],
+  53: [null, null],
+  54: [null, null],
+  55: [null, null],
+  56: [null, null],
+  57: [null, null],
+  58: [null, null],
+  59: [null, null],
 };
