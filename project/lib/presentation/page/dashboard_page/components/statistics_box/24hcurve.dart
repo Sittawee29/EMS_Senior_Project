@@ -93,38 +93,20 @@ class _LineChart extends StatelessWidget {
             touchTooltipData: LineTouchTooltipData(
               tooltipPadding: const EdgeInsets.all(6),
               getTooltipItems: (touchedSpots) {
-                if (touchedSpots.isEmpty) return [];
-
-                final index = touchedSpots.first.x.toInt();
-                final time = (index >= 0 && index < timeLabels.length)
-                    ? timeLabels[index]
-                    : index.toString();
-
-                final items = <LineTooltipItem>[
-                  LineTooltipItem(
-                    '$time\n',
+                return touchedSpots.map((barSpot) {
+                  final index = barSpot.x.toInt();
+                  final time = (index >= 0 && index < timeLabels.length)
+                      ? timeLabels[index]
+                      : index.toString(); // fallback ถ้า index นอก range
+                  final lineName = lineNames[barSpot.barIndex];
+                  return LineTooltipItem(
+                    '$time: $lineName: ${barSpot.y.toStringAsFixed(0)} kW',
                     const TextStyle(
                       fontSize: 12,
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ];
-
-                for (final barSpot in touchedSpots) {
-                  final lineName = lineNames[barSpot.barIndex];
-                  items.add(
-                    LineTooltipItem(
-                      '$lineName: ${barSpot.y.toStringAsFixed(0)} kW\n',
-                      const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white,
-                      ),
                     ),
                   );
-                }
-
-                return items;
+                }).toList();
               },
             ),
           ),
