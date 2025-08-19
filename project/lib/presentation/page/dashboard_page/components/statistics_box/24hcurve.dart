@@ -102,7 +102,7 @@ class _LineChart extends StatelessWidget {
           borderData: FlBorderData(
             show: true,
             border: const Border(
-              top: BorderSide(color: Palette.mediumGrey40, width: 1),
+              bottom: BorderSide(color: Palette.darkGrey, width: 1),
             ),
           ),
           lineBarsData: [
