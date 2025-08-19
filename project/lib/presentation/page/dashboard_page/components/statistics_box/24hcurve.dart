@@ -50,7 +50,23 @@ class _LineChart extends StatelessWidget {
           minX: 0,
           minY: 0,
           maxY: 1000,
-          lineTouchData: LineTouchData(enabled: true),
+          lineTouchData: LineTouchData(
+      enabled: true,
+      touchTooltipData: LineTouchTooltipData(
+        tooltipBgColor: Colors.black87, // พื้นหลัง tooltip
+        tooltipRoundedRadius: 6,        // มุมโค้ง tooltip
+        getTooltipItems: (List<LineBarSpot> touchedSpots) {
+          return touchedSpots.map((barSpot) {
+            // barSpot.y → ค่าของจุด y
+            // barSpot.x → ค่าของจุด x
+            return LineTooltipItem(
+              '${barSpot.y.toStringAsFixed(0)} kWh', // ตัวอย่าง: แสดง y กับหน่วย
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            );
+          }).toList();
+        },
+      ),
+    ),,
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
