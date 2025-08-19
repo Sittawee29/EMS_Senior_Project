@@ -151,31 +151,24 @@ class _LineChart extends StatelessWidget {
           lineBarsData: [
             LineChartBarData(
               isCurved: false,
-              dotData: FlDotData(
-                show: false,
-              ),
+              dotData: FlDotData(show: false),
               color: Palette.lightBlue,
               barWidth: 3,
               spots: List.generate(96, (i) {
-                // 24 ชั่วโมง * 4 (15 นาที/step)
                 final data = PowerData[i];
-                if (data == null || data.first == null)
-                  return null; // spot เป็น null → เส้นหยุด
+                if (data == null || data.first == null) return null;
                 return FlSpot(i.toDouble(), data.first!);
               }).whereType<FlSpot>().toList(),
             ),
             LineChartBarData(
               isCurved: false,
-              dotData: FlDotData(
-                show: false,
-              ),
+              dotData: FlDotData(show: false),
               color: Palette.orange,
               barWidth: 3,
               spots: List.generate(96, (i) {
-                // 24 ชั่วโมง * 4 (15 นาที/step)
                 final data = PowerData[i];
-                if (data == null || data.first == null)
-                  return null; // spot เป็น null → เส้นหยุด
+                if (data == null || data.last == null)
+                  return null; // ✅ เช็ก last
                 return FlSpot(i.toDouble(), data.last!);
               }).whereType<FlSpot>().toList(),
             ),
