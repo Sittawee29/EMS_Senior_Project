@@ -66,8 +66,7 @@ class _LineChart extends StatelessWidget {
                     show: true,
                     getDotPainter: (spot, percent, bar, idx) {
                       return FlDotCirclePainter(
-                        radius: 3, // ✅ ปรับขนาด dot ของ touch
-                        color: bar.color, // ใช้สีเส้น
+                        radius: 2, // ✅ ปรับขนาด dot ของ touch
                         strokeWidth: 0, // ไม่มีเส้นขอบ
                       );
                     },
