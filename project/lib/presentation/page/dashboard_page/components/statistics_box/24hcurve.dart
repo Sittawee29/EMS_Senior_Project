@@ -88,7 +88,7 @@ class _LineChart extends StatelessWidget {
           // 🔹 ใช้ lineBarsData (ไม่ใช่ lineGroups)
           lineBarsData: [
             LineChartBarData(
-              isCurved: true,
+              isCurved: false,
               color: Palette.lightBlue,
               barWidth: 3,
               spots: activeUsersData.entries
@@ -96,7 +96,7 @@ class _LineChart extends StatelessWidget {
                   .toList(),
             ),
             LineChartBarData(
-              isCurved: true,
+              isCurved: false,
               color: Palette.mediumBlue,
               barWidth: 3,
               spots: activeUsersData.entries
