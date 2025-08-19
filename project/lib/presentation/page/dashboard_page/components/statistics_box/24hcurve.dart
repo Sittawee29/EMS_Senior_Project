@@ -122,6 +122,9 @@ class _LineChart extends StatelessWidget {
             ),
             LineChartBarData(
               isCurved: false,
+              dotData: FlDotData(
+                show: false,
+              ),
               color: Palette.orange,
               barWidth: 3,
               spots: PowerData.entries
