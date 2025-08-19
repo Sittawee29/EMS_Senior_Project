@@ -111,7 +111,7 @@ class _LineChart extends StatelessWidget {
               color: Palette.lightBlue,
               barWidth: 3,
               spots: activeUsersData.entries
-                  .map((e) => FlSpot(e.key.toDouble(), e.value.first))
+                  .map((e) => FlSpot(e.key.toDouble(), e.value.first!))
                   .toList(),
             ),
             LineChartBarData(
@@ -119,7 +119,7 @@ class _LineChart extends StatelessWidget {
               color: Palette.orange,
               barWidth: 3,
               spots: activeUsersData.entries
-                  .map((e) => FlSpot(e.key.toDouble(), e.value.last))
+                  .map((e) => FlSpot(e.key.toDouble(), e.value.las!))
                   .toList(),
             ),
           ],
