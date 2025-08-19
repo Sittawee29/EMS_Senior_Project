@@ -44,7 +44,7 @@ class _LineChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 191, maxWidth: 366),
+      constraints: const BoxConstraints(maxHeight: 200, maxWidth: 366),
       child: LineChart(
         LineChartData(
           maxY: 500,
