@@ -123,9 +123,12 @@ class _LineChart extends StatelessWidget {
                       "${hour.toString().padLeft(2, '0')}.${minute.toString().padLeft(2, '0')}";
                   return SideTitleWidget(
                     axisSide: AxisSide.bottom,
-                    child: Text(
-                      label,
-                      style: TextStyles.myriadProRegular13DarkBlue60,
+                    child: Transform.rotate(
+                      angle: -90 * 3.1415926535 / 180, // หมุน -90 องศา
+                      child: Text(
+                        label,
+                        style: TextStyles.myriadProRegular13DarkBlue60,
+                      ),
                     ),
                   );
                 },
