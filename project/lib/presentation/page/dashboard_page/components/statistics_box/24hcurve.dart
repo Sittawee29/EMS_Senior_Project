@@ -59,15 +59,15 @@ class _LineChart extends StatelessWidget {
               return spotIndexes.map((index) {
                 return TouchedSpotIndicatorData(
                   FlLine(
-                    color: Palette.lightGrey10,
-                    strokeWidth: 1,
+                    color: Palette.darkGrey,
+                    strokeWidth: 2,
                   ),
                   FlDotData(
                     show: true,
                     getDotPainter: (spot, percent, bar, idx) {
                       return FlDotCirclePainter(
                         radius: 4,
-                        color: Palette.lightGrey10,
+                        color: Palette.darkGrey,
                         strokeWidth: 0,
                       );
                     },
