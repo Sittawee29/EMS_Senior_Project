@@ -2,14 +2,12 @@ import 'package:auto_route/auto_route.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
 
 import '../../../dummy_data/charts_data.dart';
 import '../../theme/gen/assets.gen.dart';
 import '../../theme/palette.dart';
 import '../../theme/text_styles.dart';
 import '../../widget/name_and_color_row.dart';
-import 'components/active_users_box.dart';
 
 part 'components/devices_box.dart';
 part 'components/information_box.dart';
