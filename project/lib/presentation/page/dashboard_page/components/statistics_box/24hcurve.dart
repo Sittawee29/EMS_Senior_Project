@@ -45,6 +45,20 @@ class _LineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final List<String> timeLabels =
+        PowerData.keys.toList(); // ["00:00", "00:15", ... "23:45"]
+
+    final spotsProd = List.generate(timeLabels.length, (i) {
+      final data = PowerData[timeLabels[i]];
+      if (data == null || data[0] == null) return null; // null → หยุดเส้น
+      return FlSpot(i.toDouble(), data[0]!);
+    }).whereType<FlSpot>().toList();
+
+    final spotsCons = List.generate(timeLabels.length, (i) {
+      final data = PowerData[timeLabels[i]];
+      if (data == null || data[1] == null) return null;
+      return FlSpot(i.toDouble(), data[1]!);
+    }).whereType<FlSpot>().toList();
     return ConstrainedBox(
       constraints: const BoxConstraints(maxHeight: 250, maxWidth: 784),
       child: LineChart(
@@ -161,11 +175,11 @@ class _LineChart extends StatelessWidget {
               dotData: FlDotData(show: false),
               color: Palette.lightBlue,
               barWidth: 3,
-              final spotsProd = List.generate(timeLabels.length, (i) {
-  final data = PowerData[timeLabels[i]];
-  if (data == null || data[0] == null) return null; // null → หยุดเส้น
-  return FlSpot(i.toDouble(), data[0]!);
-}).whereType<FlSpot>().toList();
+              spots: List.generate(96, (i) {
+                final data = PowerData[i];
+                if (data == null || data.first == null) return null;
+                return FlSpot(i.toDouble(), data.first!);
+              }).whereType<FlSpot>().toList(),
             ),
             LineChartBarData(
               isCurved: false,
