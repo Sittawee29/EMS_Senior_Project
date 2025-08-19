@@ -53,8 +53,7 @@ class _LineChart extends StatelessWidget {
           lineTouchData: LineTouchData(
             enabled: true,
             touchTooltipData: LineTouchTooltipData(
-              tooltipBgColor: Colors.black87,
-              tooltipPadding: const EdgeInsets.all(8),
+              tooltipPadding: const EdgeInsets.all(6),
               getTooltipItems: (List<LineBarSpot> touchedSpots) {
                 return touchedSpots.map((barSpot) {
                   // barSpot.y → ค่าของจุด y
