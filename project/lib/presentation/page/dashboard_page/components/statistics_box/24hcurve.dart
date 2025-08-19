@@ -38,6 +38,8 @@ class H_Curve extends StatelessWidget {
   }
 }
 
+final List<String> lineNames = ['Power Production', 'Power Consumption'];
+
 class _LineChart extends StatelessWidget {
   const _LineChart();
 
