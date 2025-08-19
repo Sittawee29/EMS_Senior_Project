@@ -68,7 +68,26 @@ class _LineChart extends StatelessWidget {
                 ),
               ),
             ),
-            bottomTitles: const AxisTitles(),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                interval: 4, // step = 1 ชั่วโมง (4 * 15 นาที)
+                getTitlesWidget: (value, _) {
+                  int minutes = (value.toInt() * 15); // index → นาที
+                  int hour = minutes ~/ 60;
+                  int minute = minutes % 60;
+                  String label =
+                      "${hour.toString().padLeft(2, '0')}.${minute.toString().padLeft(2, '0')}";
+                  return SideTitleWidget(
+                    axisSide: AxisSide.bottom,
+                    child: Text(
+                      label,
+                      style: TextStyles.myriadProRegular13DarkBlue60,
+                    ),
+                  );
+                },
+              ),
+            ),
             topTitles: const AxisTitles(),
             rightTitles: const AxisTitles(),
           ),
