@@ -128,7 +128,6 @@ class _LineChart extends StatelessWidget {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 10,
                 interval: 2, // ทุก 30 นาที
                 getTitlesWidget: (value, meta) {
                   final index = value.toInt();
