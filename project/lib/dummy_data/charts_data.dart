@@ -49,7 +49,7 @@ const Map<int, List<double?>> activeUsersData = <int, List<double?>>{
   29: [null, null], // 07:15
   30: [null, null], // 07:30
   31: [null, null], // 07:45
-//
+  //
   32: [null, null], // 08:00
   33: [null, null], // 08:15
   34: [null, null], // 08:30
