@@ -71,9 +71,9 @@ class _LineChart extends StatelessWidget {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                interval: 4, // step = 1 ชั่วโมง (4 * 15 นาที)
+                interval: 4, // step = 1 hour (4 * 15 minutes)
                 getTitlesWidget: (value, _) {
-                  int minutes = (value.toInt() * 15); // index → นาที
+                  int minutes = (value.toInt() * 15); // index → minutes
                   int hour = minutes ~/ 60;
                   int minute = minutes % 60;
                   String label =
