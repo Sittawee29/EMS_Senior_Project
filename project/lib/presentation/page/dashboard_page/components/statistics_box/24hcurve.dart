@@ -83,7 +83,7 @@ class _LineChart extends StatelessWidget {
                   // ใช้ barSpot.barIndex เพื่อดึงชื่อเส้น
                   final lineName = lineNames[barSpot.barIndex];
                   return LineTooltipItem(
-                    '$lineName: ${barSpot.y.toStringAsFixed(0)} kW\nTime: ${barSpot.x.toStringAsFixed(2)}',
+                    '$lineName: ${barSpot.y.toStringAsFixed(0)} kW',
                     TextStyle(
                       fontSize: 12,
                       color: Colors.white,
