@@ -13,7 +13,7 @@ class UsersAgeData {
 //  UsersAgeData('18 - 24', 9),
 //];
 
-const Map<int, List<double>> activeUsersData = <int, List<double>>{
+const Map<int, List<double?>> activeUsersData = <int, List<double?>>{
   0: [500, 120],
   1: [200, 310],
   2: [305, 450],
@@ -25,5 +25,5 @@ const Map<int, List<double>> activeUsersData = <int, List<double>>{
   8: [150, 210],
   9: [210, 310],
   10: [210, 308],
-  11: [0, 0],
+  11: [null, null],
 };
