@@ -174,11 +174,7 @@ class _LineChart extends StatelessWidget {
               dotData: FlDotData(show: false),
               color: Palette.orange,
               barWidth: 3,
-              spots: List.generate(96, (i) {
-                final data = PowerData[i];
-                if (data == null || data.last == null) return null;
-                return FlSpot(i.toDouble(), data.last!);
-              }).whereType<FlSpot>().toList(),
+              spots: spotsCons,
             ),
           ],
         ),
