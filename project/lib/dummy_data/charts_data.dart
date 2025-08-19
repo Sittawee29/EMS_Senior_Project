@@ -26,7 +26,7 @@ const Map<int, List<double?>> PowerData = <int, List<double?>>{
   8: [150, 210], // 02:00
   9: [210, 310], // 02:15
   10: [210, 308], // 02:30
-  11: [null, null], // 02:45
+  11: [632, 753], // 02:45
   12: [null, null], // 03:00
   13: [null, null], // 03:15
   14: [null, null], // 03:30
