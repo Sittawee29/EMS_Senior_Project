@@ -22,34 +22,35 @@ const Map<int, List<double?>> activeUsersData = <int, List<double?>>{
   5: [100, 160], // 01:15
   6: [300, 450], // 01:30
   7: [210, 310], // 01:45
+  //
   8: [150, 210], // 02:00
   9: [210, 310], // 02:15
+  10: [210, 308], // 02:30
+  11: [null, null], // 02:45
+  12: [null, null], // 03:00
+  13: [null, null], // 03:15
+  14: [null, null], // 03:30
+  15: [null, null], // 03:45
   //
-  10: [210, 308], // 00:00
-  11: [null, null],
-  12: [null, null],
-  13: [null, null],
-  14: [null, null],
-  15: [null, null],
-  16: [null, null],
-  17: [null, null],
-  18: [null, null],
-  19: [null, null],
+  16: [null, null], // 04:00
+  17: [null, null], // 04:15
+  18: [null, null], // 04:30
+  19: [null, null], // 04:45
+  20: [null, null], // 05:00
+  21: [null, null], // 05:15
+  22: [null, null], // 05:30
+  23: [null, null], // 05:45
   //
-  20: [null, null],
-  21: [null, null],
-  22: [null, null],
-  23: [null, null],
-  24: [null, null],
-  25: [null, null],
-  26: [null, null],
-  27: [null, null],
-  28: [null, null],
-  29: [null, null],
-  //
-  30: [null, null],
-  31: [null, null],
-  32: [null, null],
+  24: [null, null], // 06:00
+  25: [null, null], // 06:15
+  26: [null, null], // 06:30
+  27: [null, null], // 06:45
+  28: [null, null], // 07:00
+  29: [null, null], // 07:15
+  30: [null, null], // 07:30
+  31: [null, null], // 07:45
+//
+  32: [null, null], // 08:00
   33: [null, null],
   34: [null, null],
   35: [null, null],
