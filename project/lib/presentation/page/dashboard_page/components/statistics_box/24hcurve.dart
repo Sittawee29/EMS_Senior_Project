@@ -46,7 +46,7 @@ class _LineChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 600, // ✅ เพิ่มความกว้างให้ tooltip พอแสดงข้อความ
+      width: 600,
       height: 200,
       padding: const EdgeInsets.all(8),
       child: LineChart(
