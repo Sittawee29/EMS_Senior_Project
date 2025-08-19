@@ -95,17 +95,15 @@ class _LineChart extends StatelessWidget {
               getTooltipItems: (touchedSpots) {
                 if (touchedSpots.isEmpty) return [];
 
-                // ใช้ x ของ spot แรกเป็นเวลา
                 final index = touchedSpots.first.x.toInt();
                 final time = (index >= 0 && index < timeLabels.length)
                     ? timeLabels[index]
                     : index.toString();
 
-                // รวมทุกเส้นเป็นข้อความเดียว
                 final linesText = touchedSpots.map((barSpot) {
                   final lineName = lineNames[barSpot.barIndex];
                   return '$lineName: ${barSpot.y.toStringAsFixed(0)} kW';
-                }).join('\n'); // \n เพื่อขึ้นบรรทัดใหม่
+                }).join('\n');
 
                 return [
                   LineTooltipItem(
