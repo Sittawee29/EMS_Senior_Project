@@ -51,13 +51,13 @@ const Map<int, List<double?>> activeUsersData = <int, List<double?>>{
   31: [null, null], // 07:45
 //
   32: [null, null], // 08:00
-  33: [null, null],
-  34: [null, null],
-  35: [null, null],
-  36: [null, null],
-  37: [null, null],
-  38: [null, null],
-  39: [null, null],
+  33: [null, null], // 08:15
+  34: [null, null], // 08:30
+  35: [null, null], // 08:45
+  36: [null, null], // 09:00
+  37: [null, null], // 09:15
+  38: [null, null], // 09:30
+  39: [null, null], // 09:45
   //
   40: [null, null],
   41: [null, null],
