@@ -46,9 +46,8 @@ class _LineChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<String> timeLabels = PowerData.keys.toList();
-
+    // Power Production
     final spotsProd = List.generate(timeLabels.length, (i) {
-      // Power Production
       final data = PowerData[timeLabels[i]];
       if (data == null || data[0] == null) return null;
       return FlSpot(i.toDouble(), data[0]!);
