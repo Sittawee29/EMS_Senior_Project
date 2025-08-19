@@ -100,7 +100,7 @@ class _LineChart extends StatelessWidget {
                       : index.toString(); // fallback ถ้า index นอก range
                   final lineName = lineNames[barSpot.barIndex];
                   return LineTooltipItem(
-                    '$lineName: ${barSpot.y.toStringAsFixed(0)} kW $time ',
+                    '$lineName: ${barSpot.y.toStringAsFixed(0)} kW $time',
                     const TextStyle(
                       fontSize: 12,
                       color: Colors.white,
