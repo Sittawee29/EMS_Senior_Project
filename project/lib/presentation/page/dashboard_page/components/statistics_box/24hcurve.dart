@@ -26,7 +26,7 @@ class H_Curve extends StatelessWidget {
                         color: Palette.lightBlue, text: 'Power Production'),
                     SizedBox(width: 36),
                     NameAndColorRow(
-                        color: Palette.mediumBlue, text: 'Power Consumption'),
+                        color: Palette.orange, text: 'Power Consumption'),
                   ],
                 ),
               ],
