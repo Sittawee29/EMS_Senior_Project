@@ -31,7 +31,7 @@ class ActiveUsersBox extends StatelessWidget {
                   style: TextStyles.myriadProSemiBold22DarkBlue,
                 ),
                 SizedBox(height: 24),
-                _BarChart(),
+                _LineChart(),
                 SizedBox(height: 20),
                 Row(
                   children: <Widget>[
@@ -44,39 +44,29 @@ class ActiveUsersBox extends StatelessWidget {
               ],
             ),
           ),
-          _DetailsColumn(
-            daily: 23,
-            monthly: 233,
-            annual: 232323,
-          ),
         ],
       ),
     );
   }
 }
 
-class _BarChart extends StatelessWidget {
-  const _BarChart();
+class _LineChart extends StatelessWidget {
+  const _LineChart();
 
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxHeight: 191, maxWidth: 366),
-      child: BarChart(
-        BarChartData(
+      child: LineChart(
+        LineChartData(
           maxY: 500,
-          alignment: BarChartAlignment.center,
-          barTouchData: BarTouchData(enabled: false),
+          lineTouchData: LineTouchData(enabled: false),
           titlesData: FlTitlesData(
-            show: true,
-            bottomTitles: const AxisTitles(),
-            topTitles: const AxisTitles(),
-            rightTitles: const AxisTitles(),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
-                reservedSize: 30,
                 showTitles: true,
-                getTitlesWidget: (value, __) => SideTitleWidget(
+                reservedSize: 30,
+                getTitlesWidget: (value, _) => SideTitleWidget(
                   axisSide: AxisSide.left,
                   child: Align(
                     alignment: Alignment.centerLeft,
@@ -88,6 +78,9 @@ class _BarChart extends StatelessWidget {
                 ),
               ),
             ),
+            bottomTitles: const AxisTitles(),
+            topTitles: const AxisTitles(),
+            rightTitles: const AxisTitles(),
           ),
           gridData: FlGridData(
             show: true,
@@ -103,117 +96,28 @@ class _BarChart extends StatelessWidget {
               top: BorderSide(color: Palette.mediumGrey40, width: 1),
             ),
           ),
-          barGroups: _chartData,
-        ),
-      ),
-    );
-  }
 
-  static final List<BarChartGroupData> _chartData = [
-    BarChartGroupData(
-      x: 0,
-      barsSpace: 20,
-      barRods: [
-        ...activeUsersData.entries.map(
-          (MapEntry<int, List<double>> e) => BarChartRodData(
-            toY: e.value.first,
-            width: 13,
-            color: Palette.lightBlue,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(8),
-              topRight: Radius.circular(8),
+          // 🔹 ใช้ lineBarsData (ไม่ใช่ lineGroups)
+          lineBarsData: [
+            LineChartBarData(
+              isCurved: true,
+              color: Palette.lightBlue,
+              barWidth: 3,
+              spots: activeUsersData.entries
+                  .map((e) => FlSpot(e.key.toDouble(), e.value.first))
+                  .toList(),
             ),
-            backDrawRodData: BackgroundBarChartRodData(
-              show: true,
-              toY: e.value.last,
+            LineChartBarData(
+              isCurved: true,
               color: Palette.mediumBlue,
+              barWidth: 3,
+              spots: activeUsersData.entries
+                  .map((e) => FlSpot(e.key.toDouble(), e.value.last))
+                  .toList(),
             ),
-          ),
+          ],
         ),
-      ],
-    ),
-  ];
-}
-
-class _DetailsColumn extends StatelessWidget {
-  const _DetailsColumn({
-    required this.annual,
-    required this.monthly,
-    required this.daily,
-  });
-
-  final int annual;
-
-  final int monthly;
-
-  final int daily;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 92,
-      height: 301,
-      decoration: BoxDecoration(
-        color: Palette.mediumBlue50,
-        borderRadius: BorderRadius.circular(6),
       ),
-      padding: const EdgeInsets.symmetric(vertical: 15),
-      child: const Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          _NumberAndTitle(
-            title: 'Annual',
-            number: 232323,
-            numberTextStyle: TextStyles.myriadProSemiBold18Purple,
-          ),
-          Divider(color: Palette.mediumBlue),
-          _NumberAndTitle(
-            title: 'Monthly',
-            number: 233,
-            numberTextStyle: TextStyles.myriadProSemiBold18Orange,
-          ),
-          Divider(color: Palette.mediumBlue),
-          _NumberAndTitle(
-            title: 'Daily',
-            number: 23,
-            numberTextStyle: TextStyles.myriadProSemiBold18LightBlue,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NumberAndTitle extends StatelessWidget {
-  const _NumberAndTitle({
-    required this.title,
-    required this.number,
-    required this.numberTextStyle,
-  });
-
-  final String title;
-
-  final int number;
-  final TextStyle numberTextStyle;
-
-  String _formatNumber(int number) {
-    if (number.toString().length >= 10) {
-      return NumberFormat.compact().format(number);
-    } else {
-      return NumberFormat.decimalPattern().format(number).replaceAll(',', ' ');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Text(_formatNumber(number), style: numberTextStyle),
-        const SizedBox(height: 7.6),
-        Text(title, style: TextStyles.myriadProRegular13DarkGrey),
-      ],
     );
   }
 }
