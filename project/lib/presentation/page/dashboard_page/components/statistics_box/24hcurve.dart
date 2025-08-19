@@ -91,21 +91,38 @@ class _LineChart extends StatelessWidget {
               }).toList();
             },
             touchTooltipData: LineTouchTooltipData(
-              tooltipPadding: const EdgeInsets.all(6),
+              tooltipPadding: const EdgeInsets.all(8),
               getTooltipItems: (touchedSpots) {
-                return touchedSpots.map((barSpot) {
-                  final index = barSpot.x.toInt();
-                  final time = (index >= 0 && index < timeLabels.length)
-                      ? timeLabels[index]
-                      : index.toString(); // fallback ถ้า index นอก range
-                  final lineName = lineNames[barSpot.barIndex];
-                  return LineTooltipItem(
-                    '$lineName: ${barSpot.y.toStringAsFixed(0)} kW $time',
-                    const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white,
-                    ),
-                  );
+                if (touchedSpots.isEmpty) return [];
+
+                final index = touchedSpots.first.x.toInt();
+                final time = (index >= 0 && index < timeLabels.length)
+                    ? timeLabels[index]
+                    : '--:--';
+
+                // รวมข้อมูลทุกเส้นที่แตะในจุดเดียวกัน
+                final buffer = StringBuffer();
+                buffer.writeln(time);
+                for (var spot in touchedSpots) {
+                  final lineName = lineNames[spot.barIndex];
+                  buffer.writeln('$lineName: ${spot.y.toStringAsFixed(0)} kW');
+                }
+
+                // สร้าง list เท่ากับ touchedSpots
+                return touchedSpots.asMap().entries.map((entry) {
+                  if (entry.key == 0) {
+                    // tooltip ตัวแรก แสดงรวมทั้งหมด
+                    return LineTooltipItem(
+                      buffer.toString(),
+                      const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white,
+                      ),
+                    );
+                  } else {
+                    // tooltip อื่น return null → fl_chart จะไม่วาด
+                    return null;
+                  }
                 }).toList();
               },
             ),
