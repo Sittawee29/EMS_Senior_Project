@@ -48,7 +48,7 @@ class _LineChart extends StatelessWidget {
       child: LineChart(
         LineChartData(
           minX: 0,
-          maxY: 1500,
+          maxY: 1000,
           lineTouchData: LineTouchData(enabled: true),
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(
