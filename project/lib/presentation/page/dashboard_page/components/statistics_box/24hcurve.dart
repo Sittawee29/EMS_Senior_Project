@@ -167,11 +167,7 @@ class _LineChart extends StatelessWidget {
               dotData: FlDotData(show: false),
               color: Palette.lightBlue,
               barWidth: 3,
-              spots: List.generate(96, (i) {
-                final data = PowerData[i];
-                if (data == null || data.first == null) return null;
-                return FlSpot(i.toDouble(), data.first!);
-              }).whereType<FlSpot>().toList(),
+              spots: spotsProd,
             ),
             LineChartBarData(
               isCurved: false,
