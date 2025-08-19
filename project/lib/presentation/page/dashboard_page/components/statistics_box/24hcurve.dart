@@ -54,6 +54,27 @@ class _LineChart extends StatelessWidget {
           maxY: 1000,
           lineTouchData: LineTouchData(
             enabled: true,
+            getTouchedSpotIndicator:
+                (LineChartBarData barData, List<int> spotIndexes) {
+              return spotIndexes.map((index) {
+                return TouchedSpotIndicatorData(
+                  FlLine(
+                    color: Colors.transparent, // ไม่วาดเส้นแนวตั้ง
+                    strokeWidth: 0,
+                  ),
+                  FlDotData(
+                    show: true,
+                    getDotPainter: (spot, percent, bar, idx) {
+                      return FlDotCirclePainter(
+                        radius: 3, // ✅ ปรับขนาด dot ของ touch
+                        color: bar.color, // ใช้สีเส้น
+                        strokeWidth: 0, // ไม่มีเส้นขอบ
+                      );
+                    },
+                  ),
+                );
+              }).toList();
+            },
             touchTooltipData: LineTouchTooltipData(
               tooltipPadding: const EdgeInsets.all(6),
               getTooltipItems: (touchedSpots) {
