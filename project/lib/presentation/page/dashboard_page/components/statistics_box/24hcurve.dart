@@ -97,7 +97,7 @@ class _LineChart extends StatelessWidget {
             ),
             LineChartBarData(
               isCurved: false,
-              color: Palette.mediumBlue,
+              color: Palette.orange,
               barWidth: 3,
               spots: activeUsersData.entries
                   .map((e) => FlSpot(e.key.toDouble(), e.value.last))
