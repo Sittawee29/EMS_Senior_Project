@@ -176,7 +176,7 @@ class _LineChart extends StatelessWidget {
                 final data = PowerData[i];
                 if (data == null || data.first == null)
                   return null; // spot เป็น null → เส้นหยุด
-                return FlSpot(i.toDouble(), data.first!);
+                return FlSpot(i.toDouble(), data.last!);
               }).whereType<FlSpot>().toList(),
             ),
           ],
