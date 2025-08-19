@@ -64,7 +64,6 @@ class _LineChart extends StatelessWidget {
                     '${lineNames[index]}: ${barSpot.y.toStringAsFixed(0)} kW',
                     TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
                     ),
                   );
                 }).toList();
