@@ -47,6 +47,7 @@ class _LineChart extends StatelessWidget {
       constraints: const BoxConstraints(maxHeight: 250, maxWidth: 784),
       child: LineChart(
         LineChartData(
+          minX: 0,
           maxY: 1500,
           lineTouchData: LineTouchData(enabled: true),
           titlesData: FlTitlesData(
