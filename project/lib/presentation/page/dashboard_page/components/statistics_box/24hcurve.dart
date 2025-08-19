@@ -82,8 +82,6 @@ class _LineChart extends StatelessWidget {
             top: BorderSide(color: Palette.darkGrey, width: 1),
           ),
         ),
-
-        // 🔹 ใช้ lineBarsData (ไม่ใช่ lineGroups)
         lineBarsData: [
           LineChartBarData(
             isCurved: false,
