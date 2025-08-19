@@ -45,10 +45,8 @@ class _LineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 600,
-      height: 200,
-      padding: const EdgeInsets.all(8),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 250, maxWidth: 784),
       child: LineChart(
         LineChartData(
           minX: 0,
@@ -79,7 +77,6 @@ class _LineChart extends StatelessWidget {
             },
             touchTooltipData: LineTouchTooltipData(
               tooltipPadding: const EdgeInsets.all(6),
-              fitInsideHorizontally: true,
               getTooltipItems: (touchedSpots) {
                 return touchedSpots.map((barSpot) {
                   // ใช้ barSpot.barIndex เพื่อดึงชื่อเส้น
