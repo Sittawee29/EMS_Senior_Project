@@ -105,15 +105,16 @@ class _LineChart extends StatelessWidget {
               top: BorderSide(color: Palette.mediumGrey40, width: 1),
             ),
           ),
-          LineChartBarData(
-  isCurved: false,
-  color: Palette.lightBlue,
-  barWidth: 3,
-  spots: activeUsersData.entries
-      .where((e) => e.value.first != null)
-      .map((e) => FlSpot(e.key.toDouble(), e.value.first!))
-      .toList(),
-),
+          lineBarsData: [
+            LineChartBarData(
+              isCurved: false,
+              color: Palette.lightBlue,
+              barWidth: 3,
+              spots: activeUsersData.entries
+                  .where((e) => e.value.first != null)
+                  .map((e) => FlSpot(e.key.toDouble(), e.value.first!))
+                  .toList(),
+            ),
             LineChartBarData(
               isCurved: false,
               color: Palette.orange,
