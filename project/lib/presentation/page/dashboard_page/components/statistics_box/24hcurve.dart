@@ -5,34 +5,34 @@ class H_Curve extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: const Row(
-        children: <Widget>[
-          Padding(
-            padding: EdgeInsets.only(left: 32.0, top: 32.0, right: 45),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Daily Curve',
-                  style: TextStyles.myriadProSemiBold22DarkBlue,
-                ),
-                SizedBox(height: 24),
-                _LineChart(),
-                SizedBox(height: 20),
-                Row(
-                  children: <Widget>[
-                    NameAndColorRow(
-                        color: Palette.lightBlue, text: 'Power Production'),
-                    SizedBox(width: 36),
-                    NameAndColorRow(
-                        color: Palette.orange, text: 'Power Consumption'),
-                  ],
-                ),
-              ],
-            ),
+    return Center(
+      child: Container(
+        width: 900, // ขยายความกว้างให้ tooltip พอ
+        height: 250,
+        child: const Padding(
+          padding: EdgeInsets.only(left: 32.0, top: 32.0, right: 45),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Daily Curve',
+                style: TextStyles.myriadProSemiBold22DarkBlue,
+              ),
+              SizedBox(height: 24),
+              _LineChart(),
+              SizedBox(height: 20),
+              Row(
+                children: <Widget>[
+                  NameAndColorRow(
+                      color: Palette.lightBlue, text: 'Power Production'),
+                  SizedBox(width: 36),
+                  NameAndColorRow(
+                      color: Palette.orange, text: 'Power Consumption'),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
