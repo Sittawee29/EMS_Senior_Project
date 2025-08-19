@@ -9,7 +9,7 @@ class H_Curve extends StatelessWidget {
       child: const Row(
         children: <Widget>[
           Padding(
-            padding: EdgeInsets.only(top: 40, bottom: 40),
+            padding: EdgeInsets.only(left: 32.0, top: 32.0, right: 45),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
@@ -84,9 +84,11 @@ class _LineChart extends StatelessWidget {
               top: BorderSide(color: Palette.mediumGrey40, width: 1),
             ),
           ),
+
+          // 🔹 ใช้ lineBarsData (ไม่ใช่ lineGroups)
           lineBarsData: [
             LineChartBarData(
-              isCurved: false,
+              isCurved: true,
               color: Palette.lightBlue,
               barWidth: 3,
               spots: activeUsersData.entries
@@ -94,8 +96,8 @@ class _LineChart extends StatelessWidget {
                   .toList(),
             ),
             LineChartBarData(
-              isCurved: false,
-              color: Palette.orange,
+              isCurved: true,
+              color: Palette.mediumBlue,
               barWidth: 3,
               spots: activeUsersData.entries
                   .map((e) => FlSpot(e.key.toDouble(), e.value.last))
