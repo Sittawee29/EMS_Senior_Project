@@ -54,15 +54,17 @@ class _LineChart extends StatelessWidget {
             enabled: true,
             touchTooltipData: LineTouchTooltipData(
               tooltipPadding: const EdgeInsets.all(6),
-              getTooltipItems: (List<LineBarSpot> touchedSpots) {
-                return touchedSpots.map((barSpot) {
-                  // barSpot.y → ค่าของจุด y
-                  // barSpot.x → ค่าของจุด x
+              getTooltipItems: (touchedSpots) {
+                return touchedSpots.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final barSpot = entry.value;
                   return LineTooltipItem(
-                    '${barSpot.y.toStringAsFixed(0)} kW',
-                    //'x: ${barSpot.x.toStringAsFixed(2)}\ny: ${barSpot.y.toStringAsFixed(0)}',
-                    const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
+                    '${lineNames[index]}: ${barSpot.y.toStringAsFixed(0)} kW',
+                    TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      backgroundColor: Colors.black.withOpacity(0.5),
+                    ),
                   );
                 }).toList();
               },
