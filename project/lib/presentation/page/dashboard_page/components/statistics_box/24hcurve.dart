@@ -78,11 +78,11 @@ class _LineChart extends StatelessWidget {
             touchTooltipData: LineTouchTooltipData(
               tooltipPadding: const EdgeInsets.all(6),
               getTooltipItems: (touchedSpots) {
-                return touchedSpots.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final barSpot = entry.value;
+                return touchedSpots.map((barSpot) {
+                  // ใช้ barSpot.barIndex เพื่อดึงชื่อเส้น
+                  final lineName = lineNames[barSpot.barIndex];
                   return LineTooltipItem(
-                    '${lineNames[index]}: ${barSpot.y.toStringAsFixed(0)} kW',
+                    '$lineName: ${barSpot.y.toStringAsFixed(0)} kW',
                     TextStyle(
                       fontSize: 10,
                       color: Colors.white,
