@@ -112,7 +112,7 @@ class _LineChart extends StatelessWidget {
               isStrokeCapRound: false,
               color: Palette.lightBlue,
               barWidth: 3,
-              spots: activeUsersData.entries
+              spots: PowerData.entries
                   .where((e) => e.value.first != null)
                   .map((e) => FlSpot(e.key.toDouble(), e.value.first!))
                   .toList(),
@@ -121,7 +121,7 @@ class _LineChart extends StatelessWidget {
               isCurved: false,
               color: Palette.orange,
               barWidth: 3,
-              spots: activeUsersData.entries
+              spots: PowerData.entries
                   .where((e) => e.value.last != null)
                   .map((e) => FlSpot(e.key.toDouble(), e.value.last!))
                   .toList(),
