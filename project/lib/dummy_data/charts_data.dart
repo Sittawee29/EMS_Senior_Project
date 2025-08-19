@@ -25,5 +25,5 @@ const Map<int, List<double?>> activeUsersData = <int, List<double?>>{
   8: [150, 210],
   9: [210, 310],
   10: [210, 308],
-  11: [535, null],
+  11: [null, null],
 };
