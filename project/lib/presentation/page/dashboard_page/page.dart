@@ -53,7 +53,7 @@ class DashboardPage extends StatelessWidget {
           //runSpacing: 22,
           children: <Widget>[
             _DevicesBox(),
-            //ActiveUsersBox(),
+            ActiveUsersBox(),
           ],
         ),
         SizedBox(height: 40),
