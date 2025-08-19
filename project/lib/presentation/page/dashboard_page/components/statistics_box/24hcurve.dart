@@ -108,6 +108,7 @@ class _LineChart extends StatelessWidget {
           lineBarsData: [
             LineChartBarData(
               isCurved: false,
+              isStrokeCapRound: true
               color: Palette.lightBlue,
               barWidth: 3,
               spots: activeUsersData.entries
