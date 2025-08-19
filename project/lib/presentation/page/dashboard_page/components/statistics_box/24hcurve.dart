@@ -100,7 +100,6 @@ class _LineChart extends StatelessWidget {
                     ? timeLabels[index]
                     : index.toString();
 
-                // สร้าง list ของ LineTooltipItem เริ่มจากเวลา
                 final items = <LineTooltipItem>[
                   LineTooltipItem(
                     '$time\n',
@@ -112,7 +111,6 @@ class _LineChart extends StatelessWidget {
                   ),
                 ];
 
-                // เพิ่มข้อมูลแต่ละเส้น
                 for (final barSpot in touchedSpots) {
                   final lineName = lineNames[barSpot.barIndex];
                   items.add(
