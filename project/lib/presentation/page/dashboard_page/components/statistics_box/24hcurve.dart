@@ -135,6 +135,7 @@ class _LineChart extends StatelessWidget {
                     return const SizedBox.shrink();
                   return SideTitleWidget(
                     axisSide: meta.axisSide,
+                    angle: 90 * 3.1415926535 / 180,
                     child: Text(
                       timeLabels[index],
                       style: TextStyles.myriadProRegular13DarkBlue60,
