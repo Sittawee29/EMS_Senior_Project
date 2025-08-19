@@ -59,16 +59,16 @@ class _LineChart extends StatelessWidget {
               return spotIndexes.map((index) {
                 return TouchedSpotIndicatorData(
                   FlLine(
-                    color: Colors.transparent, // ไม่วาดเส้นแนวตั้ง
+                    color: Palette.mediumGrey40,
                     strokeWidth: 0,
                   ),
                   FlDotData(
                     show: true,
                     getDotPainter: (spot, percent, bar, idx) {
                       return FlDotCirclePainter(
-                        radius: 4, // ✅ ปรับขนาด dot ของ touch
-                        color: bar.color, // ใช้สีเส้น
-                        strokeWidth: 0, // ไม่มีเส้นขอบ
+                        radius: 4,
+                        color: Palette.mediumGrey40,
+                        strokeWidth: 0,
                       );
                     },
                   ),
