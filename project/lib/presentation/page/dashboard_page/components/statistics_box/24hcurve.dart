@@ -54,7 +54,7 @@ class _LineChart extends StatelessWidget {
               sideTitles: SideTitles(
                 showTitles: true,
                 reservedSize: 40,
-                interval: 0.25,
+                //interval: 0.25,
                 getTitlesWidget: (value, _) => SideTitleWidget(
                   axisSide: AxisSide.left,
                   child: Align(
