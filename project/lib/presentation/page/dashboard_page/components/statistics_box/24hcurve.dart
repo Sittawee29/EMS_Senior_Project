@@ -76,8 +76,7 @@ class _LineChart extends StatelessWidget {
               }).toList();
             },
             touchTooltipData: LineTouchTooltipData(
-              tooltipPadding:
-                  const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+              tooltipPadding: const EdgeInsets.all(6),
               getTooltipItems: (touchedSpots) {
                 return touchedSpots.map((barSpot) {
                   // ใช้ barSpot.barIndex เพื่อดึงชื่อเส้น
@@ -85,9 +84,8 @@ class _LineChart extends StatelessWidget {
                   return LineTooltipItem(
                     '$lineName: ${barSpot.y.toStringAsFixed(0)} kW',
                     TextStyle(
-                      fontSize: 12,
+                      fontSize: 8,
                       color: Colors.white,
-                      height: 1,
                     ),
                   );
                 }).toList();
