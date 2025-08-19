@@ -93,29 +93,20 @@ class _LineChart extends StatelessWidget {
             touchTooltipData: LineTouchTooltipData(
               tooltipPadding: const EdgeInsets.all(6),
               getTooltipItems: (touchedSpots) {
-                if (touchedSpots.isEmpty) return [];
-
-                // ใช้ x ของ spot แรกเป็นเวลา
-                final index = touchedSpots.first.x.toInt();
-                final time = (index >= 0 && index < timeLabels.length)
-                    ? timeLabels[index]
-                    : index.toString();
-
-                // รวมทุกเส้นใน tooltip เดียว
-                final linesText = touchedSpots.map((barSpot) {
+                return touchedSpots.map((barSpot) {
+                  final index = barSpot.x.toInt();
+                  final time = (index >= 0 && index < timeLabels.length)
+                      ? timeLabels[index]
+                      : index.toString(); // fallback ถ้า index นอก range
                   final lineName = lineNames[barSpot.barIndex];
-                  return '$lineName: ${barSpot.y.toStringAsFixed(0)} kW';
-                }).join('\n'); // \n เพื่อขึ้นบรรทัดใหม่
-
-                return [
-                  LineTooltipItem(
-                    '$time:\n$linesText',
+                  return LineTooltipItem(
+                    '$time: $lineName: ${barSpot.y.toStringAsFixed(0)} kW',
                     const TextStyle(
                       fontSize: 12,
                       color: Colors.white,
                     ),
-                  ),
-                ];
+                  );
+                }).toList();
               },
             ),
           ),
@@ -140,7 +131,7 @@ class _LineChart extends StatelessWidget {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 30,
+                reservedSize: 40,
                 interval: 2, // ทุก 30 นาที
                 getTitlesWidget: (value, meta) {
                   final index = value.toInt();
