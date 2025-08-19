@@ -120,5 +120,5 @@ const Map<String, List<double?>> PowerData = <String, List<double?>>{
   "23:00": [null, null], // 23:00
   "23:15": [null, null], // 23:15
   "23:30": [null, null], // 23:30
-  "23:45": [500, null], // 23:45
+  "23:45": [null, null], // 23:45
 };
