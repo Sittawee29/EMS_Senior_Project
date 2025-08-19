@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 class UsersAgeData {
   const UsersAgeData(this.age, this.percent);
 
