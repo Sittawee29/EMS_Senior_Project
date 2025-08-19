@@ -116,6 +116,9 @@ class _LineChart extends StatelessWidget {
                 showTitles: true,
                 interval: 2, // step = 15 นาที
                 getTitlesWidget: (value, _) {
+                  if (value == 95) {
+                    return const SizedBox.shrink();
+                  }
                   int minutes = (value.toInt() * 15); // index → minutes
                   int hour = minutes ~/ 60;
                   int minute = minutes % 60;
