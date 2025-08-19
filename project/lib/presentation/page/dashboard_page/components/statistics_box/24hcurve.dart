@@ -45,16 +45,17 @@ class _LineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> timeLabels =
-        PowerData.keys.toList(); // ["00:00", "00:15", ... "23:45"]
+    final List<String> timeLabels = PowerData.keys.toList();
 
     final spotsProd = List.generate(timeLabels.length, (i) {
+      // Power Production
       final data = PowerData[timeLabels[i]];
-      if (data == null || data[0] == null) return null; // null → หยุดเส้น
+      if (data == null || data[0] == null) return null;
       return FlSpot(i.toDouble(), data[0]!);
     }).whereType<FlSpot>().toList();
 
     final spotsCons = List.generate(timeLabels.length, (i) {
+      // Power Consumption
       final data = PowerData[timeLabels[i]];
       if (data == null || data[1] == null) return null;
       return FlSpot(i.toDouble(), data[1]!);
