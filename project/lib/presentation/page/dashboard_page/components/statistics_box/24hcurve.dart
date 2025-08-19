@@ -14,7 +14,7 @@ class H_Curve extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Active Users',
+                  'Daily Curve',
                   style: TextStyles.myriadProSemiBold22DarkBlue,
                 ),
                 SizedBox(height: 24),
