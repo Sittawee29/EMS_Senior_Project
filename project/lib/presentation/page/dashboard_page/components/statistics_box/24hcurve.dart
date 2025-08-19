@@ -94,11 +94,14 @@ class _LineChart extends StatelessWidget {
               tooltipPadding: const EdgeInsets.all(6),
               getTooltipItems: (touchedSpots) {
                 return touchedSpots.map((barSpot) {
-                  // ใช้ barSpot.barIndex เพื่อดึงชื่อเส้น
+                  final index = barSpot.x.toInt();
+                  final time = (index >= 0 && index < timeLabels.length)
+                      ? timeLabels[index]
+                      : index.toString(); // fallback ถ้า index นอก range
                   final lineName = lineNames[barSpot.barIndex];
                   return LineTooltipItem(
-                    '$lineName: ${barSpot.y.toStringAsFixed(0)} kW',
-                    TextStyle(
+                    '$time: $lineName: ${barSpot.y.toStringAsFixed(0)} kW',
+                    const TextStyle(
                       fontSize: 12,
                       color: Colors.white,
                     ),
