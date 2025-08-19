@@ -59,59 +59,61 @@ const Map<int, List<double?>> activeUsersData = <int, List<double?>>{
   38: [null, null], // 09:30
   39: [null, null], // 09:45
   //
-  40: [null, null],
-  41: [null, null],
-  42: [null, null],
-  43: [null, null],
-  44: [null, null],
-  45: [null, null],
-  46: [null, null],
-  47: [null, null],
-  48: [null, null],
-  49: [null, null],
+  40: [null, null], // 10:00
+  41: [null, null], // 10:15
+  42: [null, null], // 10:30
+  43: [null, null], // 10:45
+  44: [null, null], // 11:00
+  45: [null, null], // 11:15
+  46: [null, null], // 11:30
+  47: [null, null], // 11:45
   //
-  50: [null, null],
-  51: [null, null],
-  52: [null, null],
-  53: [null, null],
-  54: [null, null],
-  55: [null, null],
-  56: [null, null],
-  57: [null, null],
-  58: [null, null],
-  59: [null, null],
+  48: [null, null], // 12:00
+  49: [null, null], // 12:15
+  50: [null, null], // 12:30
+  51: [null, null], // 12:45
+  52: [null, null], // 13:00
+  53: [null, null], // 13:15
+  54: [null, null], // 13:30
+  55: [null, null], // 13:45
   //
-  60: [null, null],
-  61: [null, null],
-  62: [null, null],
-  63: [null, null],
-  64: [null, null],
-  65: [null, null],
-  66: [null, null],
-  67: [null, null],
-  68: [null, null],
-  69: [null, null],
+  56: [null, null], // 14:00
+  57: [null, null], // 14:15
+  58: [null, null], // 14:30
+  59: [null, null], // 14:45
+  60: [null, null], // 15:00
+  61: [null, null], // 15:15
+  62: [null, null], // 15:30
+  63: [null, null], // 15:45
   //
-  70: [null, null],
-  71: [null, null],
-  72: [null, null],
-  73: [null, null],
-  74: [null, null],
-  75: [null, null],
-  76: [null, null],
-  77: [null, null],
-  78: [null, null],
-  79: [null, null],
+  64: [null, null], // 16:00
+  65: [null, null], // 16:15
+  66: [null, null], // 16:30
+  67: [null, null], // 16:45
+  68: [null, null], // 17:00
+  69: [null, null], // 17:15
+  70: [null, null], // 17:30
+  71: [null, null], // 17:45
   //
-  80: [null, null],
-  81: [null, null],
-  82: [null, null],
-  83: [null, null],
-  84: [null, null],
-  85: [null, null],
-  86: [null, null],
-  87: [null, null],
-  88: [null, null],
+  72: [null, null], // 18:00
+  73: [null, null], // 18:15
+  74: [null, null], // 18:30
+  75: [null, null], // 18:45
+  76: [null, null], // 19:00
+  77: [null, null], // 19:15
+  78: [null, null], // 19:30
+  79: [null, null], // 19:45
+  //
+  80: [null, null], // 20:00
+  81: [null, null], // 20:15
+  82: [null, null], // 20:30
+  83: [null, null], // 20:45
+  84: [null, null], // 21:00
+  85: [null, null], // 21:15
+  86: [null, null], // 21:30
+  87: [null, null], // 21:45
+  //
+  88: [null, null], // 22:00
   89: [null, null],
   //
   90: [null, null],
