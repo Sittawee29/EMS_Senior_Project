@@ -53,7 +53,7 @@ class _LineChart extends StatelessWidget {
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 30,
+                reservedSize: 50,
                 getTitlesWidget: (value, _) => SideTitleWidget(
                   axisSide: AxisSide.left,
                   child: Align(
