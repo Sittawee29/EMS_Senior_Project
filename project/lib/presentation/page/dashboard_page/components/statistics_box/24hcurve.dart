@@ -86,6 +86,7 @@ class _LineChart extends StatelessWidget {
                     TextStyle(
                       fontSize: 10,
                       color: Colors.white,
+                      height: 1,
                     ),
                   );
                 }).toList();
