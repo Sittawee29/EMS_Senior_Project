@@ -9,7 +9,7 @@ class H_Curve extends StatelessWidget {
       child: const Row(
         children: <Widget>[
           Padding(
-            padding: EdgeInsets.only(left: 32.0, top: 32.0, right: 45),
+            padding: EdgeInsets.only(top: 40, bottom: 40),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
