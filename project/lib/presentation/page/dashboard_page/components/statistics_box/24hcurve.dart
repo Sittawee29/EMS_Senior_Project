@@ -45,8 +45,10 @@ class _LineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 250, maxWidth: 784),
+    return Container(
+      width: 600, // ✅ เพิ่มความกว้างให้ tooltip พอแสดงข้อความ
+      height: 200,
+      padding: const EdgeInsets.all(8),
       child: LineChart(
         LineChartData(
           minX: 0,
