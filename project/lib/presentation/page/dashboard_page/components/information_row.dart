@@ -13,6 +13,7 @@ class _InformationRow extends StatelessWidget {
           icon: ProjectAssets.icons.chartPurple.svg(),
           backgroundColor: Palette.orange.withOpacity(0.1),
           number: InformationRow[0],
+          unit: 'kW',
           haveIncreased: false,
           percent: InformationRow[2],
           text: 'Total Production',
