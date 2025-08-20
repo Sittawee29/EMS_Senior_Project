@@ -13,17 +13,13 @@ class H_Curve extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  'Daily Curve',
-                  style: TextStyles.myriadProSemiBold22DarkBlue,
-                ),
+                Text('Daily Curve',style: TextStyles.myriadProSemiBold22DarkBlue,),
                 SizedBox(height: 24),
                 _LineChart(),
                 SizedBox(height: 20),
                 Row(
                   children: <Widget>[
                     NameAndColorRow(color: Palette.lightBlue, text: 'Power Production'),
-                        
                     SizedBox(width: 36),
                     NameAndColorRow(color: Palette.orange, text: 'Power Consumption'),
                         
