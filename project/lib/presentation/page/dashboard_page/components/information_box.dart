@@ -25,13 +25,24 @@ class _InformationBox extends StatelessWidget {
 
   final String text;
 
-  String _formatNumber(double number) {
-    if (number.toString().length >= 10) {
-      return NumberFormat.compact().format(number);
-    } else {
-      return NumberFormat.decimalPattern().format(number);
-    }
+  String formatNumber(double number, {String unit = ''}) {
+  String formatted;
+  
+  if (number.abs() >= 1000000000) { // ตัวเลขใหญ่
+    formatted = NumberFormat.compact().format(number);
+  } else {
+    formatted = NumberFormat.decimalPattern()
+        .format(number)
+        .replaceAll(',', ' ');
   }
+
+  // ต่อหน่วยด้านหลัง ถ้า unit ไม่ว่าง
+  if (unit.isNotEmpty) {
+    formatted = '$formatted $unit';
+  }
+
+  return formatted;
+}
 
   @override
   Widget build(BuildContext context) {
