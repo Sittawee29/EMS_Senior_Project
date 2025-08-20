@@ -23,11 +23,19 @@ class _InformationBox extends StatelessWidget {
   final String unit;
 
   String _formatNumber(double number) {
-    if (number.toString().length >= 10) {
-      return NumberFormat.compact().format(number);
+    String formatted;
+    if (number.abs() >= 1000000000) {
+      formatted = NumberFormat.compact().format(number);
     } else {
-      return NumberFormat.decimalPattern().format(number);
+      formatted = NumberFormat.decimalPattern()
+          .format(number)
+          .replaceAll(',', ' '); // space แทน comma
     }
+
+    if (unit.isNotEmpty) {
+      formatted = '$formatted $unit';
+    }
+    return formatted;
   }
 
   @override
