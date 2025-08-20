@@ -47,9 +47,8 @@ class _Power_flowState extends State<Power_flow>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildItem(
-                        'assets/images/solar.png', 'Production', '2.63kW'),
-                    _buildItem('assets/images/grid.png', 'Grid', '0.00W'),
+                    _buildItem('assets/images/solar.png', 'Production','${PowerFlow[0]} kW'),
+                    _buildItem('assets/images/grid.png', 'Grid', '${PowerFlow[1]} kW'), 
                   ],
                 ),
                 _buildItem('assets/images/house.png', '', ''),
@@ -57,10 +56,10 @@ class _Power_flowState extends State<Power_flow>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildItem(
-                        'assets/images/BESS.png', 'Battery 61%', '1.85kW'),
-                    _buildItem('assets/images/consumption.png', 'Consumption',
-                        '1.79kW'),
+                    _buildItem('assets/images/BESS.png', 'Battery ${PowerFlow[3]}%', '${PowerFlow[2]} kW'),
+                        
+                    _buildItem('assets/images/consumption.png', '${PowerFlow[4]} kW','1.79kW'),
+                        
                   ],
                 ),
               ],
