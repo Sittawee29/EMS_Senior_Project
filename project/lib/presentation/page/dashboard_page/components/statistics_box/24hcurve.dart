@@ -71,11 +71,7 @@ class _LineChart extends StatelessWidget {
                   FlLine(color: Palette.darkGrey,strokeWidth: 2,),
                   FlDotData(show: true,
                     getDotPainter: (spot, percent, bar, idx) {
-                      return FlDotCirclePainter(
-                        radius: 4,
-                        color: Palette.darkGrey,
-                        strokeWidth: 0,
-                      );
+                      return FlDotCirclePainter(radius: 4,color: Palette.darkGrey,strokeWidth: 0,);
                     },
                   ),
                 );
