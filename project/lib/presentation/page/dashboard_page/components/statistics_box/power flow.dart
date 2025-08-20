@@ -57,7 +57,7 @@ class _Power_flowState extends State<Power_flow>
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildItem('assets/images/BESS.png', 'Battery ${PowerFlow[3]}%', '${PowerFlow[2]} kW'),
-                    _buildItem('assets/images/consumption.png', '${PowerFlow[4]} kW','1.79kW'),
+                    _buildItem('assets/images/consumption.png','Consumption', '${PowerFlow[4]} kW'),
                         
                   ],
                 ),
