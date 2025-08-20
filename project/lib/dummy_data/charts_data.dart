@@ -124,3 +124,5 @@ const Map<String, List<double?>> PowerData = <String, List<double?>>{
   "23:30": [null, null], // 23:30
   "23:45": [null, null], // 23:45
 };
+
+const List<double> DataOverview = [2.63, 0.97, 1.85, 61, 1.79];
