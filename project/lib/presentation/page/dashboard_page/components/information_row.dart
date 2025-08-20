@@ -38,7 +38,7 @@ class _InformationRow extends StatelessWidget {
           backgroundColor: Palette.green.withOpacity(0.2),
           number: '${InformationRow[4]} kW',
           haveIncreased: true,
-          percent: 3.9,
+          percent: '${InformationRow[2]} kW',
           text: 'Net revenue',
         ),
       ],
