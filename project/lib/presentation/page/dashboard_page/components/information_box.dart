@@ -8,11 +8,13 @@ class _InformationBox extends StatelessWidget {
     required this.text,
     this.unit = '',
     // ignore: unused_element_parameter
+    this.showPercent = false,
   });
 
   final Widget icon;
   final Color backgroundColor;
   final double number;
+  final bool showPercent;
   final String text;
   final String unit;
 
@@ -48,7 +50,12 @@ class _InformationBox extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             mainAxisSize: MainAxisSize.min,
-            
+            children: <Widget>[
+              Text(
+                showPercent ? '$number%' : _formatNumber(number),
+                style: TextStyles.myriadProSemiBold24Dark,
+              ),
+            ],
           ),
           const SizedBox(height: 7),
           Text(text, style: TextStyles.myriadProRegular16DarkGrey),
