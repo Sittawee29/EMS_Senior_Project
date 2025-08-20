@@ -25,7 +25,7 @@ class _InformationBox extends StatelessWidget {
 
   final String text;
 
-  String _formatNumber(int number) {
+  String _formatNumber(Float number) {
     if (number.toString().length >= 10) {
       return NumberFormat.compact().format(number);
     } else {
