@@ -155,9 +155,9 @@ class _LineChart extends StatelessWidget {
             topTitles: const AxisTitles(),
             rightTitles: const AxisTitles(),
           ),
-          gridData: FlGridData(show: true,drawVerticalLine: false,getDrawingHorizontalLine: (_) => const FlLine(color: Palette.mediumGrey40,strokeWidth: 1,),),
-          borderData: FlBorderData(
-            show: true,
+          gridData: FlGridData(show: true,drawVerticalLine: false,
+          getDrawingHorizontalLine: (_) => const FlLine(color: Palette.mediumGrey40,strokeWidth: 1,),),
+          borderData: FlBorderData(show: true,
             border: const Border(
               bottom: BorderSide(color: Palette.darkGrey, width: 1),
               left: BorderSide(color: Palette.darkGrey, width: 1),
