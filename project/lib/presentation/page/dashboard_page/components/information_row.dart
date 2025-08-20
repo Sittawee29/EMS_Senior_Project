@@ -12,7 +12,7 @@ class _InformationRow extends StatelessWidget {
         _InformationBox(
           icon: ProjectAssets.icons.chartPurple.svg(),
           backgroundColor: Palette.orange.withOpacity(0.1),
-          number: '${PowerFlow[0]} kW',
+          number: '${InformationRow[0]} kW',
           haveIncreased: true,
           percent: 3.9,
           text: 'Total Production',
