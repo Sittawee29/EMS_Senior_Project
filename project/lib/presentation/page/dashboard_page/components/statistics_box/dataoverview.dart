@@ -8,7 +8,7 @@ class Data_overview extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(top: 40, bottom: 40),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           Total_production(Prod_Battery_Charge: DataOverview[1], Prod_used: DataOverview[0]),
           VerticalDivider(color: Palette.lightGrey),
