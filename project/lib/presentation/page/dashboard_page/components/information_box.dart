@@ -15,7 +15,7 @@ class _InformationBox extends StatelessWidget {
   final Widget icon;
   final Color backgroundColor;
 
-  final int number;
+  final float number;
 
   final bool showPercent;
 
