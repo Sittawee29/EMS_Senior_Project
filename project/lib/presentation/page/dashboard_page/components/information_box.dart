@@ -48,12 +48,7 @@ class _InformationBox extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text(
-                showPercent ? '$number%' : _formatNumber(number),
-                style: TextStyles.myriadProSemiBold24Dark,
-              ),
-            ],
+            
           ),
           const SizedBox(height: 7),
           Text(text, style: TextStyles.myriadProRegular16DarkGrey),
