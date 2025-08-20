@@ -1,4 +1,4 @@
-import 'dart:nativewrappers/_internal/vm/lib/ffi_native_type_patch.dart';
+//import 'dart:nativewrappers/_internal/vm/lib/ffi_native_type_patch.dart';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:fl_chart/fl_chart.dart';
