@@ -12,7 +12,7 @@ class Data_overview extends StatelessWidget {
         children: <Widget>[
           Total_production(Prod_Battery_Charge: DataOverview[1], Prod_used: DataOverview[0]),
           VerticalDivider(color: Palette.lightGrey),
-          Total_consumption(Cons_Prod: 86.7, Cons_Power_Purchased: 13.3),
+          Total_consumption(Cons_Prod: DataOverview[3], Cons_Power_Purchased: DataOverview[2]),
         ],
       ),
     );
