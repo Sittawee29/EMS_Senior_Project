@@ -14,8 +14,6 @@ class _InformationRow extends StatelessWidget {
           backgroundColor: Palette.orange.withOpacity(0.1),
           number: InformationRow[0],
           unit: 'kW',
-
-
           text: 'Total Production',
         ),
         _InformationBox(
@@ -23,7 +21,6 @@ class _InformationRow extends StatelessWidget {
           backgroundColor: Palette.lightPurple.withOpacity(0.8),
           number: InformationRow[1],
           unit: 'kW',
-
           text: 'Total Grid Feed-in',
         ),
         _InformationBox(
@@ -31,7 +28,6 @@ class _InformationRow extends StatelessWidget {
           backgroundColor: Palette.yellow.withOpacity(0.2),
           number: InformationRow[2],
           unit: 'CO₂e',
-
           text: 'CO₂ Prevention',
         ),
         _InformationBox(
@@ -39,7 +35,6 @@ class _InformationRow extends StatelessWidget {
           backgroundColor: Palette.green.withOpacity(0.2),
           number: InformationRow[3],
           unit: 'Baht',
-
           text: 'Net revenue',
         ),
       ],
