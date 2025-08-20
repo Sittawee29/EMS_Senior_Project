@@ -10,9 +10,9 @@ class Data_overview extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Total_production(femalePercent: 43.9, malePercent: 56.1),
+          Total_production(Prod_Battery_Charge: DataOverview[1], Prod_used: DataOverview[0]),
           VerticalDivider(color: Palette.lightGrey),
-          Total_consumption(femalePercent: 86.7, malePercent: 13.3),
+          Total_consumption(Cons_Battery_Charge: 86.7, Cons_used: 13.3),
         ],
       ),
     );
@@ -21,27 +21,27 @@ class Data_overview extends StatelessWidget {
 
 class Total_production extends StatelessWidget {
   const Total_production({
-    required this.malePercent,
-    required this.femalePercent,
+    required this.Prod_used,
+    required this.Prod_Battery_Charge,
   });
 
-  final double malePercent;
-  final double femalePercent;
+  final double Prod_used;
+  final double Prod_Battery_Charge;
 
   List<PieChartSectionData> generateSections(
-    double malePercent,
-    double femalePercent,
+    double Prod_used,
+    double Prod_Battery_Charge,
   ) {
     return [
       PieChartSectionData(
         color: Palette.lightBlue,
-        value: malePercent,
+        value: Prod_used,
         radius: 20,
         title: '',
       ),
       PieChartSectionData(
         color: Palette.orange,
-        value: femalePercent,
+        value: Prod_Battery_Charge,
         radius: 20,
         title: '',
       ),
