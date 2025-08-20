@@ -15,11 +15,11 @@ class _InformationBox extends StatelessWidget {
   final Widget icon;
   final Color backgroundColor;
 
-  final float number;
+  final Float number;
 
   final bool showPercent;
 
-  final double percent;
+  final Float percent;
 
   final bool haveIncreased;
 
