@@ -12,7 +12,7 @@ class Data_overview extends StatelessWidget {
         children: <Widget>[
           Total_production(Prod_Battery_Charge: DataOverview[1], Prod_used: DataOverview[0]),
           VerticalDivider(color: Palette.lightGrey),
-          Total_consumption(Cons_Battery_Charge: 86.7, Cons_used: 13.3),
+          Total_consumption(Cons_Prod: 86.7, Cons_Power_Purchased: 13.3),
         ],
       ),
     );
@@ -67,8 +67,8 @@ class Total_production extends StatelessWidget {
                     sectionsSpace: 0,
                     centerSpaceRadius: 80,
                     sections: generateSections(
-                      malePercent,
-                      femalePercent,
+                      Prod_used,
+                      Prod_Battery_Charge,
                     ),
                   ),
                 ),
@@ -86,14 +86,14 @@ class Total_production extends StatelessWidget {
               Total_productionInfo(
                 text: 'Self-used',
                 color: Palette.lightBlue,
-                totalPercent: malePercent,
+                totalPercent: Prod_used,
                 growthPercent: 3.9,
               ),
               const SizedBox(width: 50),
               Total_productionInfo(
                 text: 'Battery Charge',
                 color: Palette.orange,
-                totalPercent: femalePercent,
+                totalPercent: Prod_Battery_Charge,
                 growthPercent: 38.9,
                 haveIncreased: false,
               ),
@@ -165,27 +165,27 @@ class Total_productionInfo extends StatelessWidget {
 
 class Total_consumption extends StatelessWidget {
   const Total_consumption({
-    required this.malePercent,
-    required this.femalePercent,
+    required this.Cons_Power_Purchased,
+    required this.Cons_Prod,
   });
 
-  final double malePercent;
-  final double femalePercent;
+  final double Cons_Power_Purchased;
+  final double Cons_Prod;
 
   List<PieChartSectionData> generateSections(
-    double malePercent,
-    double femalePercent,
+    double Cons_Power_Purchased,
+    double Cons_Prod,
   ) {
     return [
       PieChartSectionData(
         color: Palette.lightBlue,
-        value: malePercent,
+        value: Cons_Power_Purchased,
         radius: 20,
         title: '',
       ),
       PieChartSectionData(
         color: Palette.orange,
-        value: femalePercent,
+        value: Cons_Prod,
         radius: 20,
         title: '',
       ),
@@ -211,8 +211,8 @@ class Total_consumption extends StatelessWidget {
                     sectionsSpace: 0,
                     centerSpaceRadius: 80,
                     sections: generateSections(
-                      malePercent,
-                      femalePercent,
+                      Cons_Power_Purchased,
+                      Cons_Prod,
                     ),
                   ),
                 ),
@@ -230,14 +230,14 @@ class Total_consumption extends StatelessWidget {
               Total_productionInfo(
                 text: 'Production',
                 color: Palette.lightBlue,
-                totalPercent: malePercent,
+                totalPercent: Cons_Power_Purchased,
                 growthPercent: 3.9,
               ),
               const SizedBox(width: 50),
               Total_productionInfo(
                 text: 'Power Purchased',
                 color: Palette.orange,
-                totalPercent: femalePercent,
+                totalPercent: Cons_Prod,
                 growthPercent: 38.9,
                 haveIncreased: false,
               ),
