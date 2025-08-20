@@ -20,7 +20,7 @@ class _InformationRow extends StatelessWidget {
         _InformationBox(
           icon: ProjectAssets.icons.chartPurple.svg(),
           backgroundColor: Palette.lightPurple.withOpacity(0.8),
-          number: 22424,
+          number: '${InformationRow[0]} kW',
           haveIncreased: true,
           percent: 3.9,
           text: 'Total Grid Feed-in',
@@ -28,9 +28,9 @@ class _InformationRow extends StatelessWidget {
         _InformationBox(
           icon: ProjectAssets.icons.chartPurple.svg(),
           backgroundColor: Palette.yellow.withOpacity(0.2),
-          number: 34,
+          number: '${InformationRow[0]} kW',
           haveIncreased: true,
-          percent: 3.9,
+          percent: '${InformationRow[0]} kW',
           text: 'CO₂ Prevention',
         ),
         _InformationBox(
