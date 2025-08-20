@@ -15,17 +15,17 @@ class _InformationBox extends StatelessWidget {
   final Widget icon;
   final Color backgroundColor;
 
-  final String number;
+  final double number;
 
   final bool showPercent;
 
-  final String percent;
+  final double percent;
 
   final bool haveIncreased;
 
   final String text;
 
-  String _formatNumber(String number) {
+  String _formatNumber(double number) {
     if (number.toString().length >= 10) {
       return NumberFormat.compact().format(number);
     } else {
