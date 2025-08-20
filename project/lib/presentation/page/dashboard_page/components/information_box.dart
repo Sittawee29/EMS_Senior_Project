@@ -5,12 +5,9 @@ class _InformationBox extends StatelessWidget {
     required this.icon,
     required this.backgroundColor,
     required this.number,
-    required this.percent,
     required this.text,
-    required this.haveIncreased,
     this.unit = '',
     // ignore: unused_element_parameter
-    this.showPercent = false,
   });
 
   final Widget icon;
@@ -58,18 +55,6 @@ class _InformationBox extends StatelessWidget {
               Text(
                 showPercent ? '$number%' : _formatNumber(number),
                 style: TextStyles.myriadProSemiBold24Dark,
-              ),
-              const SizedBox(width: 5),
-              Icon(
-                haveIncreased ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                size: 20,
-                color: haveIncreased ? Palette.green : Palette.red,
-              ),
-              Text(
-                '$percent%',
-                style: haveIncreased
-                    ? TextStyles.myriadProSemiBold12Green
-                    : TextStyles.myriadProSemiBold12Red,
               ),
             ],
           ),
