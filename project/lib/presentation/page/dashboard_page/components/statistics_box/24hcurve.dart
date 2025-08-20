@@ -68,12 +68,8 @@ class _LineChart extends StatelessWidget {
                 (LineChartBarData barData, List<int> spotIndexes) {
               return spotIndexes.map((index) {
                 return TouchedSpotIndicatorData(
-                  FlLine(
-                    color: Palette.darkGrey,
-                    strokeWidth: 2,
-                  ),
-                  FlDotData(
-                    show: true,
+                  FlLine(color: Palette.darkGrey,strokeWidth: 2,),
+                  FlDotData(show: true,
                     getDotPainter: (spot, percent, bar, idx) {
                       return FlDotCirclePainter(
                         radius: 4,
