@@ -124,10 +124,7 @@ class _LineChart extends StatelessWidget {
                   axisSide: AxisSide.left,
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(
-                      '$value',
-                      style: TextStyles.myriadProRegular13DarkBlue60,
-                    ),
+                    child: Text('$value',style: TextStyles.myriadProRegular13DarkBlue60,), 
                   ),
                 ),
               ),
@@ -144,10 +141,7 @@ class _LineChart extends StatelessWidget {
                   return SideTitleWidget(
                     axisSide: meta.axisSide,
                     angle: 90 * 3.1415926535 / 180,
-                    child: Text(
-                      timeLabels[index],
-                      style: TextStyles.myriadProRegular13DarkBlue60,
-                    ),
+                    child: Text(timeLabels[index],style: TextStyles.myriadProRegular13DarkBlue60,),
                   );
                 },
               ),
@@ -157,7 +151,8 @@ class _LineChart extends StatelessWidget {
           ),
           gridData: FlGridData(show: true,drawVerticalLine: false,
           getDrawingHorizontalLine: (_) => const FlLine(color: Palette.mediumGrey40,strokeWidth: 1,),),
-          borderData: FlBorderData(show: true,
+          borderData: FlBorderData(
+            show: true,
             border: const Border(
               bottom: BorderSide(color: Palette.darkGrey, width: 1),
               left: BorderSide(color: Palette.darkGrey, width: 1),
