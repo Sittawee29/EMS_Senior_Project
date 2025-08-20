@@ -12,7 +12,7 @@ class _InformationRow extends StatelessWidget {
         _InformationBox(
           icon: ProjectAssets.icons.chartPurple.svg(),
           backgroundColor: Palette.orange.withOpacity(0.1),
-          number: '${InformationRow[2]} kW',
+          number: '${InformationRow[0]} kW',
           haveIncreased: false,
           percent: '${InformationRow[2]} kW',
           text: 'Total Production',
@@ -36,7 +36,7 @@ class _InformationRow extends StatelessWidget {
         _InformationBox(
           icon: ProjectAssets.icons.chartPurple.svg(),
           backgroundColor: Palette.green.withOpacity(0.2),
-          number: '${InformationRow[4]} kW',
+          number: '${InformationRow[3]} kW',
           haveIncreased: true,
           percent: '${InformationRow[2]} kW',
           text: 'Net revenue',
