@@ -25,24 +25,13 @@ class _InformationBox extends StatelessWidget {
 
   final String text;
 
-  String formatNumber(double number, {String unit = ''}) {
-  String formatted;
-  
-  if (number.abs() >= 1000000000) { // ตัวเลขใหญ่
-    formatted = NumberFormat.compact().format(number);
-  } else {
-    formatted = NumberFormat.decimalPattern()
-        .format(number)
-        .replaceAll(',', ' ');
+  String _formatNumber(double number) {
+    if (number.toString().length >= 10) {
+      return NumberFormat.compact().format(number);
+    } else {
+      return NumberFormat.decimalPattern().format(number);
+    }
   }
-
-  // ต่อหน่วยด้านหลัง ถ้า unit ไม่ว่าง
-  if (unit.isNotEmpty) {
-    formatted = '$formatted $unit';
-  }
-
-  return formatted;
-}
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +54,7 @@ class _InformationBox extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Text(
-                showPercent ? '$number%' : _formatNumber(number,'kW'),
+                showPercent ? '$number%' : _formatNumber(number),
                 style: TextStyles.myriadProSemiBold24Dark,
               ),
               const SizedBox(width: 5),
