@@ -29,7 +29,8 @@ class Total_production extends StatelessWidget {
   final double Prod_Battery_Charge;
 
   List<PieChartSectionData> generateSections(
-
+    double Prod_used,
+    double Prod_Battery_Charge,
   ) {
     return [
       PieChartSectionData(
@@ -66,7 +67,8 @@ class Total_production extends StatelessWidget {
                     sectionsSpace: 0,
                     centerSpaceRadius: 80,
                     sections: generateSections(
-
+                      Prod_used,
+                      Prod_Battery_Charge,
                     ),
                   ),
                 ),
