@@ -36,7 +36,7 @@ class _InformationRow extends StatelessWidget {
         _InformationBox(
           icon: ProjectAssets.icons.chartPurple.svg(),
           backgroundColor: Palette.green.withOpacity(0.2),
-          number: '${InformationRow[3]} kW',
+          number: '${InformationRow[3]} Baht',
           haveIncreased: true,
           percent: '${InformationRow[2]} kW',
           text: 'Net revenue',
