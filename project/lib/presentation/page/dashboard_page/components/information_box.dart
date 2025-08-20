@@ -27,11 +27,8 @@ class _InformationBox extends StatelessWidget {
     if (number.abs() >= 1000000000) {
       formatted = NumberFormat.compact().format(number);
     } else {
-      formatted = NumberFormat.decimalPattern()
-          .format(number)
-          .replaceAll(',', ' '); // space แทน comma
+      formatted = NumberFormat.decimalPattern().format(number).replaceAll(',', ' '); 
     }
-
     if (unit.isNotEmpty) {
       formatted = '$formatted $unit';
     }
