@@ -29,7 +29,7 @@ class _InformationBox extends StatelessWidget {
     if (number.toString().length >= 10) {
       return NumberFormat.compact().format(number);
     } else {
-      return NumberFormat.decimalPattern().format(number).replaceAll(',', ' ');
+      return NumberFormat.decimalPattern().format(number);
     }
   }
 
