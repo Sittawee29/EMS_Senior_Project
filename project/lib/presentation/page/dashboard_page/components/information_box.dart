@@ -8,22 +8,19 @@ class _InformationBox extends StatelessWidget {
     required this.percent,
     required this.text,
     required this.haveIncreased,
+    this.unit = '',
     // ignore: unused_element_parameter
     this.showPercent = false,
   });
 
   final Widget icon;
   final Color backgroundColor;
-
   final double number;
-
   final bool showPercent;
-
   final double percent;
-
   final bool haveIncreased;
-
   final String text;
+  final String unit;
 
   String _formatNumber(double number) {
     if (number.toString().length >= 10) {
