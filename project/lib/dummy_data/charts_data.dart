@@ -12,7 +12,7 @@ class UsersAgeData {
 //  UsersAgeData('25 - 34', 9),
 //  UsersAgeData('18 - 24', 9),
 //];
-const List<double> InformationRow = [14.73, 22.461, 38, 1000000];
+const List<double> InformationRow = [14.73, 22.46, 38, 1000000];
 const List<double> PowerFlow = [2.63, 0.97, 1.85, 61, 1.79]; //Production Grid Battery Percent_Battery Consumption
 
 const Map<String, List<double?>> PowerData = <String, List<double?>>{
