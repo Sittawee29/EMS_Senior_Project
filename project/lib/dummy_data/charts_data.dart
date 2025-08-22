@@ -1,4 +1,4 @@
-const List<double> InformationRow = [14.73, 22.46, 38, 1000000]; // Total_Production Total_Consumption CO₂_Prevention
+const List<double> InformationRow = [14.73, 22.46, 38, 1000000]; // Total_Production Total_Consumption CO₂_Prevention Net_Revenue
 const List<double> PowerFlow = [2.63, 0.97, 1.85, 61, 1.79]; //Production Grid Battery Percent_Battery Consumption
 
 const Map<String, List<double?>> PowerData = <String, List<double?>>{
