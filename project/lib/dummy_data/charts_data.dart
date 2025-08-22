@@ -111,4 +111,4 @@ const Map<String, List<double?>> PowerData = <String, List<double?>>{ //Daily Cu
   "23:45": [null, null], // 23:45
 };
 
-const List<double> DataOverview = [56.1, 43.9, 13.3, 86.7];
+const List<double> DataOverview = [56.1, 43.9, 13.3, 86.7]; // Self-used_Total_Production Battery_Charge_Total_production Production_Total_Consumption Power_Purchased_Total_Consumption
