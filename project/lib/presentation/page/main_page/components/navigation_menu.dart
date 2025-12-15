@@ -65,7 +65,7 @@ class _NavigationMenuState extends State<_NavigationMenu> {
           icon: Icons.notification_important,
           isSelected: currentUrl == '/alert',
           onTap: () => _onTabTap(const AlertRoute()),
-          text: 'Alert',
+          text: 'Alarm',
         ),
         _MenuItem(
           icon: Icons.paid,

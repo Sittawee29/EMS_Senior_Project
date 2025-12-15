@@ -15,7 +15,6 @@ class DeviceDetailPage extends StatefulWidget {
 class _DeviceDetailPageState extends State<DeviceDetailPage> {
   late DeviceModel currentDevice;
   
-  // ✅ 1. สร้างตัวแปร Data และ Subscription เหมือนหน้า DevicePage
   DashboardData Data = DashboardData(); 
   StreamSubscription? _mqttSubscription;
 
@@ -161,12 +160,14 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
             IconButton(
               icon: const Icon(Icons.close, color: Colors.black),
               onPressed: () => Navigator.pop(context),
+              hoverColor: Colors.transparent,
             ),
           ],
-          bottom: const TabBar(
+          bottom: TabBar(
             labelColor: Color.fromRGBO(28, 134, 223, 1),
             unselectedLabelColor: Colors.grey,
             indicatorColor: Color.fromRGBO(28, 134, 223, 1),
+            overlayColor: MaterialStateProperty.all(Colors.transparent),
             tabs: [
               Tab(text: 'Device Data'),
               Tab(text: 'Architecture'),
