@@ -7,6 +7,7 @@ import '../../theme/gen/assets.gen.dart';
 import '../../theme/palette.dart';
 import '../../theme/text_styles.dart';
 import '../../utils/color_extension.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 part 'components/appbar.dart';
 part 'components/navigation_menu.dart';

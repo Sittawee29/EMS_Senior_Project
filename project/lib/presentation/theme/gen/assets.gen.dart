@@ -49,6 +49,45 @@ class $AssetsIconsGen {
   SvgGenImage get ECE_white_Logo =>
       const SvgGenImage('assets/icons/ECE_white_logo.svg');
 
+  SvgGenImage get device =>
+      const SvgGenImage('assets/icons/device.svg');
+      
+  SvgGenImage get alarm =>
+      const SvgGenImage('assets/icons/alarm.svg');
+
+  SvgGenImage get ebilling =>
+      const SvgGenImage('assets/icons/ebilling.svg');
+
+  SvgGenImage get export =>
+      const SvgGenImage('assets/icons/export.svg');
+
+  SvgGenImage get plant =>
+      const SvgGenImage('assets/icons/plant.svg');
+
+  SvgGenImage get setting =>
+      const SvgGenImage('assets/icons/setting.svg');
+
+  SvgGenImage get dashboard =>
+      const SvgGenImage('assets/icons/dashboard.svg');
+
+  SvgGenImage get control =>
+      const SvgGenImage('assets/icons/control.svg');
+
+  SvgGenImage get prologic =>
+      const SvgGenImage('assets/icons/prologic.svg');
+
+  SvgGenImage get production =>
+      const SvgGenImage('assets/icons/production.svg');
+
+  SvgGenImage get gridfeedin =>
+      const SvgGenImage('assets/icons/gridfeedin.svg');
+
+  SvgGenImage get carbonprevention =>
+      const SvgGenImage('assets/icons/carbonprevention.svg');
+
+  SvgGenImage get coin =>
+      const SvgGenImage('assets/icons/coin.svg');
+
   /// List of all assets
   List<SvgGenImage> get values => [
         bell,
@@ -61,6 +100,19 @@ class $AssetsIconsGen {
         stack,
         ECELogo,
         ECE_white_Logo,
+        device,
+        alarm,
+        ebilling,
+        export,
+        plant,
+        setting,
+        dashboard,
+        control,
+        prologic,
+        production,
+        gridfeedin,
+        carbonprevention,
+        coin,
       ];
 }
 

@@ -23,7 +23,8 @@ class _InformationBox extends StatelessWidget {
     if (number.abs() >= 1000000000) {
       formatted = NumberFormat.compact().format(number);
     } else {
-      formatted = NumberFormat.decimalPattern().format(number).replaceAll(',', ' '); 
+      //formatted = NumberFormat.decimalPattern().format(number).replaceAll(',', ' ');
+      formatted = NumberFormat('#,##0.00').format(number);
     }
     if (unit.isNotEmpty) {
       formatted = '$formatted $unit';
@@ -34,7 +35,7 @@ class _InformationBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 268,
+      width: 292,//268
       padding: const EdgeInsets.only(top: 22, bottom: 22),
       decoration: BoxDecoration(
         color: Colors.white,

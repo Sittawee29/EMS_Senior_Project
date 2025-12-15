@@ -1,7 +1,16 @@
 part of '../../page.dart';
 
 class _StatisticsBox extends StatefulWidget {
-  const _StatisticsBox();
+  final List<double> powerFlowData; // [Solar, Grid, BatteryKW, Battery%, Cons]
+  final Map<String, List<double?>> powerCurveData; // Key: Time, Value: [Prod, Cons]
+  final List<double> dataOverview; // [Prod_used, Prod_Battery, Cons_Purchased, Cons_Prod]
+
+  const _StatisticsBox({
+    super.key,
+    required this.powerFlowData,
+    required this.powerCurveData,
+    required this.dataOverview,
+  });
 
   @override
   State<_StatisticsBox> createState() => _StatisticsBoxState();
@@ -19,7 +28,7 @@ class _StatisticsBoxState extends State<_StatisticsBox> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 848,
+      width: 920,  //(268*4)+22*3
       height: 530,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -41,10 +50,11 @@ class _StatisticsBoxState extends State<_StatisticsBox> {
             child: PageView(
               physics: const NeverScrollableScrollPhysics(),
               controller: _controller,
-              children: const <Widget>[
-                Power_flow(),
-                H_Curve(),
-                Data_overview(),
+              children: <Widget>[
+                // ส่งข้อมูลเข้า Power Flow
+                PowerFlow(data: widget.powerFlowData),
+                HCurve(data: widget.powerCurveData),
+                DataOverview(data: widget.dataOverview),
               ],
             ),
           ),
@@ -99,7 +109,7 @@ class _StatisticsTabsState extends State<_StatisticsTabs>
       isScrollable: true,
       controller: _controller,
       indicatorSize: TabBarIndicatorSize.label,
-      indicatorColor: Palette.lightBlue,
+      indicatorColor: const Color.fromRGBO(28, 134, 223, 1),
       tabs: [
         _StatisticsTab(
           isSelected: selectedIndex == 0,
@@ -122,7 +132,6 @@ class _StatisticsTab extends StatelessWidget {
   const _StatisticsTab({required this.text, required this.isSelected});
 
   final bool isSelected;
-
   final String text;
 
   @override

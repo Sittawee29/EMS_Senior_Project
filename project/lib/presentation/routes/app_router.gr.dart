@@ -15,10 +15,10 @@ abstract class _$AppRouter extends RootStackRouter {
 
   @override
   final Map<String, PageFactory> pagesMap = {
-    ContentManagementRoute.name: (routeData) {
+    ControlRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
-        child: const ContentManagementPage(),
+        child: const ControlPage(),
       );
     },
     DashboardRoute.name: (routeData) {
@@ -33,67 +33,131 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const MainPage(),
       );
     },
-    UserLoyaltyAndRewardsRoute.name: (routeData) {
+    DeviceRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
-        child: const UserLoyaltyAndRewardsPage(),
+        child: const DevicePage(),
+      );
+    },
+    AlertRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const AlertPage(),
+      );
+    },
+    EBillingRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const EBillingPage(),
+      );
+    },
+    ExportRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const ExportPage(),
+      );
+    },
+    PlantDetailRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const PlantDetailPage(),
+      );
+    },
+    SettingRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const SettingPage(),
       );
     },
   };
 }
 
-/// generated route for
-/// [ContentManagementPage]
-class ContentManagementRoute extends PageRouteInfo<void> {
-  const ContentManagementRoute({List<PageRouteInfo>? children})
+class ControlRoute extends PageRouteInfo<void> {
+  const ControlRoute({List<PageRouteInfo>? children})
       : super(
-          ContentManagementRoute.name,
+          ControlRoute.name,
           initialChildren: children,
         );
-
-  static const String name = 'ContentManagementRoute';
-
+  static const String name = 'ControlRoute';
   static const PageInfo<void> page = PageInfo<void>(name);
 }
 
-/// generated route for
-/// [DashboardPage]
 class DashboardRoute extends PageRouteInfo<void> {
   const DashboardRoute({List<PageRouteInfo>? children})
       : super(
           DashboardRoute.name,
           initialChildren: children,
         );
-
   static const String name = 'DashboardRoute';
-
   static const PageInfo<void> page = PageInfo<void>(name);
 }
 
-/// generated route for
-/// [MainPage]
 class MainRoute extends PageRouteInfo<void> {
   const MainRoute({List<PageRouteInfo>? children})
       : super(
           MainRoute.name,
           initialChildren: children,
         );
-
   static const String name = 'MainRoute';
-
   static const PageInfo<void> page = PageInfo<void>(name);
 }
 
-/// generated route for
-/// [UserLoyaltyAndRewardsPage]
-class UserLoyaltyAndRewardsRoute extends PageRouteInfo<void> {
-  const UserLoyaltyAndRewardsRoute({List<PageRouteInfo>? children})
+class DeviceRoute extends PageRouteInfo<void> {
+  const DeviceRoute({List<PageRouteInfo>? children})
       : super(
-          UserLoyaltyAndRewardsRoute.name,
+          DeviceRoute.name,
           initialChildren: children,
         );
+  static const String name = 'DeviceRoute';
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
 
-  static const String name = 'UserLoyaltyAndRewardsRoute';
+class AlertRoute extends PageRouteInfo<void> {
+  const AlertRoute({List<PageRouteInfo>? children})
+      : super(
+          AlertRoute.name,
+          initialChildren: children,
+        );
+  static const String name = 'AlertRoute';
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
 
+class EBillingRoute extends PageRouteInfo<void> {
+  const EBillingRoute({List<PageRouteInfo>? children})
+      : super(
+          EBillingRoute.name,
+          initialChildren: children,
+        );
+  static const String name = 'EBillingRoute';
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+class ExportRoute extends PageRouteInfo<void> {
+  const ExportRoute({List<PageRouteInfo>? children})
+      : super(
+          ExportRoute.name,
+          initialChildren: children,
+        );
+  static const String name = 'ExportRoute';
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+class PlantDetailRoute extends PageRouteInfo<void> {
+  const PlantDetailRoute({List<PageRouteInfo>? children})
+      : super(
+          PlantDetailRoute.name,
+          initialChildren: children,
+        );
+  static const String name = 'PlantDetailRoute';
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+class SettingRoute extends PageRouteInfo<void> {
+  const SettingRoute({List<PageRouteInfo>? children})
+      : super(
+          SettingRoute.name,
+          initialChildren: children,
+        );
+  static const String name = 'SettingRoute';
   static const PageInfo<void> page = PageInfo<void>(name);
 }

@@ -1,27 +1,30 @@
 part of '../../page.dart';
 
-class H_Curve extends StatelessWidget {
-  const H_Curve({super.key});
+class HCurve extends StatelessWidget {
+  final Map<String, List<double?>> data;
+
+  const HCurve({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: const Row(
+    return Center(
+      child: Row(
         children: <Widget>[
           Padding(
-            padding: EdgeInsets.only(left: 32.0, top: 32.0, right: 45),
+            padding: const EdgeInsets.only(left: 32.0, top: 32.0, right: 45),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text('Daily Curve',style: TextStyles.myriadProSemiBold22DarkBlue,),
-                SizedBox(height: 24),
-                _LineChart(),
-                SizedBox(height: 20),
-                Row(
+                const Text('Daily Curve', style: TextStyles.myriadProSemiBold22DarkBlue),
+                const SizedBox(height: 24),
+                // ส่ง Data ต่อให้ Chart
+                _LineChart(powerData: data),
+                const SizedBox(height: 20),
+                const Row(
                   children: <Widget>[
                     NameAndColorRow(color: Palette.lightBlue, text: 'Power Production'),
                     SizedBox(width: 36),
-                    NameAndColorRow(color: Palette.orange, text: 'Power Consumption'),  
+                    NameAndColorRow(color: Palette.orange, text: 'Power Consumption'),
                   ],
                 ),
               ],
@@ -36,42 +39,46 @@ class H_Curve extends StatelessWidget {
 final List<String> lineNames = ['Power Prod', 'Power Cons'];
 
 class _LineChart extends StatelessWidget {
-  const _LineChart();
+  final Map<String, List<double?>> powerData;
+
+  const _LineChart({required this.powerData});
 
   @override
   Widget build(BuildContext context) {
-    final List<String> timeLabels = PowerData.keys.toList();
+    final List<String> timeLabels = powerData.keys.toList();
+    
     // Power Production
     final spotsProd = List.generate(timeLabels.length, (i) {
-      final data = PowerData[timeLabels[i]];
-      if (data == null || data[0] == null) return null;
-      return FlSpot(i.toDouble(), data[0]!);
+      final dataList = powerData[timeLabels[i]];
+      if (dataList == null || dataList.isEmpty || dataList[0] == null) return null;
+      return FlSpot(i.toDouble(), dataList[0]!);
     }).whereType<FlSpot>().toList();
 
     // Power Consumption
     final spotsCons = List.generate(timeLabels.length, (i) {
-      final data = PowerData[timeLabels[i]];
-      if (data == null || data[1] == null) return null;
-      return FlSpot(i.toDouble(), data[1]!);
+      final dataList = powerData[timeLabels[i]];
+      if (dataList == null || dataList.length < 2 || dataList[1] == null) return null;
+      return FlSpot(i.toDouble(), dataList[1]!);
     }).whereType<FlSpot>().toList();
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxHeight: 250, maxWidth: 784),
       child: LineChart(
         LineChartData(
           minX: 0,
-          maxX: 94,
+          maxX: (timeLabels.length - 1).toDouble(), // Dynamic Max X
           minY: 0,
-          maxY: 1000,
+          maxY: 1000, // ควรปรับเป็น dynamic ตาม max value ของ data จริง
           lineTouchData: LineTouchData(
             enabled: true,
-            getTouchedSpotIndicator:
-                (LineChartBarData barData, List<int> spotIndexes) {
+            getTouchedSpotIndicator: (LineChartBarData barData, List<int> spotIndexes) {
               return spotIndexes.map((index) {
                 return TouchedSpotIndicatorData(
-                  FlLine(color: Palette.darkGrey,strokeWidth: 2,),
-                  FlDotData(show: true,
+                  FlLine(color: Palette.darkGrey, strokeWidth: 2),
+                  FlDotData(
+                    show: true,
                     getDotPainter: (spot, percent, bar, idx) {
-                      return FlDotCirclePainter(radius: 4,color: Palette.darkGrey,strokeWidth: 0,);
+                      return FlDotCirclePainter(radius: 4, color: Palette.darkGrey, strokeWidth: 0);
                     },
                   ),
                 );
@@ -87,7 +94,6 @@ class _LineChart extends StatelessWidget {
                     ? timeLabels[index]
                     : '--:--';
 
-                // รวมข้อมูลทุกเส้นที่แตะในจุดเดียวกัน
                 final buffer = StringBuffer();
                 buffer.writeln(time);
                 for (var spot in touchedSpots) {
@@ -95,19 +101,13 @@ class _LineChart extends StatelessWidget {
                   buffer.writeln('$lineName: ${spot.y.toStringAsFixed(0)} kW');
                 }
 
-                // สร้าง list เท่ากับ touchedSpots
                 return touchedSpots.asMap().entries.map((entry) {
                   if (entry.key == 0) {
-                    // tooltip ตัวแรก แสดงรวมทั้งหมด
                     return LineTooltipItem(
                       buffer.toString(),
-                      const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white,
-                      ),
+                      const TextStyle(fontSize: 12, color: Colors.white),
                     );
                   } else {
-                    // tooltip อื่น return null → fl_chart จะไม่วาด
                     return null;
                   }
                 }).toList();
@@ -124,7 +124,7 @@ class _LineChart extends StatelessWidget {
                   axisSide: AxisSide.left,
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('$value',style: TextStyles.myriadProRegular13DarkBlue60,), 
+                    child: Text('$value', style: TextStyles.myriadProRegular13DarkBlue60),
                   ),
                 ),
               ),
@@ -133,15 +133,16 @@ class _LineChart extends StatelessWidget {
               sideTitles: SideTitles(
                 showTitles: true,
                 reservedSize: 40,
-                interval: 2, // ทุก 30 นาที
+                interval: 2, 
                 getTitlesWidget: (value, meta) {
                   final index = value.toInt();
-                  if (index < 0 || index >= timeLabels.length)
+                  if (index < 0 || index >= timeLabels.length) {
                     return const SizedBox.shrink();
+                  }
                   return SideTitleWidget(
                     axisSide: meta.axisSide,
                     angle: 90 * 3.1415926535 / 180,
-                    child: Text(timeLabels[index],style: TextStyles.myriadProRegular13DarkBlue60,),
+                    child: Text(timeLabels[index], style: TextStyles.myriadProRegular13DarkBlue60),
                   );
                 },
               ),
@@ -149,8 +150,11 @@ class _LineChart extends StatelessWidget {
             topTitles: const AxisTitles(),
             rightTitles: const AxisTitles(),
           ),
-          gridData: FlGridData(show: true,drawVerticalLine: false,
-          getDrawingHorizontalLine: (_) => const FlLine(color: Palette.mediumGrey40,strokeWidth: 1,),),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (_) => const FlLine(color: Palette.mediumGrey40, strokeWidth: 1),
+          ),
           borderData: FlBorderData(
             show: true,
             border: const Border(
