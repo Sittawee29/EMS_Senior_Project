@@ -27,7 +27,6 @@ def on_connect(client, userdata, flags, rc):
         client.subscribe("EMS/EMS_EnergyFeedToGrid_Daily")
         client.subscribe("EMS/EMS_EnergyFeedFromGrid_Daily")
         client.subscribe("EMS")
-        client.subscribe("TPI")
     else:
         print("Failed to connect, return code:", rc)
 
@@ -104,8 +103,6 @@ def on_message(client, userdata, msg):
         print(f"EMS EnergyFeedFromGrid Daily: {payload}")
     elif topic == "EMS":
         print(f"EMS: {payload}")
-    elif topic == "TPI":
-        print(f"TPI: {payload}")
 
 broker = "iicloud.tplinkdns.com"
 port = 7036

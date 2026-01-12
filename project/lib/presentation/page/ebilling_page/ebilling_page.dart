@@ -1,6 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-// Import ไฟล์ Model และ Service ที่ท่านสร้างไว้
+
 import 'bill_model.dart';
 import 'bill_service.dart';
 import 'thai_baht_utils.dart';
@@ -116,319 +116,450 @@ class _EBillingPageState extends State<EBillingPage> {
 
 class BillContentWidget extends StatelessWidget {
   final String meterType;
-  final BillModel data; // รับข้อมูล Model เข้ามา
+  final BillModel data;
 
   const BillContentWidget({
-    super.key, 
+    super.key,
     required this.meterType,
-    required this.data, // บังคับส่งข้อมูล
+    required this.data,
   });
 
-  // สไตล์ข้อความทั่วไปในบิล
-  TextStyle get _billTextStyle => const TextStyle(
+  // --- Styles ---
+  TextStyle get _textStyle => const TextStyle(
         fontFamily: 'Sarabun',
-        fontSize: 10,
-        color: Colors.black87,
-        height: 1.4,
+        fontSize: 9, // ลดขนาดฟอนต์เพื่อให้ตารางพอดี
+        color: Colors.black,
+        height: 1.2,
       );
 
-  TextStyle get _headerTextStyle => _billTextStyle.copyWith(
-        fontSize: 12,
+  TextStyle get _headerStyle => _textStyle.copyWith(
         fontWeight: FontWeight.bold,
       );
+  
+  // สีหัวตาราง (เทาอ่อน)
+  Color get _headerColor => const Color(0xFFD9D9D9);
+  // สีหัวข้อสรุป (ฟ้าอ่อน)
+  Color get _summaryHeaderColor => const Color(0xFFDAE3F3);
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(20.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(4),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // =========================================
+          // 1. HEADER (Logo & Document Title)
+          // =========================================
+          // [แก้ไข] ใช้ Stack เพื่อให้ Title อยู่ตรงกลางหน้ากระดาษพอดี โดยไม่เบียดกับ Logo
+          SizedBox(
+            height: 80, // กำหนดความสูงพื้นที่ Header
+            child: Stack(
+              children: [
+                // Layer 1: Logo & Company Name (ชิดซ้าย)
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: SizedBox(
+                    width: 200, // จำกัดความกว้างไม่ให้ทับชื่อตรงกลาง
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          height: 50,
+                          child: Image.asset('assets/images/Prologic_logo.png', fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => 
+                                const Row(children: [Icon(Icons.flash_on, color: Colors.blue), Text("UTI ENERGY", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue))])),
+                        ),
+                        const SizedBox(height: 5),
+                        Text('บริษัท โปรลอจิค จำกัด', style: _headerStyle.copyWith(fontSize: 10)),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Layer 2: Bill Title (อยู่ตรงกลางหน้ากระดาษเป๊ะๆ)
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: Column(
+                    children: [
+                      Text('ใบเสร็จรับเงิน / ใบกำกับภาษี', style: _headerStyle.copyWith(fontSize: 14)),
+                      Text('(Receipt / Tax invoice)', style: _headerStyle.copyWith(fontSize: 14)),
+                    ],
+                  ),
+                ),
+
+                // Layer 3: Date (ชิดขวา)
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 10.0), // ขยับลงมานิดหน่อยให้สวยงาม
+                    child: RichText(
+                      text: TextSpan(
+                        style: _headerStyle,
+                        children: [
+                          const TextSpan(text: 'บิลประจำเดือน   '),
+                          TextSpan(text: '11/2025', style: _headerStyle.copyWith(fontSize: 12)), 
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 5),
+          // =========================================
+          // 2. CUSTOMER INFO (Grey Box)
+          // =========================================
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            color: _headerColor,
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildInfoRow('ชื่อผู้ใช้ไฟฟ้า (Name)', 'บริษัท โรบินสัน จำกัด (มหาชน)'),
+                _buildInfoRow('สถานที่ใช้ไฟฟ้า (Premise)', 'โรบินสัน ไลฟ์สไตล์ ลาดกระบัง'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 15),
+
+          // =========================================
+          // 3. METER READING TABLE (ตารางบน)
+          // =========================================
+          Table(
+            columnWidths: const {
+              0: FlexColumnWidth(1.2), 1: FlexColumnWidth(1.2), 2: FlexColumnWidth(1.2), 3: FlexColumnWidth(1.2),
+              4: FlexColumnWidth(1.0), 5: FlexColumnWidth(1.0), 6: FlexColumnWidth(1.0), 7: FlexColumnWidth(1.0),
+            },
+            children: [
+              // Header Row 1 (Thai)
+              TableRow(
+                decoration: BoxDecoration(color: _headerColor),
+                children: [
+                  _buildCellHeader('เลขเครื่องมือวัด'),
+                  _buildCellHeader('วันที่จดอ่านเลข'),
+                  _buildCellHeader('เลขอ่านครั้งก่อน'),
+                  _buildCellHeader('เลขอ่านครั้งหลัง'),
+                  _buildCellHeader('จำนวนหน่วย On Peak'),
+                  _buildCellHeader('จำนวนหน่วย Off Peak'),
+                  _buildCellHeader('จำนวนหน่วย Holiday'),
+                  _buildCellHeader('จำนวนหน่วยรวม'),
+                ],
+              ),
+              // Header Row 2 (English)
+              TableRow(
+                decoration: BoxDecoration(color: _headerColor),
+                children: [
+                  _buildCellHeader('Meter serial no.', isSub: true),
+                  _buildCellHeader('Meter reading date', isSub: true),
+                  _buildCellHeader('Previous meter reading', isSub: true),
+                  _buildCellHeader('Last meter reading', isSub: true),
+                  _buildCellHeader('On Peak kWh', isSub: true),
+                  _buildCellHeader('Total kWh', isSub: true), // ในรูปเขียน Total kWh ที่ช่อง Off Peak (?) ตามรูปต้นฉบับ
+                  _buildCellHeader('Total kWh', isSub: true),
+                  _buildCellHeader('Total kWh', isSub: true),
+                ],
+              ),
+              // Data Row 1 (ตัวอย่างใช้ค่าจาก data)
+              TableRow(
+                children: [
+                  _buildCellData('SN251507270', isBold: true),
+                  _buildCellData(data.meterLastReadDate, isBold: true),
+                  _buildCellData(data.prevRead, isBold: true), // <--- ตัวแปร
+                  _buildCellData(data.lastRead, isBold: true), // <--- ตัวแปร
+                  _buildCellData(data.onPeakUnit, isBold: true), // <--- ตัวแปร
+                  _buildCellData(data.offPeakUnit, isBold: true), // <--- ตัวแปร
+                  _buildCellData(data.holidayUnit, isBold: true), // <--- ตัวแปร
+                  _buildCellData(data.totalUnit, isBold: true),   // <--- ตัวแปร
+                ],
+              ),
+              // Data Row 2 (ถ้ามีมิเตอร์ลูกที่ 2 ก็ทำเหมือนกัน หรือปล่อยว่างไว้ก่อน)
+              TableRow(
+                children: [
+                  _buildCellData('-', isBold: true), _buildCellData('-', isBold: true),
+                  _buildCellData('-', isBold: true), _buildCellData('-', isBold: true),
+                  _buildCellData('-', isBold: true), _buildCellData('-', isBold: true),
+                  _buildCellData('-', isBold: true), _buildCellData('-', isBold: true),
+                ],
+              ),
+              // Total Row
+              TableRow(
+                children: [
+                  const SizedBox(), const SizedBox(), const SizedBox(), const SizedBox(),
+                  _buildCellData(data.onPeakUnit, isBold: true, fontSize: 11), // <--- ตัวแปร
+                  _buildCellData(data.offPeakUnit, isBold: true, fontSize: 11), // <--- ตัวแปร
+                  _buildCellData(data.holidayUnit, isBold: true, fontSize: 11), // <--- ตัวแปร
+                  _buildCellData(data.totalUnit, isBold: true, fontSize: 11,), // <--- ตัวแปร
+                ],
               ),
             ],
           ),
-          child: Column(
+          const SizedBox(height: 20),
+
+          // =========================================
+          // 4. CALCULATION & SUMMARY SECTION
+          // =========================================
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. HEADER SECTION
-              const Center(
-                child: Text(
-                  'ใบเสร็จรับเงิน / ใบกำกับภาษี\n(Receipt / Tax Invoice)',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Logo & Address (Left)
-                  Expanded(
-                    flex: 6,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              // --- Spacer Left ---
+              const Expanded(flex: 3, child: SizedBox()), // เว้นว่างด้านซ้ายให้ตรงตามรูป
+
+              // --- Right Side Content ---
+              Expanded(
+                flex: 7,
+                child: Column(
+                  children: [
+                    // Grey Header for Calculation
+                    Container(
+                      color: _headerColor,
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      width: double.infinity,
+                      child: Center(child: Text('รายละเอียดค่าพลังงานไฟฟ้า', style: _headerStyle)),
+                    ),
+                    
+                    // Calculation Table
+                    Table(
+                      columnWidths: const {
+                        0: FlexColumnWidth(2.5), // Description
+                        1: FlexColumnWidth(1.2), // Rate Normal
+                        2: FlexColumnWidth(1.2), // Rate Discount
+                        3: FlexColumnWidth(1.5), // Total
+                      },
                       children: [
-                        Row(
+                        // Header
+                        TableRow(
                           children: [
-                            SizedBox(
-                              width: 40, // กำหนดขนาดความกว้างของโลโก้ (ปรับได้ตามชอบ)
-                              height: 40, // กำหนดขนาดความสูง (ควรเท่ากับความกว้างเพื่อให้เป็นวงกลมสวยๆ)
-                              child: ClipOval(
-                                // ClipOval จะตัด child ข้างในให้เป็นวงกลม
-                                child: Image.asset(
-                                  'assets/images/mea_logo.png', // <-- path ของไฟล์รูปภาพที่คุณเตรียมไว้
-                                  fit: BoxFit.cover, // ปรับให้รูปขยายเต็มพื้นที่วงกลม (หรือลองใช้ BoxFit.contain ถ้าโลโก้โดนตัด)
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('การไฟฟ้านครหลวง',
-                                    style: _headerTextStyle.copyWith(fontSize: 14, color: Colors.black)),
-                                Text('Metropolitan Electricity Authority',
-                                    style: _billTextStyle.copyWith(fontSize: 10, color: Colors.grey[700])),
-                              ],
-                            ),
+                            _buildCellHeader('จำนวนหน่วย', align: TextAlign.left),
+                            _buildCellHeader('ค่าไฟฟ้าต่อหน่วย\nอัตราปกติ', align: TextAlign.right),
+                            _buildCellHeader('ค่าไฟฟ้าต่อหน่วย\nส่วนลด 55%', align: TextAlign.right),
+                            _buildCellHeader('หักส่วนลด 55% เหลือ', align: TextAlign.right),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text('อาคารวัฒนวิภาส เลขที่ 1192 ถนนพระรามที่ 4 แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110', style: _billTextStyle),
-                        Text('เลขประจำตัวผู้เสียภาษีอากร (Tax ID) : 0994000165200', style: _billTextStyle),
+                        // Row: On Peak
+                        TableRow(children: [
+                          _buildCellText('On Peak จำนวน 120520 หน่วย'),
+                          _buildCellText('4.1839', align: TextAlign.right),
+                          _buildCellText('1.8828', align: TextAlign.right),
+                          _buildCellText('226,909.63 บาท', align: TextAlign.right),
+                        ]),
+                        // Row: Off Peak
+                         TableRow(children: [
+                          _buildCellText('Off Peak จำนวน 14586 หน่วย'),
+                          _buildCellText('2.6037', align: TextAlign.right),
+                          _buildCellText('1.1717', align: TextAlign.right),
+                          _buildCellText('17,089.91 บาท', align: TextAlign.right),
+                        ]),
+                        // Row: Holiday
+                         TableRow(children: [
+                          _buildCellText('Holiday จำนวน 69018 หน่วย'),
+                          _buildCellText('2.6037', align: TextAlign.right),
+                          _buildCellText('1.1717', align: TextAlign.right),
+                          _buildCellText('80,865.97 บาท', align: TextAlign.right),
+                        ]),
+                        // Row: Total
+                         TableRow(children: [
+                          _buildCellText('รวม'),
+                          const SizedBox(),
+                          const SizedBox(),
+                          _buildCellText('324,865.51 บาท', align: TextAlign.right, isBold: true),
+                        ]),
                       ],
                     ),
-                  ),
-                  // Doc No (Right) -> ใช้ข้อมูลจาก data
-                  Expanded(
-                    flex: 4,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const SizedBox(height: 10),
-                        _buildLabelValueRight('เลขที่ (No.) :', data.invoiceNo),
-                        _buildLabelValueRight('สำนักงานใหญ่', ''),
-                        _buildLabelValueRight('วันที่ (Date) :', data.documentDate),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 15),
 
-              // 2. CUSTOMER INFO SECTION -> ใช้ข้อมูลจาก data
-              _buildInfoRow('ผู้ชำระเงิน (Name) :', data.payerName),
-              Row(
-                children: [
-                  Expanded(child: _buildInfoRow('เลขประจำตัวผู้เสียภาษีอากร (Tax ID) :', '-')),
-                  Expanded(child: _buildInfoRow('สาขาที่ (Branch) :', '-')),
-                ],
-              ),
-              _buildInfoRow('ที่อยู่ผู้ชำระเงิน (Address) :', data.payerAddress),
-              _buildInfoRow('ชื่อผู้ใช้ไฟฟ้า (Name) :', data.payerName),
-              _buildInfoRow('สถานที่ใช้ไฟฟ้า (Premise) :', data.payerAddress),
-              Row(
-                children: [
-                  Expanded(flex: 3, child: _buildInfoRow('บัญชีแสดงสัญญา (Contract Account) :', data.contractAccount)),
-                  Expanded(flex: 2, child: _buildInfoRow('รหัสเครื่องวัด (Meter No.) :', data.meterNo)),
-                ],
-              ),
-              const SizedBox(height: 20),
+                    const SizedBox(height: 15),
 
-              // 3. TABLE SECTION (High density) -> ใช้ข้อมูลจาก data
-              Table(
-                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                columnWidths: const {
-                  0: FlexColumnWidth(1.4), // วันที่จด
-                  1: FlexColumnWidth(1.4), // เลขที่ใบแจ้ง
-                  2: FlexColumnWidth(0.8), // หน่วย
-                  3: FlexColumnWidth(1.4), // ค่าไฟฟ้า
-                  4: FlexColumnWidth(1.1), // VAT
-                  5: FlexColumnWidth(1.4), // จำนวนเงิน
-                  6: FlexColumnWidth(1.0), // วันปรับ
-                  7: FlexColumnWidth(1.1), // เบี้ยปรับ
-                  8: FlexColumnWidth(0.9), // ft
-                },
-                children: [
-                  // --- Header Row ---
-                  TableRow(
-                    children: [
-                      _buildTableHeader('วันที่จดเลขอ่าน\n(Meter Reading Date)'),
-                      _buildTableHeader('เลขที่ใบแจ้งฯ\n(Invoice No.)'),
-                      _buildTableHeader('จำนวนหน่วย\n(Unit)'),
-                      // ปรับ Header ให้ชิดขวาตามข้อมูลตัวเลข
-                      _buildTableHeader('ค่าไฟฟ้า\n(Charge)', align: TextAlign.right),
-                      _buildTableHeader('ภาษีมูลค่าเพิ่ม\n(VAT)', align: TextAlign.right),
-                      _buildTableHeader('จำนวนเงิน\n(Amount)', align: TextAlign.right),
-                      _buildTableHeader('จำนวนวันปรับ\n(Days)'),
-                      _buildTableHeader('เบี้ยปรับ\n(Penalty)', align: TextAlign.right),
-                      _buildTableHeader('ค่า Ft\n(Ft)', align: TextAlign.right),
-                    ],
-                  ),
-                  const TableRow(
-                    children: [
-                      SizedBox(height: 12), SizedBox(), SizedBox(), SizedBox(), SizedBox(), SizedBox(), SizedBox(), SizedBox(), SizedBox()
-                    ]
-                  ),
-                  // --- Data Row (ใช้ข้อมูล Realtime) ---
-                  TableRow(
-                    children: [
-                      _buildTableData('21/11/2568', align: TextAlign.center),
-                      _buildTableData(data.invoiceNo, align: TextAlign.center),
-                      _buildTableData(data.unit, align: TextAlign.center), // <--- Realtime
-                      _buildTableData(data.electricityCharge, align: TextAlign.right), // <--- Realtime
-                      _buildTableData(data.vat, align: TextAlign.right), // <--- Realtime
-                      _buildTableData(data.amount, align: TextAlign.right), // <--- Realtime
-                      _buildTableData('0', align: TextAlign.center),
-                      _buildTableData('0.00', align: TextAlign.right),
-                      _buildTableData(data.ftRate, align: TextAlign.right),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 40),
-
-              // 4. FOOTER SECTION -> ใช้ข้อมูลจาก data
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Footer Left
-                  Expanded(
-                    flex: 5,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('วันที่พิมพ์เอกสาร (Print Date) : ${data.documentDate}', style: _billTextStyle), // ใช้วันที่เดียวกับเอกสารไปก่อน
-                        const SizedBox(height: 4),
-                        Text('ชำระผ่าน : ธ.กรุงไทย', style: _billTextStyle),
-                        const SizedBox(height: 4),
-                        Text('FICA DOC. 658047150970 TIV001', style: _billTextStyle.copyWith(color: Colors.grey)),
-                      ],
+                    // --- Blue Summary Box ---
+                    Container(
+                      color: _summaryHeaderColor,
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('รายละเอียดค่าไฟฟ้า (Description)', style: _headerStyle),
+                        ],
+                      ),
                     ),
-                  ),
-                  // Footer Right (Totals)
-                  Expanded(
-                    flex: 6,
-                    child: Column(
-                      children: [
-                        _buildSummaryRow('รวมเงิน (Amount) :', data.electricityCharge, 'บาท (Baht)'),
-                        _buildSummaryRow('รวมภาษีมูลค่าเพิ่ม 7% (VAT Amount) :', data.vat, 'บาท (Baht)'),
-                        _buildSummaryRow('รวม (Total) :', data.amount, 'บาท (Baht)', isBold: true),
-                        _buildSummaryRow('เบี้ยปรับผิดนัด (Penalty Charge) :', '0.00', 'บาท (Baht)'),
-                        const SizedBox(height: 4),
-                        _buildSummaryRow('รวมทั้งสิ้น (Total Amount) :', data.amount, 'บาท (Baht)', isTotal: true),
-                        const SizedBox(height: 5),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            '(${ThaiBahtUtils.convert(data.amount)})', 
-                            style: _billTextStyle.copyWith(fontStyle: FontStyle.italic)),
-                        ),
-                      ],
+                    const SizedBox(height: 8),
+                    // Summary Rows
+                    _buildSummaryLine('ค่าพลังงานไฟฟ้าทั้งหมด', '324,865.51 บาท'),
+                    _buildSummaryLine('ค่า Ft 0.0755 บาท/หน่วย', '15,411.36 บาท'),
+                    const Divider(color: Colors.black, thickness: 1), // ขีดเส้นใต้ 1
+                    _buildSummaryLine('รวมค่าไฟฟ้า', '340,276.87 บาท'),
+                    _buildSummaryLine('ภาษีมูลค่าเพิ่ม 7%', '23,819.38 บาท'),
+                    const Divider(color: Colors.black, thickness: 1), // ขีดเส้นใต้ 2
+                    
+                    // Grand Total
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('รวมค่าไฟฟ้าเดือนปัจจุบัน', style: _headerStyle.copyWith(fontSize: 12)),
+                          Text('364,096.25 บาท', style: _headerStyle.copyWith(fontSize: 14)), // ใช้ data.amount ถ้าต้องการ Realtime
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text('*เอกสารนี้เป็นแบบจำลองการแสดงผลข้อมูล Realtime',
-                  style: _billTextStyle.copyWith(color: Colors.red, fontSize: 9)),
+                     const Divider(color: Colors.black, thickness: 1), 
+                     const Divider(color: Colors.black, thickness: 1), // เส้นคู่ปิดท้าย
+                  ],
+                ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 50),
-      ],
-    );
-  }
 
-  // Helper Widgets
-
-  Widget _buildLabelValueRight(String label, String value) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Text(label, style: _billTextStyle.copyWith(fontWeight: FontWeight.bold)),
-        const SizedBox(width: 5),
-        Text(value, style: _billTextStyle),
-      ],
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2.0),
-      child: RichText(
-        text: TextSpan(
-          style: _billTextStyle,
-          children: [
-            TextSpan(text: '$label ', style: const TextStyle(fontWeight: FontWeight.bold)),
-            TextSpan(text: value),
-          ],
-        ),
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
-
-  // ปรับแก้ให้รับ Align เพื่อให้ Header ตรงกับ Data (เช่น ชิดขวาสำหรับตัวเลขเงิน)
-  Widget _buildTableHeader(String text, {TextAlign align = TextAlign.center}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2.0),
-      child: Text(
-        text,
-        textAlign: align,
-        style: _billTextStyle.copyWith(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.black),
-      ),
-    );
-  }
-
-  Widget _buildTableData(String text, {TextAlign align = TextAlign.left}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2.0),
-      child: Text(
-        text,
-        textAlign: align,
-        style: _billTextStyle.copyWith(fontSize: 9),
-      ),
-    );
-  }
-
-  Widget _buildSummaryRow(String label, String value, String unit, {bool isBold = false, bool isTotal = false}) {
-    TextStyle style = _billTextStyle.copyWith(
-      fontWeight: (isBold || isTotal) ? FontWeight.bold : FontWeight.normal,
-      fontSize: isTotal ? 12 : 10,
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: style),
+          // =========================================
+          // 5. FOOTER (QR, Banner, Sign)
+          // =========================================
+          
+          const SizedBox(height: 20),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              SizedBox(
-                width: 60,
-                child: Text(value, textAlign: TextAlign.right, style: style),
-              ),
-              const SizedBox(width: 5),
-              SizedBox(
-                width: 60,
-                child: Text(unit, textAlign: TextAlign.right, style: style),
+              // Left Footer
+              /*
+              Expanded(
+                flex: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // QR Code
+                    Container(
+                      height: 60,
+                      width: 60,
+                      color: Colors.grey[200], // Placeholder สีเทา
+                      child: Image.asset('assets/images/qr_code.png', fit: BoxFit.cover,
+                        errorBuilder: (c,e,s) => const Icon(Icons.qr_code, size: 50)),
+                    ),
+                    const SizedBox(height: 10),
+                    // Banner Image
+                    Container(
+                      height: 50,
+                      width: double.infinity,
+                      color: Colors.blue[100], // Placeholder
+                      child: Image.asset('assets/images/banner.png', fit: BoxFit.cover,
+                         errorBuilder: (c,e,s) => const Center(child: Text('BANNER IMG'))),
+                    ),
+                    const SizedBox(height: 5),
+                    Text('E-mail : uti@uboltech.com, Tel : 02-926-3791', style: _textStyle.copyWith(fontSize: 8)),
+                    Text('Uboltech Intertrade Company S.L. All rights reserved.', style: _textStyle.copyWith(fontSize: 8)),
+                  ],
+                ),
+              ),*/
+              const SizedBox(width: 20),
+              // Right Footer (Signatures)
+              Expanded(
+                flex: 6,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 30),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildSignatureLine('บริษัท โปรลอจิค จำกัด'),
+                        _buildSignatureLine('บมจ. โรบินสัน สาขาลาดกระบัง'),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text('Page 1/2', style: _textStyle),
+                    )
+                  ],
+                ),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  // --- Helper Widgets ---
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(label, style: _textStyle.copyWith(fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            child: Text(value, style: _textStyle),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCellHeader(String text, {bool isSub = false, TextAlign align = TextAlign.center}) {
+    return Padding(
+      padding: const EdgeInsets.all(2.0),
+      child: Text(
+        text,
+        textAlign: align,
+        style: _textStyle.copyWith(
+          fontSize: isSub ? 7 : 8,
+          fontWeight: isSub ? FontWeight.normal : FontWeight.bold,
+          color: isSub ? Colors.black54 : Colors.black,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCellData(String text, {bool isBold = false, double fontSize = 9}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: _textStyle.copyWith(
+          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          fontSize: fontSize,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCellText(String text, {TextAlign align = TextAlign.left, bool isBold = false}) {
+     return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+      child: Text(
+        text,
+        textAlign: align,
+        style: _textStyle.copyWith(
+          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryLine(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: _textStyle),
+          Text(value, style: _textStyle),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSignatureLine(String text) {
+    return Column(
+      children: [
+        Container(width: 120, height: 1, color: Colors.black),
+        const SizedBox(height: 4),
+        Text(text, style: _textStyle.copyWith(fontSize: 8)),
+      ],
     );
   }
 }
