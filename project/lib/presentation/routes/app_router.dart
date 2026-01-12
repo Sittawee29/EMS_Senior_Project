@@ -4,7 +4,7 @@ import '../page/control_page/control_page.dart';
 import '../page/dashboard_page/page.dart';
 import '../page/main_page/page.dart';
 import '../page/device_page/device_page.dart';
-import '../page/alert_page/alert_page.dart';
+import '../page/alarm_page/alarm_page.dart';
 import '../page/ebilling_page/ebilling_page.dart';
 import '../page/export_page/export_page.dart';
 import '../page/plant_detail_page/plant_detail_page.dart';
@@ -44,8 +44,8 @@ class AppRouter extends _$AppRouter {
               transitionsBuilder: TransitionsBuilders.noTransition,
             ),
             CustomRoute(
-              path: 'alert',
-              page: AlertRoute.page,
+              path: 'alarm',
+              page: AlarmRoute.page,
               durationInMilliseconds: 0,
               reverseDurationInMilliseconds: 1,
               transitionsBuilder: TransitionsBuilders.noTransition,

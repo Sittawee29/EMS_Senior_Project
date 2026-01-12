@@ -50,12 +50,6 @@ class _NavigationMenuState extends State<_NavigationMenu> {
           text: 'Dashboard',
         ),
         _MenuItem(
-          icon: Icons.tune,
-          isSelected: currentUrl == '/control',
-          onTap: () => _onTabTap(const ControlRoute()),
-          text: 'Control',
-        ),
-        _MenuItem(
           icon: Icons.memory,
           isSelected: currentUrl == '/device',
           onTap: () => _onTabTap(const DeviceRoute()),
@@ -63,8 +57,8 @@ class _NavigationMenuState extends State<_NavigationMenu> {
         ),
         _MenuItem(
           icon: Icons.notification_important,
-          isSelected: currentUrl == '/alert',
-          onTap: () => _onTabTap(const AlertRoute()),
+          isSelected: currentUrl == '/alarm',
+          onTap: () => _onTabTap(const AlarmRoute()),
           text: 'Alarm',
         ),
         _MenuItem(

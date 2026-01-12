@@ -49,6 +49,10 @@ current_data = {
     "BESS_PID_Td": 0.0,
     "BESS_PID_Ti": 0.0,
     "BESS_PID_Gain": 0.0,
+    "BESS_Temp_Ambient": 0.0,
+    "BESS_Alarm": 0.0,
+    "BESS_Fault": 0.0,
+    "BESS_Communication_Fault": 0.0,
     
     # METER
     "METER_Export_KVARH": 0.0,
@@ -79,8 +83,10 @@ current_data = {
     "PV1_Power_Factor": 0.0,
     "PV1_Reactive_Power_KVar": 0.0,
     "PV1_Active_Power_KW": 0.0,
+    "PV1_Fault": 0.0,
+    "PV1_Communication_Fault": 0.0,
     
-    # PV2-PV4 (ละไว้ตามเดิม)
+    # PV2
     "PV2_Energy_Daily_kW": 0.0,
     "PV2_LifeTimeEnergyProduction_kWh_Start": 0.0,
     "PV2_LifeTimeEnergyProduction_kWh": 0.0,
@@ -92,6 +98,9 @@ current_data = {
     "PV2_ReactivePower": 0.0,
     "PV2_ApparentPower": 0.0,
     "PV2_Power": 0.0,
+    "PV2_Communication_Fault": 0.0,
+
+    # PV3
     "PV3_Total_Power_Yields_Real": 0.0,
     "PV3_Total_Apparent_Power_kW": 0.0,
     "PV3_Total_Reactive_Power_kW": 0.0,
@@ -102,6 +111,9 @@ current_data = {
     "PV3_Total_Power_Yields": 0.0,
     "PV3_Daily_Power_Yields": 0.0,
     "PV3_Nominal_Active_Power": 0.0,
+    "PV3_Communication_Fault": 0.0,
+
+    # PV4
     "PV4_Total_Power_Yields_Real": 0.0,
     "PV4_Total_Apparent_Power_kW": 0.0,
     "PV4_Total_Reactive_Power_kW": 0.0,
@@ -112,6 +124,7 @@ current_data = {
     "PV4_Total_Power_Yields": 0.0,
     "PV4_Daily_Power_Yields": 0.0,
     "PV4_Nominal_Active_Power": 0.0,
+    "PV4_Communication_Fault": 0.0,
 }
 
 # 3. สร้าง FastAPI

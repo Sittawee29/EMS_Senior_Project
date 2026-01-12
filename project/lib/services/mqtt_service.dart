@@ -39,6 +39,11 @@ class DashboardData {
   double BESS_PID_Td;
   double BESS_PID_Ti;
   double BESS_PID_Gain;
+  double BESS_Temp_Ambient;
+  double BESS_Alarm;
+  double BESS_Fault;
+  double BESS_Communication_Fault;
+
   //METER
   double METER_Export_KVARH;
   double METER_Export_KWH;
@@ -67,6 +72,8 @@ class DashboardData {
   double PV1_Power_Factor;
   double PV1_Reactive_Power_KVar;
   double PV1_Active_Power_KW;
+  double PV1_Fault;
+  double PV1_Communication_Fault;
   //PV2
   double PV2_Energy_Daily_kW;
   double PV2_LifeTimeEnergyProduction_kWh_Start;
@@ -79,6 +86,7 @@ class DashboardData {
   double PV2_ReactivePower;
   double PV2_ApparentPower;
   double PV2_Power;
+  double PV2_Communication_Fault;
   //PV3
   double PV3_Total_Power_Yields_Real;
   double PV3_Total_Apparent_Power_kW;
@@ -90,6 +98,7 @@ class DashboardData {
   double PV3_Total_Power_Yields;
   double PV3_Daily_Power_Yields;
   double PV3_Nominal_Active_Power;
+  double PV3_Communication_Fault;
   //PV4
   double PV4_Total_Power_Yields_Real;
   double PV4_Total_Apparent_Power_kW;
@@ -101,6 +110,7 @@ class DashboardData {
   double PV4_Total_Power_Yields;
   double PV4_Daily_Power_Yields;
   double PV4_Nominal_Active_Power;
+  double PV4_Communication_Fault;
 
   DashboardData({
     this.PV_Total_Energy = 0.0,
@@ -136,6 +146,10 @@ class DashboardData {
     this.BESS_PID_Td = 0.0,
     this.BESS_PID_Ti = 0.0,
     this.BESS_PID_Gain = 0.0,
+    this.BESS_Temp_Ambient = 0.0,
+    this.BESS_Alarm = 0.0,
+    this.BESS_Fault = 0.0,
+    this.BESS_Communication_Fault = 0.0,
     this.METER_Export_KVARH = 0.0,
     this.METER_Export_KWH = 0.0,
     this.METER_Import_KVARH = 0.0,
@@ -162,6 +176,8 @@ class DashboardData {
     this.PV1_Power_Factor = 0.0,
     this.PV1_Reactive_Power_KVar = 0.0,
     this.PV1_Active_Power_KW = 0.0,
+    this.PV1_Fault = 0.0,
+    this.PV1_Communication_Fault = 0.0,
     this.PV2_Energy_Daily_kW = 0.0,
     this.PV2_LifeTimeEnergyProduction_kWh_Start = 0.0,
     this.PV2_LifeTimeEnergyProduction_kWh = 0.0,
@@ -173,6 +189,7 @@ class DashboardData {
     this.PV2_ReactivePower = 0.0,
     this.PV2_ApparentPower = 0.0,
     this.PV2_Power = 0.0,
+    this.PV2_Communication_Fault = 0.0,
     this.PV3_Total_Power_Yields_Real = 0.0,
     this.PV3_Total_Apparent_Power_kW = 0.0,
     this.PV3_Total_Reactive_Power_kW = 0.0,
@@ -183,6 +200,7 @@ class DashboardData {
     this.PV3_Total_Power_Yields = 0.0,
     this.PV3_Daily_Power_Yields = 0.0,
     this.PV3_Nominal_Active_Power = 0.0,
+    this.PV3_Communication_Fault = 0.0,
     this.PV4_Total_Power_Yields_Real = 0.0,
     this.PV4_Total_Apparent_Power_kW = 0.0,
     this.PV4_Total_Reactive_Power_kW = 0.0,
@@ -193,6 +211,7 @@ class DashboardData {
     this.PV4_Total_Power_Yields = 0.0,
     this.PV4_Daily_Power_Yields = 0.0,
     this.PV4_Nominal_Active_Power = 0.0,
+    this.PV4_Communication_Fault = 0.0,
   });
 
   factory DashboardData.fromJson(Map<String, dynamic> json) {
@@ -230,6 +249,10 @@ class DashboardData {
       BESS_PID_Td: (json['BESS_PID_Td'] ?? 0.0).toDouble(),
       BESS_PID_Ti: (json['BESS_PID_Ti'] ?? 0.0).toDouble(),
       BESS_PID_Gain: (json['BESS_PID_Gain'] ?? 0.0).toDouble(),
+      BESS_Temp_Ambient: (json['BESS_Temp_Ambient'] ?? 0.0).toDouble(),
+      BESS_Alarm: (json['BESS_Alarm'] ?? 0.0).toDouble(),
+      BESS_Fault: (json['BESS_Fault'] ?? 0.0).toDouble(),
+      BESS_Communication_Fault: (json['BESS_Communication_Fault'] ?? 0.0).toDouble(),
       METER_Export_KVARH: (json['METER_Export_KVARH'] ?? 0).toDouble(),
       METER_Export_KWH: (json['METER_Export_KWH'] ?? 0).toDouble(),
       METER_Import_KVARH: (json['METER_Import_KVARH'] ?? 0).toDouble(),
@@ -256,6 +279,8 @@ class DashboardData {
       PV1_Power_Factor: (json['PV1_Power_Factor'] ?? 0).toDouble(),
       PV1_Reactive_Power_KVar: (json['PV1_Reactive_Power_KVar'] ?? 0).toDouble(),
       PV1_Active_Power_KW: (json['PV1_Active_Power_KW'] ?? 0).toDouble(),
+      PV1_Fault: (json['PV1_Fault'] ?? 0).toDouble(),
+      PV1_Communication_Fault: (json['PV1_Communication_Fault'] ?? 0).toDouble(),
       PV2_Energy_Daily_kW: (json['PV2_Energy_Daily_kW'] ?? 0).toDouble(),
       PV2_LifeTimeEnergyProduction_kWh_Start: (json['PV2_LifeTimeEnergyProduction_kWh_Start'] ?? 0).toDouble(),
       PV2_LifeTimeEnergyProduction_kWh: (json['PV2_LifeTimeEnergyProduction_kWh'] ?? 0).toDouble(),
@@ -267,6 +292,7 @@ class DashboardData {
       PV2_ReactivePower: (json['PV2_ReactivePower'] ?? 0).toDouble(),
       PV2_ApparentPower: (json['PV2_ApparentPower'] ?? 0).toDouble(),
       PV2_Power: (json['PV2_Power'] ?? 0).toDouble(),
+      PV2_Communication_Fault: (json['PV2_Communication_Fault'] ?? 0).toDouble(),
       PV3_Total_Power_Yields_Real: (json['PV3_Total_Power_Yields_Real'] ?? 0).toDouble(),
       PV3_Total_Apparent_Power_kW: (json['PV3_Total_Apparent_Power_kW'] ?? 0).toDouble(),
       PV3_Total_Reactive_Power_kW: (json['PV3_Total_Reactive_Power_kW'] ?? 0).toDouble(),
@@ -277,6 +303,7 @@ class DashboardData {
       PV3_Total_Power_Yields: (json['PV3_Total_Power_Yields'] ?? 0).toDouble(),
       PV3_Daily_Power_Yields: (json['PV3_Daily_Power_Yields'] ?? 0).toDouble(),
       PV3_Nominal_Active_Power: (json['PV3_Nominal_Active_Power'] ?? 0).toDouble(),
+      PV3_Communication_Fault: (json['PV3_Communication_Fault'] ?? 0).toDouble(),
       PV4_Total_Power_Yields_Real: (json['PV4_Total_Power_Yields_Real'] ?? 0).toDouble(),
       PV4_Total_Apparent_Power_kW: (json['PV4_Total_Apparent_Power_kW'] ?? 0).toDouble(),
       PV4_Total_Reactive_Power_kW: (json['PV4_Total_Reactive_Power_kW'] ?? 0).toDouble(),
@@ -287,6 +314,7 @@ class DashboardData {
       PV4_Total_Power_Yields: (json['PV4_Total_Power_Yields'] ?? 0).toDouble(),
       PV4_Daily_Power_Yields: (json['PV4_Daily_Power_Yields'] ?? 0).toDouble(),
       PV4_Nominal_Active_Power: (json['PV4_Nominal_Active_Power'] ?? 0).toDouble(),
+      PV4_Communication_Fault: (json['PV4_Communication_Fault'] ?? 0).toDouble(),
     );
   }
 }

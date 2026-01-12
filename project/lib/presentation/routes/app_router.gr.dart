@@ -39,10 +39,10 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const DevicePage(),
       );
     },
-    AlertRoute.name: (routeData) {
+    AlarmRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
-        child: const AlertPage(),
+        child: const AlarmPage(),
       );
     },
     EBillingRoute.name: (routeData) {
@@ -112,13 +112,13 @@ class DeviceRoute extends PageRouteInfo<void> {
   static const PageInfo<void> page = PageInfo<void>(name);
 }
 
-class AlertRoute extends PageRouteInfo<void> {
-  const AlertRoute({List<PageRouteInfo>? children})
+class AlarmRoute extends PageRouteInfo<void> {
+  const AlarmRoute({List<PageRouteInfo>? children})
       : super(
-          AlertRoute.name,
+          AlarmRoute.name,
           initialChildren: children,
         );
-  static const String name = 'AlertRoute';
+  static const String name = 'AlarmRoute';
   static const PageInfo<void> page = PageInfo<void>(name);
 }
 
