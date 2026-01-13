@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware 
 import threading
 import json
+import math
 import paho.mqtt.client as mqtt
 from uvicorn import run
 
@@ -157,6 +158,8 @@ def on_message(client, userdata, msg):
     
     try:
         value = float(payload)
+        if math.isnan(value) or math.isinf(value):
+            value = 0.0
         parts = topic.split("/")
         
         if len(parts) >= 2:

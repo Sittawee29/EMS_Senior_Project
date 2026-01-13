@@ -209,11 +209,7 @@ class _WeatherBoxState extends State<_WeatherBox> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          
-                          // --- 2. ลบ Image.network ของเดิมออก แล้วใส่บรรทัดนี้แทน ---
                           _getWeatherIcon(data.iconCode),
-                          // -----------------------------------------------------
-
                           const SizedBox(width: 5),
                           Text(
                             data.description,
