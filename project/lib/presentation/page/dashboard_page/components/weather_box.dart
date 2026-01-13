@@ -115,6 +115,31 @@ class _WeatherBoxState extends State<_WeatherBox> {
   }
 
   @override
+  Widget _getWeatherIcon(String code) {
+    const double size = 30; 
+    switch (code) {
+      case '01d': // ฟ้าโปร่ง กลางวัน
+        return const Icon(Icons.wb_sunny, color: Colors.orange, size: size);
+      case '01n': // ฟ้าโปร่ง กลางคืน
+        return const Icon(Icons.nightlight_round, color: Colors.blueGrey, size: size);
+      case '02d': case '02n': // เมฆเล็กน้อย
+      case '03d': case '03n': // เมฆกระจัดกระจาย
+      case '04d': case '04n': // เมฆมาก
+        return const Icon(Icons.cloud, color: Colors.grey, size: size);
+      case '09d': case '09n': // ฝนปรอยๆ
+      case '10d': case '10n': // ฝนตก
+        return const Icon(Icons.water_drop, color: Colors.blue, size: size);
+      case '11d': case '11n': // พายุ
+        return const Icon(Icons.flash_on, color: Colors.amber, size: size);
+      case '13d': case '13n': // หิมะ
+        return const Icon(Icons.ac_unit, color: Colors.lightBlue, size: size);
+      case '50d': case '50n': // หมอก
+        return const Icon(Icons.blur_on, color: Colors.grey, size: size);
+      default:
+        return const Icon(Icons.wb_cloudy, color: Colors.grey, size: size);
+    }
+  }
+
   Widget build(BuildContext context) {
     return Container(
       width: 292, 
@@ -184,12 +209,11 @@ class _WeatherBoxState extends State<_WeatherBox> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Image.network(
-                            'https://openweathermap.org/img/wn/${data.iconCode}.png',
-                            width: 30,
-                            height: 30,
-                            errorBuilder: (_,__,___) => const Icon(Icons.cloud, color: Colors.grey),
-                          ),
+                          
+                          // --- 2. ลบ Image.network ของเดิมออก แล้วใส่บรรทัดนี้แทน ---
+                          _getWeatherIcon(data.iconCode),
+                          // -----------------------------------------------------
+
                           const SizedBox(width: 5),
                           Text(
                             data.description,
