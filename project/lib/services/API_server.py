@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 import io
 import csv
-import redis  # <--- [NEW] เพิ่ม Library Redis
+import redis
 
 # ==========================================
 # 1. Config & Setup
@@ -22,7 +22,7 @@ MQTT_USER = "mqtt_user"
 MQTT_PASS = "ADMINktt5120@"
 DB_NAME = "energy_data.db"
 
-# [NEW] Redis Configuration
+# Redis Configuration
 REDIS_HOST = "localhost"
 REDIS_PORT = 6379
 REDIS_DB = 0
@@ -35,6 +35,7 @@ try:
 except Exception as e:
     print(f"❌ Failed to connect to Redis: {e}")
 
+# รายชื่อ Keys ทั้งหมดที่จะใช้งาน
 DEFAULT_KEYS = [
     # --- METER ---
     "METER_V1", "METER_V2", "METER_V3",
@@ -78,39 +79,32 @@ DEFAULT_KEYS = [
     "PV4_Daily_Power_Yields", "PV4_Nominal_Active_Power", "PV4_Communication_Fault"
 ]
 
-# ส่วน Initialize (ห้ามลืมใส่ส่วนนี้ต่อท้าย list)
 print("⏳ Initializing Redis keys...")
 pipe = redis_client.pipeline()
 for key in DEFAULT_KEYS:
-    pipe.setnx(key, 0.0) # สร้าง Key เฉพาะถ้ายังไม่มี
+    pipe.setnx(key, 0.0)
 pipe.execute()
 print("✅ Redis keys initialized complete.")
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS meter_logs (
+    
+    columns_sql = ", ".join([f'"{key}" REAL' for key in DEFAULT_KEYS])
+    
+    create_table_sql = f'''
+        CREATE TABLE IF NOT EXISTS system_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp DATETIME, 
-            v1 REAL, v2 REAL, v3 REAL,
-            i1 REAL, i2 REAL, i3 REAL,
-            kw_total REAL,
-            kwh_total REAL
+            {columns_sql}
         )
-    ''')
+    '''
+    cursor.execute(create_table_sql)
     conn.commit()
     conn.close()
-    print("✅ Database Initialized (Cold Data Layer)")
+    print("✅ Database Initialized")
 
 init_db()
-
-# รายชื่อ Keys ที่เราสนใจ (สำหรับดึงจาก Redis ไปลง DB)
-INTERESTED_KEYS = [
-    "METER_V1", "METER_V2", "METER_V3",
-    "METER_I1", "METER_I2", "METER_I3",
-    "METER_KW", "METER_Total_KWH"
-]
 
 app = FastAPI()
 app.add_middleware(
@@ -129,43 +123,39 @@ def on_message(client, userdata, msg):
     try:
         topic = msg.topic
         payload = msg.payload.decode("utf-8")
-        
-        # [DEBUG]
-        #print(f"📨 RECEIVED: {topic} -> {payload}") 
-
         updates = {}
 
-        # กรณี 1: JSON Payload
         if "{" in payload and "}" in payload:
             try:
                 data_json = json.loads(payload)
                 
-                # 1.1 JSON Mapping (Manual)
-                if "v1" in data_json: updates["METER_V1"] = data_json["v1"]
-                if "v2" in data_json: updates["METER_V2"] = data_json["v2"]
-                if "v3" in data_json: updates["METER_V3"] = data_json["v3"]
-                if "i1" in data_json: updates["METER_I1"] = data_json["i1"]
-                if "i2" in data_json: updates["METER_I2"] = data_json["i2"]
-                if "i3" in data_json: updates["METER_I3"] = data_json["i3"]
-                if "kwhtotal" in data_json: updates["METER_Total_KWH"] = data_json["kwhtotal"]
-                if "p" in data_json: updates["METER_KW"] = data_json["p"]
+                def clean_val(v):
+                    return round(float(v), 4) if isinstance(v, (int, float)) else v
 
-                # 1.2 JSON Auto-Map
+                if "v1" in data_json: updates["METER_V1"] = clean_val(data_json["v1"])
+                if "v2" in data_json: updates["METER_V2"] = clean_val(data_json["v2"])
+                if "v3" in data_json: updates["METER_V3"] = clean_val(data_json["v3"])
+                if "i1" in data_json: updates["METER_I1"] = clean_val(data_json["i1"])
+                if "i2" in data_json: updates["METER_I2"] = clean_val(data_json["i2"])
+                if "i3" in data_json: updates["METER_I3"] = clean_val(data_json["i3"])
+                if "kwhtotal" in data_json: updates["METER_Total_KWH"] = clean_val(data_json["kwhtotal"])
+                if "p" in data_json: updates["METER_KW"] = clean_val(data_json["p"])
+
                 for key, val in data_json.items():
                     if isinstance(val, (int, float)):
-                        updates[key] = val
+                        updates[key] = round(val, 4)
                         
             except json.JSONDecodeError:
                 print(f"❌ JSON Error: {payload}")
-
         else: 
             try:
                 value = float(payload)
                 if math.isnan(value) or math.isinf(value): value = 0.0
-                
+                value = round(value, 4)
+
                 parts = topic.split("/")
-                suffix = parts[-1]   # เช่น PV_Total_Energy, SOC
-                prefix = parts[0]    # เช่น EMS, BESS
+                suffix = parts[-1]
+                prefix = parts[0]
                 if suffix in DEFAULT_KEYS:
                      key_name = suffix 
                 else:
@@ -176,7 +166,6 @@ def on_message(client, userdata, msg):
             except ValueError:
                 pass 
 
-        # [Final Step] บันทึกลง Redis
         if updates:
             pipe = redis_client.pipeline()
             for k, v in updates.items():
@@ -189,40 +178,60 @@ def on_message(client, userdata, msg):
 # ==========================================
 # 3. Background Tasks (Sync Hot -> Cold)
 # ==========================================
+# [EDITED] ฟังก์ชันนี้แก้ไขให้บันทึกทุก 5 นาที
 def db_saver_loop():
-    # Loop นี้คือตัวเชื่อมระหว่าง Hot Data กับ Cold Data
+    print("✅ Database Saver Loop Started (Mode: Every 5 Minutes aligned to xx:00, xx:05, ...)")
     while True:
-        time.sleep(10) # บันทึกทุก 10 วินาที
-        
         try:
-            conn = sqlite3.connect(DB_NAME)
-            cursor = conn.cursor()
+            now = datetime.now()
             
-            local_time = datetime.now()
-            local_time_str = local_time.strftime("%Y-%m-%d %H:%M:%S")
+            # ตรวจสอบว่านาทีปัจจุบัน หารด้วย 5 ลงตัวหรือไม่? (0, 5, 10, 15, ..., 55)
+            if now.minute % 5 == 0:
+                conn = sqlite3.connect(DB_NAME)
+                cursor = conn.cursor()
+                
+                local_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
-            # [NEW] ดึงค่าล่าสุดจาก Redis (Hot Data)
-            # ถ้าไม่มีค่าใน Redis ให้ใช้ 0
-            vals = []
-            for key in INTERESTED_KEYS:
-                val = redis_client.get(key)
-                vals.append(round(float(val), 2) if val else 0.0)
+                pipe = redis_client.pipeline()
+                for key in DEFAULT_KEYS:
+                    pipe.get(key)
+                raw_values = pipe.execute()
+                
+                vals = []
+                for v in raw_values:
+                    try:
+                        val_float = float(v) if v else 0.0
+                        vals.append(round(val_float, 4))
+                    except:
+                        vals.append(0.0)
 
-            # vals จะเรียงตามลำดับใน INTERESTED_KEYS: V1, V2, V3, I1, I2, I3, KW, KWH
+                columns_str = ", ".join([f'"{k}"' for k in DEFAULT_KEYS])
+                placeholders = ", ".join(["?" for _ in DEFAULT_KEYS])
+                
+                sql = f'''
+                    INSERT INTO system_logs (timestamp, {columns_str})
+                    VALUES (?, {placeholders})
+                '''
+                
+                cursor.execute(sql, (local_time_str, *vals))
+                
+                conn.commit()
+                conn.close()
+                print(f"💾 Archived data to DB at {local_time_str}")
+                
+                # สำคัญ: เมื่อบันทึกเสร็จแล้ว ให้ Sleep ข้ามนาทีนี้ไปเลย 
+                # (เช่น 60 วินาที) เพื่อป้องกันการบันทึกซ้ำหลายรอบในนาทีเดียวกัน
+                time.sleep(60) 
             
-            cursor.execute('''
-                INSERT INTO meter_logs (timestamp, v1, v2, v3, i1, i2, i3, kw_total, kwh_total)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (local_time_str, *vals))
-            
-            conn.commit()
-            conn.close()
-            print(f"💾 Archived data from Redis to DB at {local_time_str}")
+            else:
+                # ถ้ายังไม่ถึงเวลา ให้รอ 10 วินาที แล้ววนกลับมาเช็คใหม่
+                # การใช้ sleep น้อยๆ ช่วยให้เราไม่พลาดช่วงเปลี่ยนนาที
+                time.sleep(10)
             
         except Exception as e:
             print(f"Error syncing Hot-to-Cold data: {e}")
+            time.sleep(10) # ถ้า Error ให้รอหน่อยแล้วค่อยเริ่มใหม่
 
-# Start Threads
 db_thread = threading.Thread(target=db_saver_loop)
 db_thread.daemon = True
 db_thread.start()
@@ -240,50 +249,41 @@ mqtt_thread.daemon = True
 mqtt_thread.start()
 
 # ==========================================
-# 4. API Endpoints (Read from Hot/Cold)
+# 4. API Endpoints
 # ==========================================
 
-# [Hot Data Access] อ่านจาก Redis โดยตรง เร็วมาก
 @app.get("/api/dashboard")
 def get_dashboard_data():
     try:
-        # ดึงทุก Key ใน Redis (หรือจะเลือกเฉพาะ Keys ที่ต้องการก็ได้)
         keys = redis_client.keys("*")
         if not keys: return {}
-        
-        # ใช้ Pipeline ดึงค่าทีเดียวเพื่อลด Latency
         pipe = redis_client.pipeline()
         for k in keys: pipe.get(k)
         values = pipe.execute()
-        
-        # แปลงกลับเป็น Dict
-        result = {k: (float(v) if v else 0) for k, v in zip(keys, values)}
+        result = {k: (round(float(v), 4) if v else 0) for k, v in zip(keys, values)}
         return result
     except Exception as e:
         return {"error": str(e)}
 
-# [Cold Data Access] อ่านจาก SQLite เหมือนเดิม
 @app.get("/api/history")
 def get_history_data():
     try:
         conn = sqlite3.connect(DB_NAME)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM meter_logs ORDER BY id DESC LIMIT 1000") 
+        cursor.execute("SELECT * FROM system_logs ORDER BY id DESC LIMIT 100") 
         rows = cursor.fetchall()
         conn.close()
         return [dict(row) for row in rows]
     except Exception as e:
         return {"error": str(e)}
 
-# [Cold Data Export]
 @app.get("/api/export_csv")
 def export_csv_data():
-    # (Code ส่วนนี้เหมือนเดิม เพราะดึงจาก SQLite)
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM meter_logs ORDER BY id DESC")
+        cursor.execute("SELECT * FROM system_logs ORDER BY id DESC")
         rows = cursor.fetchall()
         if cursor.description is None: return {"error": "No data"}
         column_names = [description[0] for description in cursor.description]
@@ -295,7 +295,7 @@ def export_csv_data():
         writer.writerows(rows)
         output.seek(0)
         
-        filename = f"meter_data_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+        filename = f"system_data_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
         return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={"Content-Disposition": f"attachment; filename={filename}"})
     except Exception as e:
         return {"error": str(e)}
