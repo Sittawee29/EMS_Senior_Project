@@ -118,7 +118,7 @@ class _HCurveState extends State<HCurve> {
           _typeBtn("Energy (kWh)", GraphType.energy),
           _typeBtn("Voltage (V)", GraphType.voltage),
           _typeBtn("Current (I)", GraphType.current),
-          _typeBtn("CO2", GraphType.co2),
+          _typeBtn("CO₂", GraphType.co2),
         ],
       ),
     );
@@ -187,7 +187,7 @@ class _HCurveState extends State<HCurve> {
         break;
       case GraphType.co2:
         items = [
-          const NameAndColorRow(color: Colors.teal, text: 'CO2 Saved'),
+          const NameAndColorRow(color: Colors.teal, text: 'CO₂ Saved'),
         ];
         break;
     }
@@ -199,6 +199,17 @@ class _LineChart extends StatelessWidget {
   final List<String> timeLabels;
   final List<Map<String, dynamic>> historyData;
   final GraphType graphType;
+
+  String _getUnit() {
+    switch (graphType) {
+      case GraphType.power: return 'kW';
+      case GraphType.energy: return 'kWh';
+      case GraphType.voltage: return 'V';
+      case GraphType.current: return 'A';
+      case GraphType.co2: return 'CO₂e';
+      default: return '';
+    }
+  }
 
   const _LineChart({
     required this.timeLabels,
@@ -266,7 +277,7 @@ class _LineChart extends StatelessWidget {
         lines.add(_buildLine(_getPoints("EMS_SolarPower_kW"), Palette.lightBlue));
         lines.add(_buildLine(_getPoints("EMS_LoadPower_kW"), Palette.orange)); 
         lines.add(_buildLine(_getPoints("METER_KW"), Palette.red)); 
-        lines.add(_buildLine(_getPoints("BESS_KW"), Palette.green));
+        lines.add(_buildLine(_getPoints("EMS_BatteryPower_kW"), Palette.green));
         break;
       case GraphType.energy:
         lines.add(_buildLine(_getPoints("METER_Total_KWH"), Colors.green));
@@ -326,20 +337,75 @@ class _LineChart extends StatelessWidget {
             minY: minY,  // <--- ใส่ตรงนี้
             maxY: maxY,  // <--- ใส่ตรงนี้
             lineTouchData: LineTouchData(
+              handleBuiltInTouches: true,
+              getTouchedSpotIndicator: (LineChartBarData barData, List<int> spotIndexes) {
+                return spotIndexes.map((spotIndex) {
+                  return TouchedSpotIndicatorData(
+                    const FlLine(color: Colors.blueGrey, strokeWidth: 1, dashArray: [5, 5]),
+                    FlDotData(
+                      getDotPainter: (spot, percent, barData, index) {
+                        return FlDotCirclePainter(
+                          radius: 3,
+                          color: barData.color ?? Colors.blue,
+                        );
+                      },
+                    ),
+                  );
+                }).toList();
+              },
+              
               touchTooltipData: LineTouchTooltipData(
-                getTooltipItems: (touchedSpots) {
-                  return touchedSpots.map((spot) {
-                    final index = spot.x.toInt();
-                    final time = (index >= 0 && index < timeLabels.length) 
-                        ? timeLabels[index] : '';
-                    return LineTooltipItem(
-                      '$time\n${spot.y.toStringAsFixed(2)}',
-                      const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    );
+                getTooltipColor: (touchedSpot) => Colors.blueGrey.withOpacity(0.1),
+                tooltipRoundedRadius: 8,
+                tooltipPadding: const EdgeInsets.all(12),
+                
+                tooltipHorizontalOffset: 60, 
+                fitInsideHorizontally: true, 
+                fitInsideVertically: true,
+                getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
+                touchedBarSpots.sort((a, b) => a.barIndex.compareTo(b.barIndex));
+                  // ----------------------------------------------
+                return touchedBarSpots.map((barSpot) {
+                  final flSpot = barSpot;
+                  final index = flSpot.x.toInt();
+                  final time = (index >= 0 && index < timeLabels.length) ? timeLabels[index] : '';
+                  final isFirst = barSpot == touchedBarSpots.first;
+                    
+                  if (isFirst) {
+                      return LineTooltipItem(
+                        '$time\n',
+                        const TextStyle(
+                          color: Color.fromARGB(255, 22, 39, 128),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: '${flSpot.y.toStringAsFixed(2)} ${_getUnit()}',
+                            style: TextStyle(
+                              color: barSpot.bar.color,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      );
+                    } 
+                    
+                    else {
+                      return LineTooltipItem(
+                        '${flSpot.y.toStringAsFixed(2)} ${_getUnit()}',
+                        TextStyle(
+                          color: barSpot.bar.color, // สีตามเส้นกราฟ
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      );
+                    }
                   }).toList();
                 },
-              ),
             ),
+          ),
             gridData: FlGridData(
               show: true,
               drawVerticalLine: true,
@@ -351,7 +417,6 @@ class _LineChart extends StatelessWidget {
               leftTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
-                  // ปรับค่า reservedSize ให้พอเหมาะ (45-50 กำลังดีสำหรับตัวเลขหลักพัน/หมื่น)
                   reservedSize: 50, 
                   interval: interval,
                   getTitlesWidget: (value, meta) {

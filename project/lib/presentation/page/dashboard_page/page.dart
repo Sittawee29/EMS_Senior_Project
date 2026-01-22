@@ -59,7 +59,6 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
             const SizedBox(height: 28),
-            // ส่งค่าจริงเข้าไปใน InformationRow (ต้องแก้ Widget นี้ให้รับค่าด้วย)
             _InformationRow(
                totalProduction: data.PV_Total_Energy,
                gridFeedIn: data.GRID_Total_Import_Energy,
@@ -71,11 +70,7 @@ class _DashboardPageState extends State<DashboardPage> {
               spacing: 22,
               runSpacing: 22,
               children: <Widget>[
-                // ส่งค่าจริงเข้าไปใน StatisticsBox
                 _StatisticsBox(
-                   // สมมติ map data สำหรับ PowerFlow 
-                   // (หมายเหตุ: topic ใน MQTT.py ส่วนใหญ่เป็น Energy (kWh) 
-                   // ถ้าจะทำ Power Flow (kW) ต้องหา topic ที่เป็น Power หรือ Instantaneous)
                    powerFlowData: [
                       data.EMS_SolarPower_kW, // Solar
                       data.METER_Grid_Power_KW, // Grid

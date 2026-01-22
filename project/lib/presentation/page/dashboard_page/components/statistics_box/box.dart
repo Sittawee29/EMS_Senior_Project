@@ -6,7 +6,6 @@ class _StatisticsBox extends StatefulWidget {
   final List<double> dataOverview; // [Prod_used, Prod_Battery, Cons_Purchased, Cons_Prod]
 
   const _StatisticsBox({
-    super.key,
     required this.powerFlowData,
     required this.powerCurveData,
     required this.dataOverview,

@@ -50,7 +50,7 @@ DEFAULT_KEYS = [
     "GRID_Total_Import_Energy", "GRID_Daily_Import_Energy", "GRID_Total_Export_Energy", "GRID_Daily_Export_Energy",
     "BESS_Daily_Charge_Energy", "BESS_Daily_Discharge_Energy", "EMS_CO2_Equivalent",
     "EMS_EnergyProducedFromPV_Daily", "EMS_EnergyFeedToGrid_Daily", "EMS_EnergyConsumption_Daily",
-    "EMS_EnergyFeedFromGrid_Daily", "EMS_SolarPower_kW", "EMS_LoadPower_kW",
+    "EMS_EnergyFeedFromGrid_Daily", "EMS_SolarPower_kW", "EMS_LoadPower_kW","EMS_BatteryPower_kW",
 
     # --- BESS ---
     "BESS_SOC", "BESS_SOH", "BESS_V", "BESS_I", "BESS_KW", "BESS_Temperature",
@@ -65,16 +65,16 @@ DEFAULT_KEYS = [
 
     # --- PV2 ---
     "PV2_Energy_Daily_kW", "PV2_LifeTimeEnergyProduction_kWh_Start", "PV2_LifeTimeEnergyProduction_kWh",
-    "PV2_ReactivePower_kW", "PV2_ApparentPower_kW", "PV2_Active_Power_kW", "PV2_LifeTimeEnergyProduction",
+    "PV2_ReactivePower_kW", "PV2_ApparentPower_kW", "PV2_Power_kW", "PV2_LifeTimeEnergyProduction",
     "PV2_PowerFactor_Percen", "PV2_ReactivePower", "PV2_ApparentPower", "PV2_Power", "PV2_Communication_Fault",
 
     # --- PV3 ---
-    "PV3_Total_Power_Yields_Real", "PV3_Total_Apparent_Power_kW", "PV3_Total_Reactive_Power_kW", "PV3_Active_Power_kW",
+    "PV3_Total_Power_Yields_Real", "PV3_Total_Apparent_Power_kW", "PV3_Total_Reactive_Power_kW", "PV3_Total_Active_Power_kW",
     "PV3_Total_Reactive_Power", "PV3_Total_Active_Power", "PV3_Total_Apparent_Power", "PV3_Total_Power_Yields",
     "PV3_Daily_Power_Yields", "PV3_Nominal_Active_Power", "PV3_Communication_Fault",
 
     # --- PV4 ---
-    "PV4_Total_Power_Yields_Real", "PV4_Total_Apparent_Power_kW", "PV4_Total_Reactive_Power_kW", "PV4_Active_Power_kW",
+    "PV4_Total_Power_Yields_Real", "PV4_Total_Apparent_Power_kW", "PV4_Total_Reactive_Power_kW", "PV4_Total_Active_Power_kW",
     "PV4_Total_Reactive_Power", "PV4_Total_Active_Power", "PV4_Total_Apparent_Power", "PV4_Total_Power_Yields",
     "PV4_Daily_Power_Yields", "PV4_Nominal_Active_Power", "PV4_Communication_Fault"
 ]
@@ -151,6 +151,7 @@ def on_message(client, userdata, msg):
     try:
         topic = msg.topic
         payload = msg.payload.decode("utf-8")
+        #print(f"🔔 Topic: {topic} | Value: {payload}")
         updates = {}
 
         if "{" in payload and "}" in payload:
@@ -214,7 +215,6 @@ def db_saver_loop():
         try:
             now = datetime.now()
             
-            # ตรวจสอบว่านาทีปัจจุบัน หารด้วย 5 ลงตัวหรือไม่? (0, 5, 10, 15, ..., 55)
             if now.minute % 5 == 0:
                 conn = sqlite3.connect(DB_NAME, timeout=30)
                 cursor = conn.cursor()
