@@ -328,6 +328,23 @@ class MqttService {
   // ตรวจสอบ IP ให้ถูกต้อง (ถ้าเทสบน Web ใช้ localhost ได้เลย ถ้า Python รันอยู่เครื่องเดียวกัน)
   final String _apiUrl = "http://localhost:8000/api/dashboard";
   // หรือถ้าคุณใช้ IP วงแลน: "http://172.20.2.158:8000/api/dashboard";
+  final String _historyApiUrl = "http://localhost:8000/api/history/today";
+  Future<List<Map<String, dynamic>>> fetchHistoryData() async {
+    try {
+      final response = await http.get(Uri.parse(_historyApiUrl));
+      if (response.statusCode == 200) {
+        List<dynamic> list = jsonDecode(response.body);
+        return list.cast<Map<String, dynamic>>();
+      } else {
+        print("History API Error: ${response.statusCode}");
+        return [];
+      }
+    } catch (e) {
+      print("Error fetching History: $e");
+      return [];
+    }
+  }
+
 
   final _dataController = StreamController<DashboardData>.broadcast();
   Stream<DashboardData> get dataStream => _dataController.stream;

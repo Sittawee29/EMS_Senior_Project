@@ -104,6 +104,34 @@ def init_db():
     conn.close()
     print("✅ Database Initialized")
 
+def init_db_wal_mode():
+    max_retries = 5
+    for i in range(max_retries):
+        try:
+            # เพิ่ม timeout=60 เพื่อให้โอกาสรอนานขึ้น
+            with sqlite3.connect(DB_NAME, timeout=60) as conn:
+                # สั่ง Commit เผื่อมี transaction ค้าง
+                try: conn.execute("COMMIT") 
+                except: pass
+                
+                cursor = conn.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL;")
+                mode = cursor.fetchone()[0]
+                
+                if mode.upper() == 'WAL':
+                    print(f"✅ Database WAL mode enabled. (Attempt {i+1})")
+                    return
+                else:
+                    print(f"⚠️ WAL mode not set yet (Current: {mode}), retrying...")
+                    
+        except Exception as e:
+            print(f"⚠️ Failed to enable WAL mode (Attempt {i+1}): {e}")
+            time.sleep(1) # รอ 1 วินาทีก่อนลองใหม่
+            
+    print("❌ Could not enable WAL mode after retries. System will continue but may be slow.")
+    
+init_db_wal_mode()
+
 init_db()
 
 app = FastAPI()
@@ -116,7 +144,7 @@ app.add_middleware(
 # ==========================================
 def on_connect(client, userdata, flags, rc):
     print("Connected to MQTT Broker!")
-    topics = ["EMS/#", "BESS/#", "METER/#", "PV1/#", "bdmsry/meter"]
+    topics = ["EMS/#", "BESS/#", "METER/#", "PV1/#", "PV2/#", "PV3/#", "PV4/#"]
     for t in topics: client.subscribe(t)
 
 def on_message(client, userdata, msg):
@@ -143,6 +171,7 @@ def on_message(client, userdata, msg):
 
                 for key, val in data_json.items():
                     if isinstance(val, (int, float)):
+                        
                         updates[key] = round(val, 4)
                         
             except json.JSONDecodeError:
@@ -187,7 +216,7 @@ def db_saver_loop():
             
             # ตรวจสอบว่านาทีปัจจุบัน หารด้วย 5 ลงตัวหรือไม่? (0, 5, 10, 15, ..., 55)
             if now.minute % 5 == 0:
-                conn = sqlite3.connect(DB_NAME)
+                conn = sqlite3.connect(DB_NAME, timeout=30)
                 cursor = conn.cursor()
                 
                 local_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -268,7 +297,7 @@ def get_dashboard_data():
 @app.get("/api/history")
 def get_history_data():
     try:
-        conn = sqlite3.connect(DB_NAME)
+        conn = sqlite3.connect(DB_NAME, timeout=30)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM system_logs ORDER BY id DESC LIMIT 100") 
@@ -276,6 +305,40 @@ def get_history_data():
         conn.close()
         return [dict(row) for row in rows]
     except Exception as e:
+        return {"error": str(e)}
+    
+@app.get("/api/history/today")
+def get_today_history():
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT timestamp FROM system_logs ORDER BY id DESC LIMIT 1")
+        last_row = cursor.fetchone()
+        target_date = datetime.now().strftime("%Y-%m-%d")
+        if last_row and last_row['timestamp']:
+            target_date = str(last_row['timestamp'])[:10]
+
+        sql = f"SELECT * FROM system_logs WHERE timestamp LIKE '{target_date}%' ORDER BY timestamp ASC"
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+        conn.close()
+        
+        results = []
+        for row in rows:
+            d = dict(row) # แปลง Row เป็น Dictionary
+            
+            # เช็คว่ามีคีย์นี้ไหม ถ้ามีให้ทำ Absolute
+            if "EMS_LoadPower_kW" in d and d["EMS_LoadPower_kW"] is not None:
+                d["EMS_LoadPower_kW"] = abs(d["EMS_LoadPower_kW"])
+
+            results.append(d)
+        print(f"DEBUG: Sent {len(results)} rows for date {target_date}")
+        return results # ส่งค่าที่แก้แล้วกลับไป
+        
+    except Exception as e:
+        print(f"ERROR: {e}")
         return {"error": str(e)}
 
 @app.get("/api/export_csv")
@@ -301,4 +364,7 @@ def export_csv_data():
         return {"error": str(e)}
 
 if __name__ == "__main__":
+    print("⏳ Initializing Database...")
+    init_db_wal_mode()
+    print("🚀 Starting Server...")
     run(app, host="0.0.0.0", port=8000)
