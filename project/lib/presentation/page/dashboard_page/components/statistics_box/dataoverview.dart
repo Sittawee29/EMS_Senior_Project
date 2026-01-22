@@ -145,15 +145,8 @@ class RadialLinePainter extends CustomPainter {
     double tx = (dx == 0) ? double.infinity : halfW / dx.abs();
     double ty = (dy == 0) ? double.infinity : halfH / dy.abs();
     double t = (tx < ty) ? tx : ty;
-
     Offset startPoint = center + Offset(dx * t, dy * t);
-
-    // --- 2. หาจุดจบ (End) ที่ระยะ Fixed Distance ---
-    // แทนที่จะบวกความยาวเพิ่ม เรากำหนดเลยว่าปลายต้องห่างจาก Center เท่ากับ fixedTipDistance
-    // สูตรนี้จะทำให้ปลายเส้นนิ่งสนิท ไม่สนว่ากล่องข้อความจะกว้างแค่ไหน
     Offset endPoint = center + Offset(dx * fixedTipDistance, dy * fixedTipDistance);
-
-    // วาดเส้น (ถ้ากล่องข้อความใหญ่เกินระยะเส้น เส้นจะหดหายไปเอง ไม่บั๊ก)
     if (fixedTipDistance > t) {
        canvas.drawLine(startPoint, endPoint, paint);
     }

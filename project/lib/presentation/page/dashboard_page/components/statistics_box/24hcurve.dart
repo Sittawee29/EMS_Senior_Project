@@ -69,7 +69,6 @@ class _HCurveState extends State<HCurve> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 1. ส่วน Header และปุ่มเลือกกราฟ
         Padding(
           padding: const EdgeInsets.only(left: 32.0, top: 32.0, right: 32.0),
           child: Row(
@@ -162,9 +161,13 @@ class _HCurveState extends State<HCurve> {
         break;
       case GraphType.energy:
         items = [
-          const NameAndColorRow(color: Colors.green, text: 'PV Daily Energy'),
+          const NameAndColorRow(color: Colors.blue, text: 'PV Production'),
           const SizedBox(width: 20),
-          const NameAndColorRow(color: Colors.purple, text: 'Load Daily Energy'),
+          const NameAndColorRow(color: Colors.red, text: 'Consumption'),
+          const SizedBox(width: 20),
+          const NameAndColorRow(color: Colors.green, text: 'BESS Charge'),
+          const SizedBox(width: 20),
+          const NameAndColorRow(color: Colors.orange, text: 'BESS Discharge'),
         ];
         break;
       case GraphType.voltage:
@@ -208,6 +211,45 @@ class _LineChart extends StatelessWidget {
       case GraphType.current: return 'A';
       case GraphType.co2: return 'CO₂e';
       default: return '';
+    }
+  }
+
+  String _getSeriesName(int index) {
+    switch (graphType) {
+      case GraphType.power:
+        switch (index) {
+          case 0: return 'PV Production';
+          case 1: return 'Load Consumption';
+          case 2: return 'Grid Power';
+          case 3: return 'BESS Power';
+          default: return '';
+        }
+      case GraphType.energy:
+        switch (index) {
+          case 0: return 'PV Production';
+          case 1: return 'Consumption';
+          case 2: return 'BESS Charge';
+          case 3: return 'BESS Discharge';
+          default: return '';
+        }
+      case GraphType.voltage:
+        switch (index) {
+          case 0: return 'Phase 1';
+          case 1: return 'Phase 2';
+          case 2: return 'Phase 3';
+          default: return '';
+        }
+      case GraphType.current:
+        switch (index) {
+          case 0: return 'Phase 1';
+          case 1: return 'Phase 2';
+          case 2: return 'Phase 3';
+          default: return '';
+        }
+      case GraphType.co2:
+        return 'CO₂ Saved';
+      default:
+        return '';
     }
   }
 
@@ -280,7 +322,10 @@ class _LineChart extends StatelessWidget {
         lines.add(_buildLine(_getPoints("EMS_BatteryPower_kW"), Palette.green));
         break;
       case GraphType.energy:
-        lines.add(_buildLine(_getPoints("METER_Total_KWH"), Colors.green));
+        lines.add(_buildLine(_getPoints("EMS_EnergyProducedFromPV_Daily"), Colors.blue));
+        lines.add(_buildLine(_getPoints("EMS_EnergyConsumption_Daily"), Colors.red));
+        lines.add(_buildLine(_getPoints("BESS_Daily_Charge_Energy"), Colors.green));
+        lines.add(_buildLine(_getPoints("BESS_Daily_Discharge_Energy"), Colors.orange));
         break;
       case GraphType.voltage:
         lines.add(_buildLine(_getPoints("METER_V1"), Colors.red));
@@ -358,20 +403,23 @@ class _LineChart extends StatelessWidget {
                 getTooltipColor: (touchedSpot) => Colors.blueGrey.withOpacity(0.1),
                 tooltipRoundedRadius: 8,
                 tooltipPadding: const EdgeInsets.all(12),
-                
+                maxContentWidth: 300,
                 tooltipHorizontalOffset: 60, 
                 fitInsideHorizontally: true, 
                 fitInsideVertically: true,
                 getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
-                touchedBarSpots.sort((a, b) => a.barIndex.compareTo(b.barIndex));
-                  // ----------------------------------------------
-                return touchedBarSpots.map((barSpot) {
-                  final flSpot = barSpot;
-                  final index = flSpot.x.toInt();
-                  final time = (index >= 0 && index < timeLabels.length) ? timeLabels[index] : '';
-                  final isFirst = barSpot == touchedBarSpots.first;
+                  touchedBarSpots.sort((a, b) => a.barIndex.compareTo(b.barIndex));
+
+                  return touchedBarSpots.map((barSpot) {
+                    final flSpot = barSpot;
+                    final index = flSpot.x.toInt();
+                    final time = (index >= 0 && index < timeLabels.length) ? timeLabels[index] : '';
+                    final isFirst = barSpot == touchedBarSpots.first;
                     
-                  if (isFirst) {
+                    final name = _getSeriesName(barSpot.barIndex);
+                    final lineText = '$name: ${flSpot.y.toStringAsFixed(2)} ${_getUnit()}';
+
+                    if (isFirst) {
                       return LineTooltipItem(
                         '$time\n',
                         const TextStyle(
@@ -381,7 +429,7 @@ class _LineChart extends StatelessWidget {
                         ),
                         children: [
                           TextSpan(
-                            text: '${flSpot.y.toStringAsFixed(2)} ${_getUnit()}',
+                            text: lineText,
                             style: TextStyle(
                               color: barSpot.bar.color,
                               fontWeight: FontWeight.bold,
@@ -390,13 +438,11 @@ class _LineChart extends StatelessWidget {
                           ),
                         ],
                       );
-                    } 
-                    
-                    else {
+                    } else {
                       return LineTooltipItem(
-                        '${flSpot.y.toStringAsFixed(2)} ${_getUnit()}',
+                        lineText, 
                         TextStyle(
-                          color: barSpot.bar.color, // สีตามเส้นกราฟ
+                          color: barSpot.bar.color,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -477,7 +523,18 @@ class _LineChart extends StatelessWidget {
       color: color,
       barWidth: 2,
       dotData: const FlDotData(show: false),
-      belowBarData: BarAreaData(show: true, color: color.withOpacity(0.1)),
+      belowBarData: BarAreaData(
+        show: true,
+        cutOffY: 0,
+        applyCutOffY: true,
+        color: color.withOpacity(0.1),
+      ),
+      aboveBarData: BarAreaData(
+        show: true,
+        cutOffY: 0,
+        applyCutOffY: true,
+        color: color.withOpacity(0.1),
+      ),
     );
   }
 }
