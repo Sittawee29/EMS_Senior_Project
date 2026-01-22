@@ -1,6 +1,9 @@
 part of '../../page.dart';
 
-// Enum สำหรับประเภทกราฟ
+// 1. เพิ่ม Enum สำหรับช่วงเวลา
+enum TimePeriod { daily, monthly, yearly }
+
+// Enum สำหรับประเภทกราฟ (เหมือนเดิม)
 enum GraphType { power, energy, voltage, current, co2 }
 
 class HCurve extends StatefulWidget {
@@ -12,11 +15,12 @@ class HCurve extends StatefulWidget {
 
 class _HCurveState extends State<HCurve> {
   GraphType _selectedType = GraphType.power;
+  TimePeriod _selectedPeriod = TimePeriod.daily; // state สำหรับช่วงเวลา
   List<Map<String, dynamic>> _historyData = [];
   bool _isLoading = true;
   Timer? _refreshTimer;
 
-  // สร้าง Time Slots 00:00 - 23:55 (288 ช่อง)
+  // Time Slots 00:00 - 23:55 (เหมือนเดิม)
   final List<String> _timeLabels = List.generate(288, (index) {
     final int totalMinutes = index * 5;
     final int h = totalMinutes ~/ 60;
@@ -28,7 +32,6 @@ class _HCurveState extends State<HCurve> {
   void initState() {
     super.initState();
     _loadData();
-    // Refresh ทุก 5 นาที
     _refreshTimer = Timer.periodic(const Duration(minutes: 5), (_) => _loadData());
   }
 
@@ -39,16 +42,13 @@ class _HCurveState extends State<HCurve> {
   }
 
   Future<void> _loadData() async {
+    // TODO: ปรับ Logic ตรงนี้ให้ดึงข้อมูลตาม _selectedPeriod (Daily/Monthly/Yearly)
+    // ตอนนี้ใช้ logic เดิมไปก่อน
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+
     final data = await MqttService().fetchHistoryData();
     
-    // --- เพิ่มส่วน Debug ---
-    print("Fetched History Data: ${data.length} rows");
-    if (data.isNotEmpty) {
-      print("First Row Keys: ${data.first.keys.toList()}"); // ดูว่ามี Key อะไรบ้าง
-      print("First Row Sample: ${data.first}");
-    }
-    // ---------------------
-
     if (mounted) {
       setState(() {
         _historyData = data;
@@ -57,11 +57,33 @@ class _HCurveState extends State<HCurve> {
     }
   }
 
-  // ฟังก์ชันเปลี่ยน Tab
-  void _onTypeChanged(GraphType type) {
-    setState(() {
-      _selectedType = type;
-    });
+  // ฟังก์ชันเปลี่ยน Tab Period
+  void _onPeriodChanged(TimePeriod period) {
+    if (_selectedPeriod != period) {
+      setState(() {
+        _selectedPeriod = period;
+      });
+      _loadData(); // โหลดข้อมูลใหม่เมื่อเปลี่ยนช่วงเวลา
+    }
+  }
+
+  String _getTitle() {
+    switch (_selectedPeriod) {
+      case TimePeriod.daily: return 'Daily Curve (24H)';
+      case TimePeriod.monthly: return 'Monthly Curve';
+      case TimePeriod.yearly: return 'Yearly Curve';
+    }
+  }
+
+  // Helper แปลง Enum เป็น String สวยๆ
+  String _getGraphTypeName(GraphType type) {
+    switch (type) {
+      case GraphType.power: return "Power (kW)";
+      case GraphType.energy: return "Energy (kWh)";
+      case GraphType.voltage: return "Voltage (V)";
+      case GraphType.current: return "Current (A)";
+      case GraphType.co2: return "CO₂";
+    }
   }
 
   @override
@@ -70,19 +92,27 @@ class _HCurveState extends State<HCurve> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 32.0, top: 32.0, right: 32.0),
+          padding: const EdgeInsets.only(left: 32.0, top: 16.0, right: 32.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Daily Curve (24H)', style: TextStyles.myriadProSemiBold22DarkBlue),
-              _buildTypeSelector(),
+              // Title เปลี่ยนตาม Period
+              Text(_getTitle(), style: TextStyles.myriadProSemiBold22DarkBlue),
+              
+              // Controls ฝั่งขวา (Period Selector + Dropdown)
+              Row(
+                children: [
+                  _buildPeriodSelector(),
+                  const SizedBox(width: 12),
+                  _buildGraphTypeDropdown(),
+                ],
+              ),
             ],
           ),
         ),
         
-        const SizedBox(height: 24),
+        const SizedBox(height: 12),
         
-        // 2. ตัวกราฟ
         _isLoading
             ? const SizedBox(
                 height: 300, 
@@ -96,7 +126,6 @@ class _HCurveState extends State<HCurve> {
 
         const SizedBox(height: 20),
         
-        // 3. Legend (คำอธิบายสี)
         Padding(
           padding: const EdgeInsets.only(left: 32.0),
           child: _buildLegend(),
@@ -105,33 +134,34 @@ class _HCurveState extends State<HCurve> {
     );
   }
 
-  Widget _buildTypeSelector() {
+  // --- Widget ส่วนใหม่: ปุ่มเลือก Daily / Monthly / Yearly ---
+  Widget _buildPeriodSelector() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey[200],
         borderRadius: BorderRadius.circular(8),
       ),
+      padding: const EdgeInsets.all(4),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _typeBtn("Power (kW)", GraphType.power),
-          _typeBtn("Energy (kWh)", GraphType.energy),
-          _typeBtn("Voltage (V)", GraphType.voltage),
-          _typeBtn("Current (I)", GraphType.current),
-          _typeBtn("CO₂", GraphType.co2),
+          _periodBtn("Daily", TimePeriod.daily),
+          _periodBtn("Monthly", TimePeriod.monthly),
+          _periodBtn("Yearly", TimePeriod.yearly),
         ],
       ),
     );
   }
 
-  Widget _typeBtn(String text, GraphType type) {
-    final bool isSelected = _selectedType == type;
+  Widget _periodBtn(String text, TimePeriod period) {
+    final bool isSelected = _selectedPeriod == period;
     return GestureDetector(
-      onTap: () => _onTypeChanged(type),
+      onTap: () => _onPeriodChanged(period),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? Palette.lightBlue : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? Palette.lightBlue : Colors.transparent, // ใช้สีตาม Theme เดิม
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
           text,
@@ -145,7 +175,95 @@ class _HCurveState extends State<HCurve> {
     );
   }
 
+  // --- Widget ส่วนใหม่: Dropdown เลือกประเภทกราฟ ---
+  Widget _buildGraphTypeDropdown() {
+    return Container(
+      height: 36,
+      decoration: BoxDecoration(
+        color: Colors.grey[200], // สีพื้นหลังเดียวกับ Period Selector
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: PopupMenuButton<GraphType>(
+        // 1. กำหนด Offset แกน Y ให้เท่ากับความสูงปุ่ม (36) + ระยะห่างนิดหน่อย (4)
+        // ทำให้เมนูเด้ง "ต่อท้าย" ปุ่มลงมา ไม่บังปุ่ม
+        offset: const Offset(0, 40), 
+        
+        // 2. จัด Shape ของเมนูที่เด้งออกมาให้มนสวย
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 3,
+        color: Colors.white, // สีพื้นหลังเมนู
+        
+        // 3. ส่วนแสดงผลของปุ่ม (หน้าตาเหมือนเดิม)
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _getGraphTypeName(_selectedType), // แสดงค่าที่เลือกอยู่
+                style: const TextStyle(
+                  color: Color.fromARGB(255, 22, 39, 128),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  fontFamily: 'MyriadPro',
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.keyboard_arrow_down, size: 20, color: Colors.black54),
+            ],
+          ),
+        ),
+        
+        // 4. Action เมื่อเลือก
+        onSelected: (GraphType newValue) {
+          setState(() {
+            _selectedType = newValue;
+          });
+        },
+        
+        // 5. รายการในเมนู
+        itemBuilder: (BuildContext context) {
+          return GraphType.values.map((GraphType value) {
+            final bool isSelected = value == _selectedType;
+            return PopupMenuItem<GraphType>(
+              value: value,
+              height: 40, // ความสูงแต่ละบรรทัด
+              child: Row(
+                children: [
+                  // (Option) ใส่จุดสีหน้าตัวที่เลือกอยู่ เพื่อความชัดเจน
+                  if (isSelected)
+                    Container(
+                      width: 6, height: 6,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: const BoxDecoration(
+                        color: Palette.lightBlue, 
+                        shape: BoxShape.circle
+                      ),
+                    ),
+                  Text(
+                    _getGraphTypeName(value),
+                    style: TextStyle(
+                      // ถ้าเลือกอยู่ให้ตัวหนาและสีชัดขึ้น
+                      color: isSelected ? Palette.lightBlue : Colors.black87,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontFamily: 'MyriadPro',
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList();
+        },
+      ),
+    );
+  }
+
+  // ... (ส่วน _buildLegend และ class _LineChart ให้ใช้โค้ดเดิมทั้งหมด ไม่ต้องแก้)
   Widget _buildLegend() {
+    // ใช้โค้ดเดิมของคุณตรงนี้ได้เลย
     List<Widget> items = [];
     switch (_selectedType) {
       case GraphType.power:
