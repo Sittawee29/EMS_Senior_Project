@@ -321,14 +321,16 @@ class DashboardData {
 
 // --- ส่วนของ Service (เปลี่ยนไส้ในเป็น HTTP API) ---
 class MqttService {
+  static const String serverIp = 'localhost'; 
+  static const String serverPort = '8000';
   static final MqttService _instance = MqttService._internal();
   factory MqttService() => _instance;
   MqttService._internal();
 
   // ตรวจสอบ IP ให้ถูกต้อง (ถ้าเทสบน Web ใช้ localhost ได้เลย ถ้า Python รันอยู่เครื่องเดียวกัน)
-  final String _apiUrl = "http://localhost:8000/api/dashboard";
+  final String _apiUrl = "http://$serverIp:$serverPort/api/dashboard";
   // หรือถ้าคุณใช้ IP วงแลน: "http://172.20.2.158:8000/api/dashboard";
-  final String _historyApiUrl = "http://localhost:8000/api/history/today";
+  final String _historyApiUrl = "http://$serverIp:$serverPort/api/history/today";
   Future<List<Map<String, dynamic>>> fetchHistoryData() async {
     try {
       final response = await http.get(Uri.parse(_historyApiUrl));
@@ -388,6 +390,26 @@ class MqttService {
       }
     } catch (e) {
       print("Error fetching API: $e");
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchWithCustomPath(String endpoint) async {
+    final String baseUrl = 'http://$serverIp:$serverPort';
+    
+    try {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(response.body);
+        return jsonList.cast<Map<String, dynamic>>();
+      } else {
+        print('Request failed with status: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('Error fetching data: $e');
+      return [];
     }
   }
 }

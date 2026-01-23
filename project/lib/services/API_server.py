@@ -340,6 +340,52 @@ def get_today_history():
     except Exception as e:
         print(f"ERROR: {e}")
         return {"error": str(e)}
+    
+@app.get("/api/history/month")
+def get_month_history(year: int = None, month: int = None):
+    try:
+        # 1. กำหนดเดือนที่ต้องการค้นหา (ถ้าไม่ส่งมา ให้ใช้เดือนปัจจุบัน)
+        now = datetime.now()
+        target_year = year if year else now.year
+        target_month = month if month else now.month
+        
+        # Format เป็น string "YYYY-MM" สำหรับ SQLite strftime
+        target_str = f"{target_year}-{target_month:02d}"
+
+        conn = sqlite3.connect(DB_NAME)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # 2. SQL Query: เลือกแถวที่มี ID มากที่สุดในแต่ละวัน (คือข้อมูลล่าสุดของวันนั้น)
+        sql = """
+        SELECT * FROM system_logs 
+        WHERE id IN (
+            SELECT MAX(id) 
+            FROM system_logs 
+            WHERE strftime('%Y-%m', timestamp) = ? 
+            GROUP BY strftime('%d', timestamp)
+        )
+        ORDER BY timestamp ASC
+        """
+        
+        cursor.execute(sql, (target_str,))
+        rows = cursor.fetchall()
+        conn.close()
+
+        results = []
+        for row in rows:
+            d = dict(row)
+            # แก้ไขค่าติดลบสำหรับ Load (ถ้ามี logic นี้ใน daily ก็ควรมีที่นี่ด้วย)
+            if "EMS_LoadPower_kW" in d and d["EMS_LoadPower_kW"] is not None:
+                d["EMS_LoadPower_kW"] = abs(d["EMS_LoadPower_kW"])
+            results.append(d)
+
+        print(f"DEBUG: Sent {len(results)} daily summary rows for {target_str}")
+        return results
+
+    except Exception as e:
+        print(f"ERROR: {e}")
+        return {"error": str(e)}
 
 @app.get("/api/export_csv")
 def export_csv_data():

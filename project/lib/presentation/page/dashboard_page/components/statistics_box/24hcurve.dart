@@ -1,7 +1,7 @@
 part of '../../page.dart';
 
 enum TimePeriod { daily, monthly, yearly }
-enum GraphType { power, energy, voltage, current, co2 }
+enum GraphType { power, energy, voltage, current, SoC, co2 }
 
 class HCurve extends StatefulWidget {
   const HCurve({super.key});
@@ -56,13 +56,27 @@ class _HCurveState extends State<HCurve> {
   Future<void> _loadData() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
-    // TODO: ตรงนี้ logic การ fetch จริงต้องส่ง _selectedPeriod ไปขอข้อมูลจาก Server ให้ตรงช่วงเวลา
-    final data = await MqttService().fetchHistoryData(); 
-    if (mounted) {
-      setState(() {
-        _historyData = data;
-        _isLoading = false;
-      });
+
+    try {
+      // ตรวจสอบว่าเลือกโหมดไหน แล้วเลือก URL ให้ถูก
+      String endpoint = '';
+      if (_selectedPeriod == TimePeriod.monthly) {
+        endpoint = '/api/history/month'; // เรียก API ใหม่ที่เราเพิ่งสร้าง
+      } else {
+        endpoint = '/api/history/today'; // เรียก API เดิม
+      }
+
+      final data = await MqttService().fetchWithCustomPath(endpoint); 
+
+      if (mounted) {
+        setState(() {
+          _historyData = data;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading data: $e");
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -70,6 +84,11 @@ class _HCurveState extends State<HCurve> {
     if (_selectedPeriod != period) {
       setState(() {
         _selectedPeriod = period;
+        
+        // --- [ใหม่] ถ้าเป็น Monthly หรือ Yearly ให้บังคับเป็น Energy เท่านั้น ---
+        if (_selectedPeriod == TimePeriod.monthly || _selectedPeriod == TimePeriod.yearly) {
+          _selectedType = GraphType.energy;
+        }
       });
       _loadData();
     }
@@ -100,6 +119,7 @@ class _HCurveState extends State<HCurve> {
       case GraphType.energy: return "Energy (kWh)";
       case GraphType.voltage: return "Voltage (V)";
       case GraphType.current: return "Current (A)";
+      case GraphType.SoC: return "SoC (%)";
       case GraphType.co2: return "CO₂";
     }
   }
@@ -194,6 +214,14 @@ class _HCurveState extends State<HCurve> {
   }
 
   Widget _buildGraphTypeDropdown() {
+    // --- [ใหม่] กำหนดรายการที่จะแสดงใน Dropdown ตาม Period ---
+    List<GraphType> availableTypes;
+    if (_selectedPeriod == TimePeriod.monthly || _selectedPeriod == TimePeriod.yearly) {
+      availableTypes = [GraphType.energy]; // แสดงแค่ Energy
+    } else {
+      availableTypes = GraphType.values;   // แสดงทั้งหมด (สำหรับ Daily)
+    }
+
     return Container(
       height: 36,
       decoration: BoxDecoration(
@@ -220,6 +248,7 @@ class _HCurveState extends State<HCurve> {
                 ),
               ),
               const SizedBox(width: 4),
+              // ถ้ามีตัวเลือกเดียว (Monthly/Yearly) อาจจะซ่อนลูกศรก็ได้ แต่ใส่ไว้ตามเดิมเพื่อให้ UI เหมือนเดิม
               const Icon(Icons.keyboard_arrow_down, size: 20, color: Colors.black54),
             ],
           ),
@@ -230,7 +259,8 @@ class _HCurveState extends State<HCurve> {
           });
         },
         itemBuilder: (BuildContext context) {
-          return GraphType.values.map((GraphType value) {
+          // --- [ใหม่] วนลูปสร้าง Item จาก availableTypes แทน GraphType.values ---
+          return availableTypes.map((GraphType value) {
             final bool isSelected = value == _selectedType;
             return PopupMenuItem<GraphType>(
               value: value,
@@ -328,6 +358,9 @@ class _HCurveState extends State<HCurve> {
         addSpace();
         items.add(_buildLegendItem(index: 2, color: Colors.blue, text: 'Phase 3'));
         break;
+      case GraphType.SoC:
+        items.add(_buildLegendItem(index: 0, color: Colors.green, text: 'SoC (%)'));
+        break;
       case GraphType.co2:
         items.add(_buildLegendItem(index: 0, color: Colors.teal, text: 'CO₂ Saved'));
         break;
@@ -394,10 +427,13 @@ class _LineChart extends StatelessWidget {
           case 2: return 'Phase 3';
           default: return '';
         }
+      case GraphType.SoC:
+        return 'SoC (%)';
+
       case GraphType.co2:
         return 'CO₂ Saved';
-      default:
-        return '';
+        default: return '';
+        
     }
   }
   
@@ -500,6 +536,10 @@ class _LineChart extends StatelessWidget {
         addLineIfVisible(0, "METER_I1", Colors.red);
         addLineIfVisible(1, "METER_I2", Colors.yellow);
         addLineIfVisible(2, "METER_I3", Colors.blue);
+        break;
+
+      case GraphType.SoC:
+        addLineIfVisible(0, "BESS_SOC", Colors.green);
         break;
 
       case GraphType.co2:
@@ -668,13 +708,24 @@ class _LineChart extends StatelessWidget {
     );
   }
 
-  LineChartBarData _buildLine(List<FlSpot> spots, Color color) { /* ... (เหมือนเดิม) ... */ 
-      return LineChartBarData(
+  LineChartBarData _buildLine(List<FlSpot> spots, Color color) {
+    final bool showCurved = selectedPeriod == TimePeriod.daily;
+
+    return LineChartBarData(
       spots: spots,
-      isCurved: true,
+      isCurved: showCurved,
       color: color,
       barWidth: 2,
-      dotData: const FlDotData(show: false),
+      dotData: FlDotData(
+        show: !showCurved,
+        getDotPainter: (spot, percent, barData, index) {
+          return FlDotCirclePainter(
+            radius: 3.0,
+            color: color,
+          );
+        },
+      ),
+      // -------------------------------
       belowBarData: BarAreaData(
         show: true,
         cutOffY: 0,
