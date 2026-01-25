@@ -13,6 +13,7 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+
 part 'components/devices_box.dart';
 part 'components/information_box.dart';
 part 'components/information_row.dart';

@@ -31,9 +31,9 @@ REDIS_DB = 0
 try:
     redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
     redis_client.ping()
-    print("✅ Connected to Redis (Hot Data Layer)")
+    print("\033[92m🗸\033[0m Connected to Redis")
 except Exception as e:
-    print(f"❌ Failed to connect to Redis: {e}")
+    print(f"\033[91m𐄂\033[0m Failed to connect to Redis: {e}")
 
 # รายชื่อ Keys ทั้งหมดที่จะใช้งาน
 DEFAULT_KEYS = [
@@ -79,12 +79,13 @@ DEFAULT_KEYS = [
     "PV4_Daily_Power_Yields", "PV4_Nominal_Active_Power", "PV4_Communication_Fault"
 ]
 
-print("⏳ Initializing Redis keys...")
+print("Initializing Redis keys...")
 pipe = redis_client.pipeline()
 for key in DEFAULT_KEYS:
     pipe.setnx(key, 0.0)
 pipe.execute()
-print("✅ Redis keys initialized complete.")
+print("\033[92m🗸\033[0m Redis keys initialized complete.")
+last_mqtt_update = time.time()
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
@@ -102,7 +103,7 @@ def init_db():
     cursor.execute(create_table_sql)
     conn.commit()
     conn.close()
-    print("✅ Database Initialized")
+    print("\033[92m🗸\033[0m Database Initialized")
 
 def init_db_wal_mode():
     max_retries = 5
@@ -119,16 +120,16 @@ def init_db_wal_mode():
                 mode = cursor.fetchone()[0]
                 
                 if mode.upper() == 'WAL':
-                    print(f"✅ Database WAL mode enabled. (Attempt {i+1})")
+                    print(f"\033[92m🗸\033[0m Database WAL mode enabled. (Attempt {i+1})")
                     return
                 else:
-                    print(f"⚠️ WAL mode not set yet (Current: {mode}), retrying...")
+                    print(f"\033[93m⚠\033[0m WAL mode not set yet (Current: {mode}), retrying...")
                     
         except Exception as e:
-            print(f"⚠️ Failed to enable WAL mode (Attempt {i+1}): {e}")
+            print(f"\033[93m⚠\033[0m Failed to enable WAL mode (Attempt {i+1}): {e}")
             time.sleep(1) # รอ 1 วินาทีก่อนลองใหม่
             
-    print("❌ Could not enable WAL mode after retries. System will continue but may be slow.")
+    print("\033[91m𐄂\033[0m Could not enable WAL mode after retries. System will continue but may be slow.")
     
 init_db_wal_mode()
 
@@ -148,10 +149,11 @@ def on_connect(client, userdata, flags, rc):
     for t in topics: client.subscribe(t)
 
 def on_message(client, userdata, msg):
+    global latest_data, last_mqtt_update
     try:
         topic = msg.topic
         payload = msg.payload.decode("utf-8")
-        #print(f"🔔 Topic: {topic} | Value: {payload}")
+        #print(f"Topic: {topic} | Value: {payload}")
         updates = {}
 
         if "{" in payload and "}" in payload:
@@ -174,9 +176,10 @@ def on_message(client, userdata, msg):
                     if isinstance(val, (int, float)):
                         
                         updates[key] = round(val, 4)
-                        
+                last_mqtt_update = time.time()
+
             except json.JSONDecodeError:
-                print(f"❌ JSON Error: {payload}")
+                print(f"\033[91m𐄂\033[0m JSON Error: {payload}")
         else: 
             try:
                 value = float(payload)
@@ -210,9 +213,13 @@ def on_message(client, userdata, msg):
 # ==========================================
 # [EDITED] ฟังก์ชันนี้แก้ไขให้บันทึกทุก 5 นาที
 def db_saver_loop():
-    print("✅ Database Saver Loop Started (Mode: Every 5 Minutes aligned to xx:00, xx:05, ...)")
+    global last_mqtt_update
+    print("\033[92m🗸\033[0m Database Saver Loop Started (Mode: Every 5 Minutes aligned to xx:00, xx:05, ...)")
     while True:
         try:
+            time_diff = time.time() - last_mqtt_update
+            if time_diff > 120:
+                print(f"\033[93m⚠\033[0m Warning: No data for {int(time_diff)}s. Reconnecting MQTT...")
             now = datetime.now()
             
             if now.minute % 5 == 0:
@@ -246,7 +253,7 @@ def db_saver_loop():
                 
                 conn.commit()
                 conn.close()
-                print(f"💾 Archived data to DB at {local_time_str}")
+                print(f"\033[92m🗸\033[0m Archived data to DB at {local_time_str}")
                 
                 # สำคัญ: เมื่อบันทึกเสร็จแล้ว ให้ Sleep ข้ามนาทีนี้ไปเลย 
                 # (เช่น 60 วินาที) เพื่อป้องกันการบันทึกซ้ำหลายรอบในนาทีเดียวกัน
@@ -277,6 +284,21 @@ mqtt_thread = threading.Thread(target=start_mqtt)
 mqtt_thread.daemon = True
 mqtt_thread.start()
 
+def on_disconnect(client, userdata, rc):
+    if rc != 0:
+        print("Unexpected disconnection. Attempting auto-reconnect...")
+        try:
+            client.reconnect()
+        except:
+            pass
+
+# ... (ตรงส่วน Setup MQTT Client ด้านล่าง) ...
+mqtt_client = mqtt.Client()
+mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
+mqtt_client.on_connect = on_connect
+mqtt_client.on_message = on_message
+mqtt_client.on_disconnect = on_disconnect
+
 # ==========================================
 # 4. API Endpoints
 # ==========================================
@@ -294,69 +316,69 @@ def get_dashboard_data():
     except Exception as e:
         return {"error": str(e)}
 
-@app.get("/api/history")
-def get_history_data():
+# ==========================================
+# 1. API หาช่วงวันที่ที่มีข้อมูล (Data Range)
+# ==========================================
+@app.get("/api/data_range")
+def get_data_range():
     try:
-        conn = sqlite3.connect(DB_NAME, timeout=30)
-        conn.row_factory = sqlite3.Row
+        conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM system_logs ORDER BY id DESC LIMIT 100") 
-        rows = cursor.fetchall()
+        # หาเวลาเริ่มต้นและสิ้นสุดที่มีข้อมูลใน DB
+        cursor.execute("SELECT MIN(timestamp), MAX(timestamp) FROM system_logs")
+        row = cursor.fetchone()
         conn.close()
-        return [dict(row) for row in rows]
+        
+        if row and row[0] and row[1]:
+            return {"min_date": row[0], "max_date": row[1]}
+        else:
+            # ถ้าไม่มีข้อมูลเลย ให้ส่งวันปัจจุบันกลับไปป้องกัน Error
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            return {"min_date": now_str, "max_date": now_str}
     except Exception as e:
         return {"error": str(e)}
     
-@app.get("/api/history/today")
-def get_today_history():
+# ==========================================
+# 2. API History ให้รับวันที่ (Daily)
+# ==========================================
+# เปลี่ยนชื่อจาก /api/history/today เป็น /api/history/daily
+@app.get("/api/history/daily")
+def get_daily_history(date: str = None):
     try:
+        # ถ้าไม่ส่ง date มา ให้ใช้วันปัจจุบัน
+        target_date = date if date else datetime.now().strftime("%Y-%m-%d")
+        
         conn = sqlite3.connect(DB_NAME)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        cursor.execute("SELECT timestamp FROM system_logs ORDER BY id DESC LIMIT 1")
-        last_row = cursor.fetchone()
-        target_date = datetime.now().strftime("%Y-%m-%d")
-        if last_row and last_row['timestamp']:
-            target_date = str(last_row['timestamp'])[:10]
-
-        sql = f"SELECT * FROM system_logs WHERE timestamp LIKE '{target_date}%' ORDER BY timestamp ASC"
-        cursor.execute(sql)
+        # Query ข้อมูลตามวันที่ระบุ
+        sql = "SELECT * FROM system_logs WHERE date(timestamp) = ? ORDER BY timestamp ASC"
+        cursor.execute(sql, (target_date,))
         rows = cursor.fetchall()
         conn.close()
         
-        results = []
-        for row in rows:
-            d = dict(row) # แปลง Row เป็น Dictionary
-            
-            # เช็คว่ามีคีย์นี้ไหม ถ้ามีให้ทำ Absolute
-            if "EMS_LoadPower_kW" in d and d["EMS_LoadPower_kW"] is not None:
-                d["EMS_LoadPower_kW"] = abs(d["EMS_LoadPower_kW"])
-
-            results.append(d)
-        print(f"DEBUG: Sent {len(results)} rows for date {target_date}")
-        return results # ส่งค่าที่แก้แล้วกลับไป
-        
+        results = [dict(row) for row in rows]
+        return results
     except Exception as e:
-        print(f"ERROR: {e}")
         return {"error": str(e)}
     
-@app.get("/api/history/month")
+# ==========================================
+# 3. API History (Monthly)
+# ==========================================
+@app.get("/api/history/monthly")
 def get_month_history(year: int = None, month: int = None):
     try:
-        # 1. กำหนดเดือนที่ต้องการค้นหา (ถ้าไม่ส่งมา ให้ใช้เดือนปัจจุบัน)
         now = datetime.now()
         target_year = year if year else now.year
         target_month = month if month else now.month
-        
-        # Format เป็น string "YYYY-MM" สำหรับ SQLite strftime
         target_str = f"{target_year}-{target_month:02d}"
 
         conn = sqlite3.connect(DB_NAME)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        # 2. SQL Query: เลือกแถวที่มี ID มากที่สุดในแต่ละวัน (คือข้อมูลล่าสุดของวันนั้น)
+        # Query แบบ Group By วัน (เอาค่าล่าสุดของวัน)
         sql = """
         SELECT * FROM system_logs 
         WHERE id IN (
@@ -367,7 +389,6 @@ def get_month_history(year: int = None, month: int = None):
         )
         ORDER BY timestamp ASC
         """
-        
         cursor.execute(sql, (target_str,))
         rows = cursor.fetchall()
         conn.close()
@@ -375,16 +396,50 @@ def get_month_history(year: int = None, month: int = None):
         results = []
         for row in rows:
             d = dict(row)
-            # แก้ไขค่าติดลบสำหรับ Load (ถ้ามี logic นี้ใน daily ก็ควรมีที่นี่ด้วย)
             if "EMS_LoadPower_kW" in d and d["EMS_LoadPower_kW"] is not None:
                 d["EMS_LoadPower_kW"] = abs(d["EMS_LoadPower_kW"])
             results.append(d)
-
-        print(f"DEBUG: Sent {len(results)} daily summary rows for {target_str}")
         return results
-
     except Exception as e:
-        print(f"ERROR: {e}")
+        return {"error": str(e)}
+
+# ==========================================
+# 4. API History (Yearly)
+# ==========================================
+@app.get("/api/history/yearly")
+def get_year_history(year: int = None):
+    try:
+        now = datetime.now()
+        target_year = year if year else now.year
+        target_str = f"{target_year}"
+
+        conn = sqlite3.connect(DB_NAME)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # Query แบบ Group By เดือน (เอาค่าล่าสุดของเดือน)
+        sql = """
+        SELECT * FROM system_logs 
+        WHERE id IN (
+            SELECT MAX(id) 
+            FROM system_logs 
+            WHERE strftime('%Y', timestamp) = ? 
+            GROUP BY strftime('%m', timestamp)
+        )
+        ORDER BY timestamp ASC
+        """
+        cursor.execute(sql, (target_str,))
+        rows = cursor.fetchall()
+        conn.close()
+
+        results = []
+        for row in rows:
+            d = dict(row)
+            if "EMS_LoadPower_kW" in d and d["EMS_LoadPower_kW"] is not None:
+                d["EMS_LoadPower_kW"] = abs(d["EMS_LoadPower_kW"])
+            results.append(d)
+        return results
+    except Exception as e:
         return {"error": str(e)}
 
 @app.get("/api/export_csv")
@@ -410,7 +465,7 @@ def export_csv_data():
         return {"error": str(e)}
 
 if __name__ == "__main__":
-    print("⏳ Initializing Database...")
+    print("Initializing Database...")
     init_db_wal_mode()
-    print("🚀 Starting Server...")
+    print("Starting Server...")
     run(app, host="0.0.0.0", port=8000)

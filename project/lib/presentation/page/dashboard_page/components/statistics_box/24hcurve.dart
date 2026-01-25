@@ -11,9 +11,13 @@ class HCurve extends StatefulWidget {
 }
 
 class _HCurveState extends State<HCurve> {
-  // ... (ตัวแปรเดิม) ...
+  static const String serverIp = 'localhost'; 
+  static const String serverPort = '8000';
   GraphType _selectedType = GraphType.power;
   TimePeriod _selectedPeriod = TimePeriod.daily;
+  DateTime _currentDate = DateTime.now(); // วันที่ที่เลือกปัจจุบัน (Default: Today)
+  DateTime? _minDataDate; // วันแรกที่มีข้อมูลใน DB
+  DateTime? _maxDataDate; // วันสุดท้ายที่มีข้อมูลใน DB
   List<Map<String, dynamic>> _historyData = [];
   bool _isLoading = true;
   Timer? _refreshTimer;
@@ -43,7 +47,8 @@ class _HCurveState extends State<HCurve> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _fetchDataRange(); // 1. หาขอบเขตข้อมูลก่อน
+    _loadData();       // 2. โหลดข้อมูลกราฟ
     _refreshTimer = Timer.periodic(const Duration(minutes: 5), (_) => _loadData());
   }
 
@@ -53,20 +58,58 @@ class _HCurveState extends State<HCurve> {
     super.dispose();
   }
 
+  Future<void> _fetchDataRange() async {
+    try {
+      // แก้ IP ให้ตรง server คุณ
+      final response = await http.get(Uri.parse('http://$serverIp:$serverPort/api/data_range'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+             // แปลง String เป็น DateTime
+             if (data['min_date'] != null) _minDataDate = DateTime.parse(data['min_date']);
+             if (data['max_date'] != null) _maxDataDate = DateTime.parse(data['max_date']);
+          });
+        }
+      }
+    } catch (e) {
+      print("Error fetching range: $e");
+    }
+  }
+
   Future<void> _loadData() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
-      // ตรวจสอบว่าเลือกโหมดไหน แล้วเลือก URL ให้ถูก
       String endpoint = '';
-      if (_selectedPeriod == TimePeriod.monthly) {
-        endpoint = '/api/history/month'; // เรียก API ใหม่ที่เราเพิ่งสร้าง
-      } else {
-        endpoint = '/api/history/today'; // เรียก API เดิม
+      String queryParams = '';
+
+      // สร้าง URL ตามโหมดที่เลือก
+      if (_selectedPeriod == TimePeriod.daily) {
+        endpoint = '/api/history/daily';
+        String dateStr = DateFormat('yyyy-MM-dd').format(_currentDate);
+        queryParams = '?date=$dateStr';
+        
+      } else if (_selectedPeriod == TimePeriod.monthly) {
+        endpoint = '/api/history/monthly';
+        queryParams = '?year=${_currentDate.year}&month=${_currentDate.month}';
+        
+      } else if (_selectedPeriod == TimePeriod.yearly) {
+        endpoint = '/api/history/yearly';
+        queryParams = '?year=${_currentDate.year}';
       }
 
-      final data = await MqttService().fetchWithCustomPath(endpoint); 
+      final String baseUrl = 'http://$serverIp:$serverPort'; 
+      final url = Uri.parse('$baseUrl$endpoint$queryParams');
+      
+      final response = await http.get(url);
+      
+      List<Map<String, dynamic>> data = [];
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(response.body);
+        data = jsonList.cast<Map<String, dynamic>>();
+      }
 
       if (mounted) {
         setState(() {
@@ -80,12 +123,163 @@ class _HCurveState extends State<HCurve> {
     }
   }
 
+  // --- [ใหม่] ฟังก์ชันเปิดปฏิทิน (Calendar) ---
+  Future<void> _showCalendar() async {
+    // 1. ถ้าเป็น Monthly ให้ใช้ Dialog เลือกเดือนแบบพิเศษที่เราสร้าง
+    if (_selectedPeriod == TimePeriod.monthly) {
+      await _showMonthPicker(context);
+      return;
+    }
+
+    // 2. ถ้าเป็น Daily หรือ Yearly ใช้ของเดิม
+    final DateTime firstDate = _minDataDate ?? DateTime(2020);
+    final DateTime lastDate = _maxDataDate ?? DateTime.now();
+
+    DatePickerMode initialMode = DatePickerMode.day;
+    if (_selectedPeriod == TimePeriod.yearly) {
+       initialMode = DatePickerMode.year; 
+    }
+
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _currentDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      initialDatePickerMode: initialMode,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(primary: Palette.lightBlue),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _currentDate = picked;
+      });
+      _loadData();
+    }
+  }
+
+  // --- [ใหม่] ฟังก์ชันเลือกเฉพาะ เดือน/ปี สำหรับโหมด Monthly ---
+  Future<void> _showMonthPicker(BuildContext context) async {
+    final DateTime firstDate = _minDataDate ?? DateTime(2020);
+    final DateTime lastDate = _maxDataDate ?? DateTime.now();
+    
+    // ปีที่กำลังเลือกใน Dialog (เริ่มต้นที่ปีปัจจุบันที่เลือกอยู่)
+    int displayYear = _currentDate.year;
+
+    final DateTime? picked = await showDialog<DateTime>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // ปุ่มลดปี
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: displayYear > firstDate.year
+                        ? () => setStateDialog(() => displayYear--)
+                        : null,
+                  ),
+                  // แสดงปี
+                  Text(
+                    "$displayYear",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  // ปุ่มเพิ่มปี
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: displayYear < lastDate.year
+                        ? () => setStateDialog(() => displayYear++)
+                        : null,
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 300,
+                height: 300, // ความสูงของตารางเดือน
+                child: GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3, // 3 คอลัมน์
+                    childAspectRatio: 1.5,
+                  ),
+                  itemCount: 12,
+                  itemBuilder: (context, index) {
+                    final int month = index + 1;
+                    // ตรวจสอบว่าเดือนนี้เลือกได้ไหม (ตาม min/max data)
+                    bool isSelectable = true;
+                    if (displayYear == firstDate.year && month < firstDate.month) isSelectable = false;
+                    if (displayYear == lastDate.year && month > lastDate.month) isSelectable = false;
+
+                    final bool isSelected = (displayYear == _currentDate.year && month == _currentDate.month);
+
+                    return InkWell(
+                      onTap: isSelectable
+                          ? () {
+                              // เมื่อเลือกเดือน ให้ส่งค่ากลับทันที
+                              Navigator.pop(context, DateTime(displayYear, month));
+                            }
+                          : null,
+                      child: Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: isSelected ? Palette.lightBlue : (isSelectable ? Colors.white : Colors.grey[200]),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSelected ? Palette.lightBlue : Colors.grey.shade300,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          DateFormat('MMM').format(DateTime(2022, month)), // ชื่อเดือนย่อ (Jan, Feb...)
+                          style: TextStyle(
+                            color: isSelectable ? (isSelected ? Colors.white : Colors.black) : Colors.grey,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _currentDate = picked;
+      });
+      _loadData();
+    }
+  }
+
+  // --- [ใหม่] Helper แสดงข้อความวันที่ที่เลือกอยู่ ---
+  String _getDateLabel() {
+    if (_selectedPeriod == TimePeriod.daily) {
+      return DateFormat('dd MMM yyyy').format(_currentDate);
+    } else if (_selectedPeriod == TimePeriod.monthly) {
+      return DateFormat('MMMM yyyy').format(_currentDate);
+    } else {
+      return DateFormat('yyyy').format(_currentDate);
+    }
+  }
+
   void _onPeriodChanged(TimePeriod period) {
     if (_selectedPeriod != period) {
       setState(() {
         _selectedPeriod = period;
         
-        // --- [ใหม่] ถ้าเป็น Monthly หรือ Yearly ให้บังคับเป็น Energy เท่านั้น ---
+        _currentDate = DateTime.now(); 
         if (_selectedPeriod == TimePeriod.monthly || _selectedPeriod == TimePeriod.yearly) {
           _selectedType = GraphType.energy;
         }
@@ -103,14 +297,6 @@ class _HCurveState extends State<HCurve> {
         _hiddenIndices.add(index); // ปิด
       }
     });
-  }
-
-  String _getTitle() { /* ... (เหมือนเดิม) ... */ 
-     switch (_selectedPeriod) {
-      case TimePeriod.daily: return 'Daily Curve (24H)';
-      case TimePeriod.monthly: return 'Monthly Curve';
-      case TimePeriod.yearly: return 'Yearly Curve';
-    }
   }
   
   String _getGraphTypeName(GraphType type) { /* ... (เหมือนเดิม) ... */ 
@@ -135,10 +321,40 @@ class _HCurveState extends State<HCurve> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(_getTitle(), style: TextStyles.myriadProSemiBold22DarkBlue),
+              Text(
+                _getGraphTypeName(_selectedType),
+                 style: TextStyles.myriadProSemiBold22DarkBlue,
+              ),
               Row(
                 children: [
                   _buildPeriodSelector(),
+                  const SizedBox(width: 12),
+                  Material( // ใช้ Material เพื่อให้เห็น Effect เวลาแตะ
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(8),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: _showCalendar, // ย้ายคำสั่งกดมาไว้ตรงนี้ (ครอบทั้งปุ่ม)
+                      child: Container(
+                        height: 36,
+                        padding: const EdgeInsets.symmetric(horizontal: 8), // ระยะห่างภายใน
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_month, color: Palette.lightBlue, size: 20),
+                            const SizedBox(width: 8), // ระยะห่างระหว่างไอคอนกับตัวหนังสือ
+                            Text(
+                              _getDateLabel(), 
+                              style: const TextStyle(
+                                fontSize: 13, 
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: 12),
                   _buildGraphTypeDropdown(),
                 ],
