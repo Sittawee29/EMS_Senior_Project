@@ -442,6 +442,115 @@ def get_year_history(year: int = None):
     except Exception as e:
         return {"error": str(e)}
 
+# ==========================================
+# 5. API สำหรับ Overview Chart (Daily/Monthly/Yearly)
+# ==========================================
+@app.get("/api/overview")
+def get_overview_summary(mode: str = "daily", date_str: str = None):
+    try:
+        # -------------------------------------------------------
+        # 1. โหมด Daily: ดึงค่า Realtime จาก Redis (เหมือนเดิม)
+        # -------------------------------------------------------
+        if mode == "daily":
+            keys_map = [
+                "PV_Daily_Energy",           
+                "BESS_Daily_Charge_Energy",  
+                "GRID_Daily_Export_Energy",  
+                "Load_Daily_Energy",         
+                "GRID_Daily_Import_Energy",  
+                "BESS_Daily_Discharge_Energy"
+            ]
+            pipe = redis_client.pipeline()
+            for k in keys_map: pipe.get(k)
+            res = pipe.execute()
+            data = [float(x) if x else 0.0 for x in res]
+            return data
+
+        # -------------------------------------------------------
+        # 2. โหมด Monthly / Yearly: ดึงจาก SQLite
+        # -------------------------------------------------------
+        now = datetime.now()
+        target_date = now 
+        if date_str:
+            try:
+                target_date = datetime.strptime(date_str, "%Y-%m-%d")
+            except:
+                pass # ถ้า format ผิด ให้ใช้เวลาปัจจุบัน
+
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        
+        # SQL Condition สำหรับกรองช่วงเวลา
+        time_filter = ""
+        debug_msg = ""
+
+        if mode == "monthly":
+            # กรอง "เดือน-ปี" เช่น '2026-01'
+            t_str = target_date.strftime('%Y-%m')
+            time_filter = f"strftime('%Y-%m', timestamp) = '{t_str}'"
+            debug_msg = f"เดือน {t_str}"
+        
+        elif mode == "yearly":
+            # กรอง "ปี" เช่น '2026'
+            t_str = target_date.strftime('%Y')
+            time_filter = f"strftime('%Y', timestamp) = '{t_str}'"
+            debug_msg = f"ปี {t_str}"
+
+        print(f"\n--- Debug {mode.upper()} ({debug_msg}) ---")
+
+        # -------------------------------------------------------
+        # SQL LOGIC: 
+        # 1. Subquery: หา MAX(id) ของแต่ละวัน (คือแถวสุดท้ายของวันนั้นๆ)
+        # 2. Main Query: เอาค่าพลังงานของ id เหล่านั้นมารวมกัน (SUM)
+        # -------------------------------------------------------
+        sql = f"""
+            SELECT 
+                SUM("PV_Daily_Energy"),
+                SUM("BESS_Daily_Charge_Energy"),
+                SUM("GRID_Daily_Export_Energy"),
+                SUM("Load_Daily_Energy"),
+                SUM("GRID_Daily_Import_Energy"),
+                SUM("BESS_Daily_Discharge_Energy")
+            FROM system_logs 
+            WHERE id IN (
+                SELECT MAX(id) 
+                FROM system_logs 
+                WHERE {time_filter}
+                GROUP BY strftime('%Y-%m-%d', timestamp)
+            )
+        """
+        
+        # --- เพิ่มส่วน Debug เพื่อเช็คว่าเจอวันไหนบ้าง ---
+        check_sql = f"""
+            SELECT strftime('%Y-%m-%d', timestamp), MAX(id) 
+            FROM system_logs 
+            WHERE {time_filter} 
+            GROUP BY strftime('%Y-%m-%d', timestamp)
+        """
+        cursor.execute(check_sql)
+        found_days = cursor.fetchall()
+        print(f"📅 พบข้อมูลจำนวน {len(found_days)} วัน ได้แก่:")
+        for d in found_days:
+            print(f"   - วันที่: {d[0]} (ใช้ข้อมูลบรรทัด ID: {d[1]})")
+        # ------------------------------------------------
+
+        cursor.execute(sql)
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            # แปลง None เป็น 0.0
+            result = [float(x) if x is not None else 0.0 for x in row]
+            print(f"✅ ผลรวมที่ได้: {result}")
+            return result
+        else:
+            print("❌ ไม่พบข้อมูล (Result is None)")
+            return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+    except Exception as e:
+        print(f"Error overview: {e}")
+        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
 @app.get("/api/export_csv")
 def export_csv_data():
     try:

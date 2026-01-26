@@ -53,7 +53,7 @@ class _StatisticsBoxState extends State<_StatisticsBox> {
                 // ส่งข้อมูลเข้า Power Flow
                 PowerFlow(data: widget.powerFlowData),
                 const HCurve(),
-                DataOverview(data: widget.dataOverview),
+                DataOverview(initialData: widget.dataOverview),
               ],
             ),
           ),

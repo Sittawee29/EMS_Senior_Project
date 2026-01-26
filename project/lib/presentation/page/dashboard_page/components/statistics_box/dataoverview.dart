@@ -1,60 +1,178 @@
 part of '../../page.dart';
 
-class DataOverview extends StatelessWidget {
-  // [0]: PV_Daily (Total Prod)
-  // [1]: BESS_Charge
-  // [2]: Grid_Export (Feed-in)
-  // [3]: Load_Daily (Total Cons)
-  // [4]: Grid_Import (Purchased)
-  // [5]: BESS_Discharge
-  final List<double> data;
+class DataOverview extends StatefulWidget {
+  // รับข้อมูลเริ่มต้น (Daily) มาจาก Parent (ถ้ามี)
+  // แต่เราจะใช้ State ภายในจัดการการเปลี่ยนโหมดเอง
+  final List<double>? initialData;
 
-  const DataOverview({super.key, required this.data});
+  const DataOverview({super.key, this.initialData});
+
+  @override
+  State<DataOverview> createState() => _DataOverviewState();
+}
+
+class _DataOverviewState extends State<DataOverview> {
+  // Default Data (ป้องกัน Null)
+  static const String serverIp = 'localhost'; 
+  static const String serverPort = '8000';
+  List<double> data = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+  String selectedMode = "Daily"; // Daily, Monthly, Yearly
+  bool isLoading = false;
+  int touchedIndexProd = -1;
+  int touchedIndexCons = -1;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialData != null && widget.initialData!.length >= 6) {
+      data = widget.initialData!;
+    } else {
+      // ถ้าไม่มีข้อมูลเริ่มต้น ให้ลองดึง Daily เอง
+      fetchOverviewData("daily");
+    }
+  }
+
+  // ฟังก์ชันดึงข้อมูลจาก API (ต้อง import 'http' และ 'convert')
+  Future<void> fetchOverviewData(String mode) async {
+    setState(() {
+      isLoading = true;
+      selectedMode = mode.capitalize(); // ทำให้ตัวแรกใหญ่เพื่อความสวยงาม
+    });
+
+    try {
+      // ** แก้ไข URL ให้ตรงกับ IP ของ Server คุณ **
+      final url = Uri.parse('http://$serverIp:$serverPort/api/overview?mode=${mode.toLowerCase()}');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        List<dynamic> jsonList = json.decode(response.body);
+        if (jsonList.length >= 6) {
+          setState(() {
+            data = jsonList.map((e) => (e as num).toDouble()).toList();
+          });
+        }
+      } else {
+        debugPrint("Error fetching overview: ${response.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("Error fetching overview: $e");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // ป้องกันกรณี data ว่างหรือ index ไม่ครบ
-    final safeData = data.length >= 6 ? data : [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+    // แยกตัวแปรออกมาคำนวณกราฟ
+    final double totalProduction = data[0];
+    final double batteryCharge = data[1];
+    final double feedIn = data[2];
 
-    // --- 1. แยกตัวแปรออกมาให้ชัดเจน ---
-    final double totalProduction = safeData[0];
-    final double batteryCharge = safeData[1];
-    final double feedIn = safeData[2];
+    final double totalConsumption = data[3];
+    final double powerPurchased = data[4];
+    final double batteryDischarge = data[5];
 
-    final double totalConsumption = safeData[3];
-    final double powerPurchased = safeData[4];
-    final double batteryDischarge = safeData[5];
-
-    // --- 2. คำนวณค่า Self-used (ผลิตใช้เอง) ---
-    // สูตร: ผลิตรวม - ส่งออก - ชาร์จแบต = ใช้เอง
+    // คำนวณ Self-used
     double selfUsed = totalProduction - feedIn - batteryCharge;
-    // ป้องกันค่าติดลบกรณี Data คลาดเคลื่อนเล็กน้อย
     if (selfUsed < 0) selfUsed = 0;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 40, bottom: 40),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          // --- กราฟฝั่ง Production ---
-          TotalProduction(
-            totalValue: totalProduction,
-            prodUsed: selfUsed,
-            prodBatteryCharge: batteryCharge,
-            prodFeedIn: feedIn, // เพิ่ม param นี้
-          ),
-          const VerticalDivider(color: Palette.lightGrey),
-          // --- กราฟฝั่ง Consumption ---
-          TotalConsumption(
-            totalValue: totalConsumption,
-            consSelfUsed: selfUsed, // ใช้ค่าเดียวกับฝั่ง Prod ได้ หรือจะคำนวณใหม่จาก Cons - Buy - Discharge ก็ได้
-            consPowerPurchased: powerPurchased,
-            consBatteryDischarge: batteryDischarge, // เพิ่ม param นี้
-          ),
+      padding: const EdgeInsets.only(top: 20, bottom: 40),
+      child: Column(
+        children: [
+          // --- ส่วนปุ่มเลือกโหมด ---
+          _buildPeriodSelector(),
+          const SizedBox(height: 20),
+
+          // --- ส่วนแสดงผล Loading หรือ กราฟ ---
+          isLoading
+              ? const SizedBox(
+                  height: 200,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    // --- กราฟฝั่ง Production ---
+                    TotalProduction(
+                      totalValue: totalProduction,
+                      prodUsed: selfUsed,
+                      prodBatteryCharge: batteryCharge,
+                      prodFeedIn: feedIn,
+                    ),
+                    const SizedBox(width: 10),
+                    const SizedBox(
+                        height: 150,
+                        child: VerticalDivider(color: Palette.lightGrey)),
+                    const SizedBox(width: 10),
+                    // --- กราฟฝั่ง Consumption ---
+                    TotalConsumption(
+                      totalValue: totalConsumption,
+                      consSelfUsed: selfUsed,
+                      consPowerPurchased: powerPurchased,
+                      consBatteryDischarge: batteryDischarge,
+                    ),
+                  ],
+                ),
         ],
       ),
     );
+  }
+
+  Widget _buildPeriodSelector() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildPeriodButton("Daily"),
+          _buildPeriodButton("Monthly"),
+          _buildPeriodButton("Yearly"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodButton(String text) {
+    // เช็คว่าโหมดตรงกันหรือไม่ (แปลงเป็นตัวเล็กเพื่อเทียบ)
+    bool isSelected = selectedMode.toLowerCase() == text.toLowerCase();
+    
+    return GestureDetector(
+      onTap: () {
+        if (!isSelected) {
+          fetchOverviewData(text.toLowerCase());
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? Palette.lightBlue : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.black54,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Extension เล็กๆ เพื่อทำตัวอักษรพิมพ์ใหญ่
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
   }
 }
 
