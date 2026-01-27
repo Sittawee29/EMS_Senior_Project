@@ -17,6 +17,9 @@ class DashboardData {
   double BESS_Daily_Discharge_Energy;
   double EMS_CO2_Equivalent;
   double EMS_EnergyProducedFromPV_Daily;
+  double EMS_EnergyProducedFromPV_kWh;
+  double EMS_EnergyFeedFromGrid_kWh;
+  double EMS_EnergyConsumption_kWh;
   double EMS_EnergyFeedToGrid_Daily;
   double EMS_EnergyConsumption_Daily;
   double EMS_EnergyFeedFromGrid_Daily;
@@ -125,6 +128,9 @@ class DashboardData {
     this.BESS_Daily_Discharge_Energy = 0.0,
     this.EMS_CO2_Equivalent = 0.0,
     this.EMS_EnergyProducedFromPV_Daily = 0.0,
+    this.EMS_EnergyProducedFromPV_kWh = 0.0,
+    this.EMS_EnergyFeedFromGrid_kWh = 0.0,
+    this.EMS_EnergyConsumption_kWh = 0.0,
     this.EMS_EnergyFeedToGrid_Daily = 0.0,
     this.EMS_EnergyConsumption_Daily = 0.0,
     this.EMS_EnergyFeedFromGrid_Daily = 0.0,
@@ -228,6 +234,9 @@ class DashboardData {
       BESS_Daily_Discharge_Energy: (json['BESS_Daily_Discharge_Energy'] ?? 0).toDouble(),
       EMS_CO2_Equivalent: (json['EMS_CO2_Equivalent'] ?? 0).toDouble(),
       EMS_EnergyProducedFromPV_Daily: (json['EMS_EnergyProducedFromPV_Daily'] ?? 0).toDouble(),
+      EMS_EnergyProducedFromPV_kWh: (json['EMS_EnergyProducedFromPV_kWh'] ?? 0).toDouble(),
+      EMS_EnergyFeedFromGrid_kWh: (json['EMS_EnergyFeedFromGrid_kWh'] ?? 0).toDouble(),
+      EMS_EnergyConsumption_kWh: (json['EMS_EnergyConsumption_kWh'] ?? 0).toDouble(),
       EMS_EnergyFeedToGrid_Daily: (json['EMS_EnergyFeedToGrid_Daily'] ?? 0).toDouble(),
       EMS_EnergyConsumption_Daily: (json['EMS_EnergyConsumption_Daily'] ?? 0).toDouble(),
       EMS_EnergyFeedFromGrid_Daily: (json['EMS_EnergyFeedFromGrid_Daily'] ?? 0).toDouble(),

@@ -61,8 +61,8 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
             const SizedBox(height: 28),
             _InformationRow(
-               totalProduction: data.PV_Total_Energy,
-               gridFeedIn: data.GRID_Total_Import_Energy,
+               totalProduction: data.EMS_EnergyProducedFromPV_kWh,
+               gridFeedIn: data.EMS_EnergyFeedFromGrid_kWh,
                co2Prevention: data.EMS_CO2_Equivalent,
                netRevenue: (data.GRID_Daily_Export_Energy - data.GRID_Daily_Import_Energy)*4.5, // ตัวอย่าง: รายรับ - รายจ่าย
             ),

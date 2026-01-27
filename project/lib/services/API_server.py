@@ -8,7 +8,7 @@ import paho.mqtt.client as mqtt
 from uvicorn import run
 import sqlite3
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import io
 import csv
 import redis
@@ -51,6 +51,7 @@ DEFAULT_KEYS = [
     "BESS_Daily_Charge_Energy", "BESS_Daily_Discharge_Energy", "EMS_CO2_Equivalent",
     "EMS_EnergyProducedFromPV_Daily", "EMS_EnergyFeedToGrid_Daily", "EMS_EnergyConsumption_Daily",
     "EMS_EnergyFeedFromGrid_Daily", "EMS_SolarPower_kW", "EMS_LoadPower_kW","EMS_BatteryPower_kW",
+    "EMS_EnergyProducedFromPV_kWh", "EMS_EnergyFeedFromGrid_kWh", "EMS_EnergyConsumption_kWh",
 
     # --- BESS ---
     "BESS_SOC", "BESS_SOH", "BESS_V", "BESS_I", "BESS_KW", "BESS_Temperature",
@@ -139,6 +140,24 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )
+
+def get_energy_at_time(cursor, target_datetime):
+    # แปลง datetime เป็น string format ใน database
+    target_str = target_datetime.strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Query หาค่า EMS_EnergyProducedFromPV_kWh ที่เวลา <= target_time ที่ใกล้ที่สุด
+    sql = """
+        SELECT "EMS_EnergyProducedFromPV_kWh"
+        FROM system_logs 
+        WHERE timestamp <= ?
+        ORDER BY timestamp DESC
+        LIMIT 1
+    """
+    cursor.execute(sql, (target_str,))
+    row = cursor.fetchone()
+    if row and row[0] is not None:
+        return float(row[0])
+    return 0.0
 
 # ==========================================
 # 2. MQTT Logic (Write to Hot Data)
@@ -496,8 +515,6 @@ def get_overview_summary(mode: str = "daily", date_str: str = None):
             time_filter = f"strftime('%Y', timestamp) = '{t_str}'"
             debug_msg = f"ปี {t_str}"
 
-        print(f"\n--- Debug {mode.upper()} ({debug_msg}) ---")
-
         # -------------------------------------------------------
         # SQL LOGIC: 
         # 1. Subquery: หา MAX(id) ของแต่ละวัน (คือแถวสุดท้ายของวันนั้นๆ)
@@ -528,10 +545,6 @@ def get_overview_summary(mode: str = "daily", date_str: str = None):
             GROUP BY strftime('%Y-%m-%d', timestamp)
         """
         cursor.execute(check_sql)
-        found_days = cursor.fetchall()
-        print(f"📅 พบข้อมูลจำนวน {len(found_days)} วัน ได้แก่:")
-        for d in found_days:
-            print(f"   - วันที่: {d[0]} (ใช้ข้อมูลบรรทัด ID: {d[1]})")
         # ------------------------------------------------
 
         cursor.execute(sql)
@@ -541,10 +554,8 @@ def get_overview_summary(mode: str = "daily", date_str: str = None):
         if row:
             # แปลง None เป็น 0.0
             result = [float(x) if x is not None else 0.0 for x in row]
-            print(f"✅ ผลรวมที่ได้: {result}")
             return result
         else:
-            print("❌ ไม่พบข้อมูล (Result is None)")
             return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     except Exception as e:
@@ -573,6 +584,141 @@ def export_csv_data():
     except Exception as e:
         return {"error": str(e)}
 
+@app.get("/api/bill/reading_start")
+def get_reading_start():
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        
+        # หาวันที่ 27 ของเดือนปัจจุบัน
+        now = datetime.now()
+        target_day = 27
+        
+        # สร้าง string วันที่เป้าหมาย เช่น '2023-10-27'
+        # หมายเหตุ: ถ้าวันนี้ยังไม่ถึงวันที่ 27 ระบบจะหาไม่เจอ (อาจต้องปรับ Logic เป็นเดือนก่อนหน้าถ้าต้องการรอบบิลจริง)
+        # แต่ทำตามโจทย์คือ "เดือนปัจจุบัน"
+        target_date_str = f"{now.year}-{now.month:02d}-{target_day:02d}"
+        
+        # Query หาค่าที่เวลาใกล้ 00:00:00 ที่สุด ของวันที่ 27 เดือนปัจจุบัน
+        sql = f"""
+            SELECT "EMS_EnergyProducedFromPV_kWh"
+            FROM system_logs 
+            WHERE strftime('%Y-%m-%d', timestamp) = ?
+            ORDER BY ABS(strftime('%H', timestamp) * 3600 + strftime('%M', timestamp) * 60) ASC
+            LIMIT 1
+        """
+        
+        cursor.execute(sql, (target_date_str,))
+        row = cursor.fetchone()
+        conn.close()
+
+        if row and row[0] is not None:
+            return {"prev_read": float(row[0])}
+        else:
+            # ถ้าหาไม่เจอ (เช่น ยังไม่ถึงวันที่ 27) ให้ส่ง 0 หรือค่าล่าสุดที่มีไปก่อน
+            return {"prev_read": 0.0}
+
+    except Exception as e:
+        print(f"Error fetching start reading: {e}")
+        return {"prev_read": 0.0}
+    
+@app.get("/api/bill/calculate_tou")
+def calculate_tou_units():
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        
+        now = datetime.now()
+        
+        # 1. หาวันที่เริ่มต้นรอบบิล (วันที่ 27)
+        if now.day >= 27:
+            start_date = datetime(now.year, now.month, 27, 0, 0, 0)
+        else:
+            # ย้อนกลับไปเดือนก่อนหน้า
+            if now.month == 1:
+                start_date = datetime(now.year - 1, 12, 27, 0, 0, 0)
+            else:
+                start_date = datetime(now.year, now.month - 1, 27, 0, 0, 0)
+        
+        total_on_peak = 0.0
+        total_off_peak = 0.0
+        total_holiday = 0.0
+        
+        # 2. วนลูปตั้งแต่วันเริ่มต้น จนถึงวันนี้
+        current_date = start_date
+        # เราจะคำนวณทีละวัน (จบที่วันปัจจุบัน + 1 เพื่อให้ครอบคลุมวันนี้)
+        end_date = datetime(now.year, now.month, now.day) + timedelta(days=1)
+        
+        while current_date < end_date:
+            # current_date คือเวลา 00:00 ของวันนั้นๆ
+            weekday = current_date.weekday() # 0=Mon, 1=Tue, ..., 5=Sat, 6=Sun
+            
+            # --- จันทร์ (0) ถึง ศุกร์ (4) ---
+            if 0 <= weekday <= 4:
+                # กำหนดเวลา 09:00 และ 22:00 ของวันนั้น
+                time_00 = current_date.replace(hour=0, minute=0)
+                time_09 = current_date.replace(hour=9, minute=0)
+                time_22 = current_date.replace(hour=22, minute=0)
+                
+                # ถ้าเวลาที่จะดึง เป็นอนาคตเกินไป ให้ข้าม หรือใช้ค่าปัจจุบันแทน (ที่นี้ขอข้ามถ้าเกิน now)
+                if time_00 <= now:
+                     val_00 = get_energy_at_time(cursor, time_00)
+                     
+                     # 1. Off Peak (จ-ศ): 09:00 - 00:00
+                     if time_09 <= now:
+                         val_09 = get_energy_at_time(cursor, time_09)
+                         # คำนวณ Off Peak
+                         diff = val_09 - val_00
+                         if diff > 0: total_off_peak += diff
+                         
+                         # 2. On Peak (จ-ศ): 22:00 - 09:00
+                         if time_22 <= now:
+                             val_22 = get_energy_at_time(cursor, time_22)
+                         else:
+                             # ถ้ายังไม่ถึง 22:00 ให้ใช้ค่าล่าสุด ณ ตอนนี้ (Realtime)
+                             val_22 = get_energy_at_time(cursor, now)
+                             
+                         diff_on = val_22 - val_09
+                         if diff_on > 0: total_on_peak += diff_on
+                     else:
+                         # กรณีวันนี้ยังไม่ถึง 09:00 (ได้ Off Peak บางส่วน)
+                         val_now = get_energy_at_time(cursor, now)
+                         diff = val_now - val_00
+                         if diff > 0: total_off_peak += diff
+
+            # --- เสาร์ (5) ---
+            # Holiday คิดรวบยอด: จันทร์ถัดไป(00:00) - เสาร์(00:00)
+            elif weekday == 5:
+                time_sat_00 = current_date.replace(hour=0, minute=0)
+                time_next_mon_00 = time_sat_00 + timedelta(days=2) # ข้ามอาทิตย์ไปจันทร์
+                
+                if time_sat_00 <= now:
+                    val_sat = get_energy_at_time(cursor, time_sat_00)
+                    
+                    if time_next_mon_00 <= now:
+                        val_mon = get_energy_at_time(cursor, time_next_mon_00)
+                    else:
+                        # ถ้ายังไม่ถึงเช้าวันจันทร์ ให้ใช้ค่าล่าสุด (Realtime)
+                        val_mon = get_energy_at_time(cursor, now)
+                    
+                    diff_holiday = val_mon - val_sat
+                    if diff_holiday > 0: total_holiday += diff_holiday
+            
+            # ขยับไปวันถัดไป
+            current_date += timedelta(days=1)
+
+        conn.close()
+        
+        return {
+            "on_peak_unit": total_on_peak,
+            "off_peak_unit": total_off_peak,
+            "holiday_unit": total_holiday
+        }
+
+    except Exception as e:
+        print(f"Error calculating TOU: {e}")
+        return {"on_peak_unit": 0, "off_peak_unit": 0, "holiday_unit": 0}
+    
 if __name__ == "__main__":
     print("Initializing Database...")
     init_db_wal_mode()
