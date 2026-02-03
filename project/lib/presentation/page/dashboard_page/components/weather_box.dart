@@ -6,16 +6,16 @@ part of '../page.dart';
 class _WeatherData {
   final String cityName;
   final double temp;
-  final double tempMin;
-  final double tempMax;
+  final double tempMin; // Server ไม่ได้เก็บ ใช้ค่า temp แทน
+  final double tempMax; // Server ไม่ได้เก็บ ใช้ค่า temp แทน
   final double feelsLike;
-  final String description;
+  final String description; // Server ไม่ได้เก็บ (สมมติเอา)
   final double humidity;
   final double windSpeed;
   final int pressure;
-  final String iconCode;
-  final int sunrise;
-  final int sunset;
+  final String iconCode; // คำนวณจาก Cloudiness แทน
+  final int sunrise; // Server ไม่ได้เก็บ
+  final int sunset;  // Server ไม่ได้เก็บ
 
   _WeatherData({
     required this.cityName,
@@ -32,20 +32,27 @@ class _WeatherData {
     required this.sunset,
   });
 
-  factory _WeatherData.fromJson(Map<String, dynamic> json) {
+  factory _WeatherData.fromServer(Map<String, dynamic> json) {
+    double getVal(String key) => (json[key] != null) ? (json[key] as num).toDouble() : 0.0;
+    String getStr(String key) => (json[key] != null) ? json[key].toString() : '01d';
+
     return _WeatherData(
-      cityName: json['name'] ?? 'Unknown',
-      temp: (json['main']['temp'] as num).toDouble(),
-      tempMin: (json['main']['temp_min'] as num).toDouble(),
-      tempMax: (json['main']['temp_max'] as num).toDouble(),
-      feelsLike: (json['main']['feels_like'] as num).toDouble(),
-      description: json['weather'][0]['description'],
-      humidity: (json['main']['humidity'] as num).toDouble(),
-      windSpeed: (json['wind']['speed'] as num).toDouble(),
-      pressure: (json['main']['pressure'] as num).toInt(),
-      iconCode: json['weather'][0]['icon'],
-      sunrise: json['sys']['sunrise'],
-      sunset: json['sys']['sunset'],
+      cityName: 'Bangkok',
+      temp: getVal('WEATHER_Temp'),
+      
+      tempMin: getVal('WEATHER_TempMin'), 
+      tempMax: getVal('WEATHER_TempMax'),
+      
+      feelsLike: getVal('WEATHER_FeelsLike'),
+      description: 'Live Weather',
+      humidity: getVal('WEATHER_Humidity'),
+      windSpeed: getVal('WEATHER_WindSpeed'),
+      pressure: getVal('WEATHER_Pressure').toInt(),
+      iconCode: getStr('WEATHER_Icon'),
+      
+      // [NEW] เปลี่ยนตรงนี้ (แปลง double เป็น int เพราะ timestamp เป็นจำนวนเต็ม)
+      sunrise: getVal('WEATHER_Sunrise').toInt(),
+      sunset: getVal('WEATHER_Sunset').toInt(),
     );
   }
 }
@@ -63,13 +70,9 @@ class _WeatherBox extends StatefulWidget {
 class _WeatherBoxState extends State<_WeatherBox> {
   Future<_WeatherData>? _weatherFuture;
   Timer? _timer;
-  
-  final String _apiKey = '635c661512b0b802dcf857383d4a9ed4';
-
-  // --- แก้ไขตรงนี้: ใส่ชื่อเมืองที่ต้องการ (ภาษาอังกฤษ) ---
-  final String _targetCity = 'Bangkok,TH'; 
-  // ตัวอย่างอื่นๆ: 'Bangkok', 'London', 'Tokyo', 'Chiang Mai'
-  // -----------------------------------------------------
+  static const String serverIp = 'localhost'; 
+  static const String serverPort = '8000';
+  final String _serverUrl = 'http://$serverIp:$serverPort/api/dashboard';
 
   @override
   void initState() {
@@ -79,7 +82,6 @@ class _WeatherBoxState extends State<_WeatherBox> {
     _timer = Timer.periodic(const Duration(minutes: 5), (timer) {
       if (mounted) { 
         setState(() {
-          debugPrint("Auto-refreshing weather...");
           _weatherFuture = _fetchWeather();
         });
       }
@@ -93,17 +95,22 @@ class _WeatherBoxState extends State<_WeatherBox> {
   }
 
   Future<_WeatherData> _fetchWeather() async {
-    // --- แก้ไขตรงนี้: เปลี่ยน URL ให้ใช้ parameter 'q' แทน lat/lon ---
-    final url = Uri.parse(
-        'https://api.openweathermap.org/data/2.5/weather?q=$_targetCity&units=metric&appid=$_apiKey');
-    
-    final response = await http.get(url);
+  try {
+    final url = Uri.parse(_serverUrl);
+    final response = await http.get(url).timeout(const Duration(seconds: 5));
 
     if (response.statusCode == 200) {
-      return _WeatherData.fromJson(jsonDecode(response.body));
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      
+      // [สำคัญ] ใช้ .fromServer ที่เราสร้างใหม่เพื่อแปลงข้อมูล
+      return _WeatherData.fromServer(data);
     } else {
-      // กรณีพิมพ์ชื่อเมืองผิด หรือหาไม่เจอ จะเจอ Error 404
-      throw Exception('City not found or Error: ${response.statusCode}');
+      throw Exception('Server Error: ${response.statusCode}');
+    }
+  } 
+  catch (e) {
+      // ถ้าดึงไม่ได้ ให้ throw error หรือจะ return ข้อมูลว่างๆ ก็ได้
+      throw Exception('Failed to load weather from server');
     }
   }
 
@@ -217,7 +224,7 @@ class _WeatherBoxState extends State<_WeatherBox> {
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            '${data.tempMax.round()}/${data.tempMin.round()}°C',
+                            '${data.tempMax.toStringAsFixed(1)}/${data.tempMin.toStringAsFixed(1)}°C',
                             style: TextStyles.myriadProSemiBold16DarkBlue,
                           ),
                         ],

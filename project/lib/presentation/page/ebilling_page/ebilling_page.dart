@@ -125,6 +125,20 @@ class BillContentWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
+    DateTime prevReadDate;
+    if (now.day >= 27) {
+      // ถ้าวันนี้เลยวันที่ 27 แล้ว -> รอบก่อนคือวันที่ 27 เดือนนี้
+      prevReadDate = DateTime(now.year, now.month, 27);
+    } else {
+      // ถ้ายังไม่ถึงวันที่ 27 -> รอบก่อนคือวันที่ 27 เดือนที่แล้ว
+      // จัดการกรณีข้ามปี (เดือน 1 ถอยไปเดือน 12 ปีก่อน)
+      if (now.month == 1) {
+        prevReadDate = DateTime(now.year - 1, 12, 27);
+      } else {
+        prevReadDate = DateTime(now.year, now.month - 1, 27);
+      }
+    }
+    final String prevReadDateStr = DateFormat('dd/MM/yyyy').format(prevReadDate);
     final targetDate = now.day >= 27
         ? DateTime(now.year, now.month + 1, 1)
         : now;
@@ -274,7 +288,7 @@ class BillContentWidget extends StatelessWidget {
               TableRow(
                 children: [
                   _buildCellData('SN251507270', isBold: true),
-                  _buildCellData(data.meterLastReadDate, isBold: true),
+                  _buildCellData(prevReadDateStr, isBold: true),
                   _buildCellData(data.prevRead, isBold: true),
                   _buildCellData(data.lastRead, isBold: true),
                   if (isTouMode) ...[

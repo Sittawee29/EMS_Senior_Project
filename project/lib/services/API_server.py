@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 import io
 import csv
 import redis
+import requests
 
 # ==========================================
 # 1. Config & Setup
@@ -26,6 +27,9 @@ DB_NAME = "energy_data.db"
 REDIS_HOST = "localhost"
 REDIS_PORT = 6379
 REDIS_DB = 0
+
+WEATHER_API_KEY = '635c661512b0b802dcf857383d4a9ed4' 
+WEATHER_CITY = 'Bangkok,TH'
 
 # เชื่อมต่อ Redis
 try:
@@ -77,7 +81,12 @@ DEFAULT_KEYS = [
     # --- PV4 ---
     "PV4_Total_Power_Yields_Real", "PV4_Total_Apparent_Power_kW", "PV4_Total_Reactive_Power_kW", "PV4_Total_Active_Power_kW",
     "PV4_Total_Reactive_Power", "PV4_Total_Active_Power", "PV4_Total_Apparent_Power", "PV4_Total_Power_Yields",
-    "PV4_Daily_Power_Yields", "PV4_Nominal_Active_Power", "PV4_Communication_Fault"
+    "PV4_Daily_Power_Yields", "PV4_Nominal_Active_Power", "PV4_Communication_Fault",
+
+    # --- WEATHER ---
+    "WEATHER_Temp","WEATHER_TempMin", "WEATHER_TempMax", "WEATHER_Sunrise", "WEATHER_Sunset",
+     "WEATHER_FeelsLike", "WEATHER_Humidity", "WEATHER_Pressure", "WEATHER_WindSpeed",
+     "WEATHER_Cloudiness","WEATHER_Icon"
 ]
 
 print("Initializing Redis keys...")
@@ -92,8 +101,16 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
-    columns_sql = ", ".join([f'"{key}" REAL' for key in DEFAULT_KEYS])
-    
+    # สร้าง SQL โดยเช็คว่าถ้าเป็น Icon ให้เก็บเป็น TEXT
+    col_defs = []
+    for key in DEFAULT_KEYS:
+        if key == "WEATHER_Icon":
+            col_defs.append(f'"{key}" TEXT') # เก็บข้อความ
+        else:
+            col_defs.append(f'"{key}" REAL') # เก็บตัวเลข
+            
+    columns_sql = ", ".join(col_defs)
+
     create_table_sql = f'''
         CREATE TABLE IF NOT EXISTS system_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,6 +119,8 @@ def init_db():
         )
     '''
     cursor.execute(create_table_sql)
+    
+    # (ส่วน Alter table เดิม ตัดออกหรือคงไว้ก็ได้ แต่แนะนำให้ลบไฟล์ db เก่าทิ้งง่ายกว่า)
     conn.commit()
     conn.close()
     print("\033[92m🗸\033[0m Database Initialized")
@@ -228,6 +247,60 @@ def on_message(client, userdata, msg):
         print(f"MQTT Error: {e}")
 
 # ==========================================
+# Weather Fetcher Loop
+# ==========================================
+def weather_loop():
+    print("\033[92m🗸\033[0m Weather Fetcher Started")
+    while True:
+        try:
+            # ยิง API ไปที่ OpenWeatherMap
+            url = f"https://api.openweathermap.org/data/2.5/weather?q={WEATHER_CITY}&units=metric&appid={WEATHER_API_KEY}"
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # เตรียมข้อมูล (Key ต้องตรงกับใน DEFAULT_KEYS เป๊ะๆ)
+                weather_update = {
+                    "WEATHER_Temp": data['main']['temp'],
+                    "WEATHER_TempMin": data['main']['temp_min'],
+                    "WEATHER_TempMax": data['main']['temp_max'],
+                    "WEATHER_Sunrise": data['sys']['sunrise'], # เป็น Unix Timestamp (ตัวเลขยาวๆ)
+                    "WEATHER_Sunset": data['sys']['sunset'],
+                    "WEATHER_FeelsLike": data['main']['feels_like'],
+                    "WEATHER_Humidity": data['main']['humidity'],
+                    "WEATHER_Pressure": data['main']['pressure'],
+                    "WEATHER_WindSpeed": data['wind']['speed'],
+                    # เช็คว่ามี clouds/all ไหม
+                    "WEATHER_Cloudiness": data.get('clouds', {}).get('all', 0),
+                    "WEATHER_Icon": data['weather'][0]['icon']
+                }
+                
+                # บันทึกลง Redis
+                pipe = redis_client.pipeline()
+                for k, v in weather_update.items():
+                    # ถ้าไม่ใช่ Icon ให้แปลงเป็น float เพื่อปัดเศษ, ถ้าเป็น Icon ให้เก็บเลย
+                    if k == "WEATHER_Icon":
+                        pipe.set(k, v)
+                    else:
+                        pipe.set(k, round(float(v), 2))
+                pipe.execute()
+                
+            else:
+                print(f"Weather API Error: {response.status_code}")
+
+        except Exception as e:
+            print(f"Error fetching weather: {e}")
+        
+        # รอ 5 นาที (300 วินาที) แล้วทำใหม่
+        time.sleep(300)
+
+# สั่งรัน Weather Loop ใน Thread แยก
+weather_thread = threading.Thread(target=weather_loop)
+weather_thread.daemon = True
+weather_thread.start()
+
+# ==========================================
 # 3. Background Tasks (Sync Hot -> Cold)
 # ==========================================
 # [EDITED] ฟังก์ชันนี้แก้ไขให้บันทึกทุก 5 นาที
@@ -253,12 +326,19 @@ def db_saver_loop():
                 raw_values = pipe.execute()
                 
                 vals = []
-                for v in raw_values:
-                    try:
-                        val_float = float(v) if v else 0.0
-                        vals.append(round(val_float, 4))
-                    except:
-                        vals.append(0.0)
+                for idx, v in enumerate(raw_values):
+                    key_name = DEFAULT_KEYS[idx] # ดูว่า Key ปัจจุบันคืออะไร
+                    
+                    if key_name == "WEATHER_Icon":
+                        # ถ้าเป็น Icon ให้เก็บเป็น String (ถ้าไม่มีข้อมูลให้ใส่ค่า default เป็น 01d)
+                        vals.append(str(v) if v else "01d")
+                    else:
+                        # ถ้าเป็นตัวเลข ให้ทำเหมือนเดิม
+                        try:
+                            val_float = float(v) if v else 0.0
+                            vals.append(round(val_float, 4))
+                        except:
+                            vals.append(0.0)
 
                 columns_str = ", ".join([f'"{k}"' for k in DEFAULT_KEYS])
                 placeholders = ", ".join(["?" for _ in DEFAULT_KEYS])
@@ -325,13 +405,23 @@ mqtt_client.on_disconnect = on_disconnect
 @app.get("/api/dashboard")
 def get_dashboard_data():
     try:
-        keys = redis_client.keys("*")
-        if not keys: return {}
         pipe = redis_client.pipeline()
-        for k in keys: pipe.get(k)
+        for k in DEFAULT_KEYS: 
+            pipe.get(k)
         values = pipe.execute()
-        result = {k: (round(float(v), 4) if v else 0) for k, v in zip(keys, values)}
-        return result
+        
+        data = {}
+        for i, key in enumerate(DEFAULT_KEYS):
+            val = values[i]
+            
+            if key == "WEATHER_Icon":
+                data[key] = val if val else "01d"
+            else:
+                try:
+                    data[key] = round(float(val), 4) if val else 0.0
+                except:
+                    data[key] = 0.0
+        return data
     except Exception as e:
         return {"error": str(e)}
 
@@ -590,33 +680,34 @@ def get_reading_start():
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         
-        # หาวันที่ 27 ของเดือนปัจจุบัน
         now = datetime.now()
-        target_day = 27
         
-        # สร้าง string วันที่เป้าหมาย เช่น '2023-10-27'
-        # หมายเหตุ: ถ้าวันนี้ยังไม่ถึงวันที่ 27 ระบบจะหาไม่เจอ (อาจต้องปรับ Logic เป็นเดือนก่อนหน้าถ้าต้องการรอบบิลจริง)
-        # แต่ทำตามโจทย์คือ "เดือนปัจจุบัน"
-        target_date_str = f"{now.year}-{now.month:02d}-{target_day:02d}"
+        # =========================================================
+        # Logic การหาวันเริ่มต้นรอบบิล (ตัดรอบทุกวันที่ 27)
+        # =========================================================
         
-        # Query หาค่าที่เวลาใกล้ 00:00:00 ที่สุด ของวันที่ 27 เดือนปัจจุบัน
-        sql = f"""
-            SELECT "EMS_EnergyProducedFromPV_kWh"
-            FROM system_logs 
-            WHERE strftime('%Y-%m-%d', timestamp) = ?
-            ORDER BY ABS(strftime('%H', timestamp) * 3600 + strftime('%M', timestamp) * 60) ASC
-            LIMIT 1
-        """
+        # กรณี A: วันนี้เป็นวันที่ 27 หรือมากกว่า (เช่น 28 ก.พ.)
+        # รอบบิลเริ่มวันที่ 27 ของ "เดือนนี้"
+        if now.day >= 27:
+            start_date = datetime(now.year, now.month, 27, 0, 0, 0)
+            
+        # กรณี B: วันนี้ยังไม่ถึงวันที่ 27 (เช่น 15 ก.พ.)
+        # รอบบิลเริ่มวันที่ 27 ของ "เดือนที่แล้ว"
+        else:
+            if now.month == 1:
+                # ถ้าเป็นเดือนมกราคม ย้อนไปธันวาคมปีก่อนหน้า
+                start_date = datetime(now.year - 1, 12, 27, 0, 0, 0)
+            else:
+                # เดือนปกติ ย้อนไปเดือนก่อนหน้า
+                start_date = datetime(now.year, now.month - 1, 27, 0, 0, 0)
         
-        cursor.execute(sql, (target_date_str,))
-        row = cursor.fetchone()
+        # ใช้ฟังก์ชัน get_energy_at_time ที่มีอยู่แล้ว เพื่อดึงค่า ณ เวลานั้นๆ
+        # ฟังก์ชันนี้จะหาค่าล่าสุดที่บันทึกไว้ ณ เวลา 00:00:00 หรือก่อนหน้านั้นที่ใกล้ที่สุด
+        prev_read_val = get_energy_at_time(cursor, start_date)
+        
         conn.close()
 
-        if row and row[0] is not None:
-            return {"prev_read": float(row[0])}
-        else:
-            # ถ้าหาไม่เจอ (เช่น ยังไม่ถึงวันที่ 27) ให้ส่ง 0 หรือค่าล่าสุดที่มีไปก่อน
-            return {"prev_read": 0.0}
+        return {"prev_read": prev_read_val}
 
     except Exception as e:
         print(f"Error fetching start reading: {e}")

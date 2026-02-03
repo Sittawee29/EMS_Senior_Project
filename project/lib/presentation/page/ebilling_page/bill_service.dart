@@ -121,7 +121,7 @@ class BillService {
         invoiceNo: "INV-${DateTime.now().millisecondsSinceEpoch}", 
         documentDate: DateFormat('dd/MM/yyyy').format(DateTime.now()),
         payerName: "คุณสมชาย รักพลังงาน", 
-        meterLastReadDate: DateFormat('dd/MM/yyyy').format(DateTime.now()),
+        meterLastReadDate: DateFormat('27/MM/yyyy').format(DateTime.now()),
         
         // --- ใช้ค่าจริงที่ได้มา ---
         prevRead: _fmt.format(_prevRead),  // ค่าจาก API วันที่ 27
