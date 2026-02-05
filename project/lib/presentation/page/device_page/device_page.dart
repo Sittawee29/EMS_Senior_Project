@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../../../services/mqtt_service.dart';
 
-// ✅ Import ไฟล์ Model และ DetailPage
+
 import 'DeviceDetailPage/device_model.dart'; 
 import 'DeviceDetailPage/DeviceDetailPage.dart';
 

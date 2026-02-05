@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi import HTTPException
+from fastapi import Response, status
 import threading
 import json
 import math
@@ -13,6 +15,19 @@ import io
 import csv
 import redis
 import requests
+import pandas as pd
+from typing import List
+from pydantic import BaseModel
+from fastapi.responses import StreamingResponse 
+
+class ExportRequest(BaseModel):
+    start_time: str
+    end_time: str
+    step: str
+    file_format: str
+    variables: List[str]
+    plant_name: str = "UTI Factory"
+    units: List[str] = None
 
 # ==========================================
 # 1. Config & Setup
@@ -85,8 +100,8 @@ DEFAULT_KEYS = [
 
     # --- WEATHER ---
     "WEATHER_Temp","WEATHER_TempMin", "WEATHER_TempMax", "WEATHER_Sunrise", "WEATHER_Sunset",
-     "WEATHER_FeelsLike", "WEATHER_Humidity", "WEATHER_Pressure", "WEATHER_WindSpeed",
-     "WEATHER_Cloudiness","WEATHER_Icon"
+    "WEATHER_FeelsLike", "WEATHER_Humidity", "WEATHER_Pressure", "WEATHER_WindSpeed",
+    "WEATHER_Cloudiness","WEATHER_Icon"
 ]
 
 print("Initializing Redis keys...")
@@ -157,7 +172,12 @@ init_db()
 
 app = FastAPI()
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
+    CORSMiddleware, 
+    allow_origins=["*"], 
+    allow_credentials=True, 
+    allow_methods=["*"], 
+    allow_headers=["*"],
+    expose_headers=["Content-Disposition"]
 )
 
 def get_energy_at_time(cursor, target_datetime):
@@ -810,6 +830,281 @@ def calculate_tou_units():
         print(f"Error calculating TOU: {e}")
         return {"on_peak_unit": 0, "off_peak_unit": 0, "holiday_unit": 0}
     
+@app.get("/api/data_range")
+def get_data_range():
+    """
+    คืนค่าวันแรกและวันสุดท้ายที่มีข้อมูลใน Database
+    เพื่อให้ Frontend กำหนดขอบเขตปฏิทินได้ถูกต้อง
+    """
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        
+        # หาเวลาน้อยสุดและมากสุด
+        cursor.execute("SELECT MIN(timestamp), MAX(timestamp) FROM energy_data")
+        result = cursor.fetchone()
+        conn.close()
+
+        min_date = result[0]
+        max_date = result[1]
+
+        # กรณีไม่มีข้อมูลใน DB เลย ให้ใช้เวลาปัจจุบันกัน Error
+        if not min_date:
+            min_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if not max_date:
+            max_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        return {
+            "min_date": min_date,
+            "max_date": max_date
+        }
+    except Exception as e:
+        print(f"Error getting data range: {e}")
+        # Fallback กันตาย
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        return {"min_date": now_str, "max_date": now_str}
+    
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+from openpyxl.utils import get_column_letter
+
+@app.post("/api/export_custom")
+def export_custom_data(req: ExportRequest, response: Response):
+    try:
+        print(f"Export Request: {req.start_time} to {req.end_time}, Step: {req.step}")
+
+        # 1. Query ข้อมูล
+        conn = sqlite3.connect(DB_NAME)
+        cols = ", ".join(f'"{v}"' for v in req.variables) 
+        query = f"""
+            SELECT timestamp, {cols}
+            FROM system_logs
+            WHERE timestamp BETWEEN ? AND ?
+            ORDER BY timestamp ASC
+        """
+        df = pd.read_sql_query(query, conn, params=(req.start_time, req.end_time))
+        conn.close()
+
+        if df.empty:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return {"detail": "No data found for the selected range"}
+
+        # 2. Resample Data
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df.set_index('timestamp', inplace=True)
+
+        step_map = {
+            '5 mins': '5min', '10 mins': '10min', '15 mins': '15min',
+            '30 mins': '30min', '1 hour': '1h', '2 hours': '2h',
+            '4 hours': '4h', '6 hours': '6h', '1 day': '1D'
+        }
+        pandas_step = step_map.get(req.step, '5min')
+        df_resampled = df.resample(pandas_step).mean()
+
+        # =================================================================
+        # [NEW 1] เปลี่ยนชื่อ Column เป็น Point 1, Point 2, ... ก่อน Export
+        # =================================================================
+        new_col_names = [f"Point {i}" for i in range(1, len(df_resampled.columns) + 1)]
+        df_resampled.columns = new_col_names
+
+        # 3. สร้างไฟล์ Excel
+        output = io.BytesIO()
+        
+        if req.file_format == 'Excel':
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                workbook = writer.book
+                worksheet = workbook.create_sheet('ExportData')
+                writer.sheets['ExportData'] = worksheet
+
+                # --- Setup Styles ---
+                from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+                from openpyxl.utils import get_column_letter
+
+                bold_font = Font(name='Arial', bold=True, size=8)
+                center_align = Alignment(horizontal='center', vertical='center')
+                left_align = Alignment(horizontal='left', vertical='center')
+                right_align = Alignment(horizontal='right', vertical='center')
+                
+                normal_align = Alignment(horizontal='left', vertical='center', wrap_text=False)
+
+                thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), 
+                                     top=Side(style='thin'), bottom=Side(style='thin'))
+                
+                gray_fill = PatternFill(start_color="DDDDDD", end_color="DDDDDD", fill_type="solid")
+                blue_fill = PatternFill(start_color="B0C4DE", end_color="B0C4DE", fill_type="solid")
+
+                # --- ส่วนที่ 1: Header (Plant & Date) ---
+                worksheet.row_dimensions[1].height = 40
+                worksheet.merge_cells('A1:E1')
+                worksheet.merge_cells('A2:B2')
+                worksheet.merge_cells('C2:E2')
+                worksheet.merge_cells('A3:B3')
+                worksheet.merge_cells('C3:E3')
+                cell_title = worksheet['A1']
+                cell_title.value = req.plant_name
+                cell_title.font = Font(name='Arial', bold=True, size=14)
+                cell_title.alignment = center_align
+                
+                worksheet['A2'] = "Report Date :"
+                worksheet['A2'].font = bold_font
+                worksheet['A2'].alignment = right_align
+                start_dt_obj = datetime.strptime(req.start_time, "%Y-%m-%d %H:%M:%S")
+                end_dt_obj = datetime.strptime(req.end_time, "%Y-%m-%d %H:%M:%S")
+                date_str = f"{start_dt_obj.strftime('%d %b %Y %H:%M')} - {end_dt_obj.strftime('%d %b %Y %H:%M')}"
+                worksheet['C2'] = date_str
+                worksheet['C2'].font = Font(name='Arial', bold=False, size=8)
+                worksheet['C2'].alignment = left_align
+
+                worksheet['A3'] = "Print Date :"
+                worksheet['A3'].font = bold_font
+                worksheet['A3'].alignment = right_align
+                worksheet['C3'] = datetime.now().strftime('%d %b %Y %H:%M:%S')
+                worksheet['C3'].font = Font(name='Arial', bold=False, size=8)
+                worksheet['C3'].alignment = left_align
+
+                # --- ส่วนที่ 2: Variable Table (Legend) ---
+                start_meta_row = 5
+                
+                cell_point = worksheet.cell(row=start_meta_row, column=1, value="Point")
+                cell_point.font = bold_font
+                cell_point.border = thin_border
+                cell_point.alignment = center_align
+                cell_point.fill = gray_fill
+
+                worksheet.merge_cells(start_row=start_meta_row, start_column=2, end_row=start_meta_row, end_column=3)
+                cell_name = worksheet.cell(row=start_meta_row, column=2, value="Name")
+                cell_name.font = bold_font
+                cell_name.border = thin_border
+                cell_name.alignment = center_align
+                cell_name.fill = gray_fill
+                worksheet.cell(row=start_meta_row, column=3).border = thin_border
+
+                cell_unit = worksheet.cell(row=start_meta_row, column=4, value="Unit")
+                cell_unit.font = bold_font
+                cell_unit.border = thin_border
+                cell_unit.alignment = center_align
+                cell_unit.fill = gray_fill
+
+                current_row = start_meta_row + 1
+                for idx, var_name in enumerate(req.variables, 1):
+                    unit = "-"
+                    if "_" in var_name: unit = var_name.split("_")[-1]
+                    
+                    c1 = worksheet.cell(row=current_row, column=1, value=idx)
+                    c1.font = Font(name='Arial', bold=False, size=8)
+                    c1.border = thin_border
+                    c1.alignment = center_align
+                    c1.fill = gray_fill
+                    
+                    worksheet.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=3)
+                    c2 = worksheet.cell(row=current_row, column=2, value=var_name)
+                    c2.font = Font(name='Arial', bold=False, size=8)
+                    c2.border = thin_border
+                    c2.alignment = normal_align
+                    worksheet.cell(row=current_row, column=3).border = thin_border
+                    
+                    c4 = worksheet.cell(row=current_row, column=4, value=unit)
+                    c4.font = Font(name='Arial', bold=False, size=8)
+                    c4.border = thin_border
+                    c4.alignment = center_align
+                    
+                    current_row += 1
+
+                # --- ส่วนที่ 3: Data Table ---
+                data_start_row = current_row + 2
+                
+                # เขียนข้อมูลลง Sheet (Column จะเป็น Point 1, Point 2... แล้ว)
+                df_resampled.iloc[:, []].to_excel(writer, sheet_name='ExportData', startrow=data_start_row-1, startcol=0, header=False)
+                df_resampled.to_excel(writer, sheet_name='ExportData', startrow=data_start_row - 1, startcol=2, index=False)
+                worksheet.cell(row=data_start_row, column=1).value = "Date / Time"
+                last_data_row = data_start_row + len(df_resampled)
+                num_vars = len(df_resampled.columns)
+                end_col_idx = 2 + num_vars 
+                
+                for r in range(data_start_row, last_data_row + 1):
+                    # --- จัดการ Column A (Date/Time) ---
+                    worksheet.merge_cells(start_row=r, start_column=1, end_row=r, end_column=2)
+                    cell_a = worksheet.cell(row=r, column=1)
+                    cell_b = worksheet.cell(row=r, column=2)
+                    cell_a.border = thin_border
+                    cell_b.border = thin_border
+                    if r == data_start_row:
+                        cell_a.font = bold_font
+                        cell_a.alignment = center_align
+                        cell_a.fill = blue_fill
+                        cell_b.fill = blue_fill
+                    else:
+                        cell_a.font = Font(name='Arial', bold=False, size=8)
+                        cell_a.number_format = 'dd/mm/yyyy hh:mm'
+                        cell_a.alignment = center_align # หรือ left ตามต้องการ
+
+                    # --- จัดการ Column C เป็นต้นไป (Data Points) ---
+                    # เริ่มที่ Col 3 (C) ไปจนถึง Col สุดท้าย
+                    for c in range(3, end_col_idx + 1):
+                        cell = worksheet.cell(row=r, column=c)
+                        cell.border = thin_border
+                        
+                        if r == data_start_row:
+                            # Header (Point 1, Point 2...)
+                            cell.font = bold_font
+                            cell.alignment = center_align
+                            cell.fill = blue_fill 
+                        else:
+                            # Value
+                            cell.font = Font(name='Arial', bold=False, size=8)
+                            cell.alignment = right_align
+                            cell.number_format = '0.0000'
+
+            output.seek(0)
+            filename = f"{req.plant_name}-{req.start_time[:10]}-{req.step.replace(' ', '')}.xlsx"
+            print(f"DEBUG: Generating filename -> {filename}")
+            headers = {'Content-Disposition': f'attachment; filename="{filename}"'}
+            return StreamingResponse(
+                iter([output.getvalue()]), 
+                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+                headers=headers
+            )
+        
+        elif req.file_format == 'PDF':
+            response.status_code = status.HTTP_501_NOT_IMPLEMENTED
+            return {"detail": "PDF format not implemented yet"}
+
+    except Exception as e:
+        print(f"Export Error: {e}")
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return {"detail": str(e)}
+    
+@app.get("/api/check_db_tables")
+def check_db_tables():
+    """
+    API นี้ใช้สำหรับ Debug เพื่อดูว่าใน Database มีตารางชื่ออะไรบ้าง
+    และมีคอลัมน์อะไรบ้าง
+    """
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        
+        # 1. ดูรายชื่อตารางทั้งหมด
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
+        
+        db_structure = {}
+        
+        for table in tables:
+            table_name = table[0]
+            
+            # 2. ดูชื่อคอลัมน์ในแต่ละตาราง
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = cursor.fetchall()
+            column_names = [col[1] for col in columns]
+            
+            db_structure[table_name] = column_names
+            
+        conn.close()
+        return {"status": "ok", "tables": db_structure}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 if __name__ == "__main__":
     print("Initializing Database...")
     init_db_wal_mode()
