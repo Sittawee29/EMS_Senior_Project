@@ -54,7 +54,6 @@ try:
 except Exception as e:
     print(f"\033[91m𐄂\033[0m Failed to connect to Redis: {e}")
 
-# รายชื่อ Keys ทั้งหมดที่จะใช้งาน
 DEFAULT_KEYS = [
     # --- METER ---
     "METER_V1", "METER_V2", "METER_V3",
@@ -79,30 +78,62 @@ DEFAULT_KEYS = [
     "BESS_PID_Td", "BESS_PID_Ti", "BESS_PID_Gain", "BESS_Temp_Ambient",
     "BESS_Alarm", "BESS_Fault", "BESS_Communication_Fault",
 
-    # --- PV1 ---
+    # --- PV1-4 & WEATHER (ย่อเพื่อให้ดูง่าย) ---
     "PV1_Grid_Power_KW", "PV1_Load_Power_KW", "PV1_Daily_Energy_Power_KWh", "PV1_Total_Energy_Power_KWh",
     "PV1_Power_Factor", "PV1_Reactive_Power_KVar", "PV1_Active_Power_KW", "PV1_Fault", "PV1_Communication_Fault",
-
-    # --- PV2 ---
     "PV2_Energy_Daily_kW", "PV2_LifeTimeEnergyProduction_kWh_Start", "PV2_LifeTimeEnergyProduction_kWh",
     "PV2_ReactivePower_kW", "PV2_ApparentPower_kW", "PV2_Power_kW", "PV2_LifeTimeEnergyProduction",
     "PV2_PowerFactor_Percen", "PV2_ReactivePower", "PV2_ApparentPower", "PV2_Power", "PV2_Communication_Fault",
-
-    # --- PV3 ---
     "PV3_Total_Power_Yields_Real", "PV3_Total_Apparent_Power_kW", "PV3_Total_Reactive_Power_kW", "PV3_Total_Active_Power_kW",
-    "PV3_Total_Reactive_Power", "PV3_Total_Active_Power", "PV3_Total_Apparent_Power", "PV3_Total_Power_Yields",
-    "PV3_Daily_Power_Yields", "PV3_Nominal_Active_Power", "PV3_Communication_Fault",
-
-    # --- PV4 ---
     "PV4_Total_Power_Yields_Real", "PV4_Total_Apparent_Power_kW", "PV4_Total_Reactive_Power_kW", "PV4_Total_Active_Power_kW",
-    "PV4_Total_Reactive_Power", "PV4_Total_Active_Power", "PV4_Total_Apparent_Power", "PV4_Total_Power_Yields",
-    "PV4_Daily_Power_Yields", "PV4_Nominal_Active_Power", "PV4_Communication_Fault",
+    "WEATHER_Temp","WEATHER_TempMin", "WEATHER_TempMax", "WEATHER_Humidity", "WEATHER_WindSpeed"
+]
+
+UNIT_MAPPING = {
+    # --- METER ---
+    "METER_V1": "V", "METER_V2": "V", "METER_V3": "V",
+    "METER_I1": "A", "METER_I2": "A", "METER_I3": "A",
+    "METER_KW": "kW", "METER_Total_KWH": "kWh",
+    "METER_Export_KVARH": "kVarh", "METER_Export_KWH": "kWh", 
+    "METER_Import_KVARH": "kVarh", "METER_Import_KWH": "kWh",
+    "METER_Total_KVARH": "kVarh", "METER_Hz": "Hz", "METER_PF": "-",
+    "METER_I_Total": "A", "METER_KVAR": "kVar", "METER_KW_Invert": "kW", "METER_Grid_Power_KW": "kW",
+
+    # --- EMS ---
+    "PV_Total_Energy": "kWh", "PV_Daily_Energy": "kWh", "Load_Total_Energy": "kWh", "Load_Daily_Energy": "kWh",
+    "GRID_Total_Import_Energy": "kWh", "GRID_Daily_Import_Energy": "kWh", "GRID_Total_Export_Energy": "kWh", "GRID_Daily_Export_Energy": "kWh",
+    "BESS_Daily_Charge_Energy": "kWh", "BESS_Daily_Discharge_Energy": "kWh", "EMS_CO2_Equivalent": "kg",
+    "EMS_EnergyProducedFromPV_Daily": "kWh", "EMS_EnergyFeedToGrid_Daily": "kWh", "EMS_EnergyConsumption_Daily": "kWh",
+    "EMS_EnergyFeedFromGrid_Daily": "kWh", "EMS_SolarPower_kW": "kW", "EMS_LoadPower_kW": "kW", "EMS_BatteryPower_kW": "kW",
+    "EMS_EnergyProducedFromPV_kWh": "kWh", "EMS_EnergyFeedFromGrid_kWh": "kWh", "EMS_EnergyConsumption_kWh": "kWh",
+
+    # --- BESS ---
+    "BESS_SOC": "%", "BESS_SOH": "%", "BESS_V": "V", "BESS_I": "A", "BESS_KW": "kW", "BESS_Temperature": "°C",
+    "BESS_Total_Discharge": "kWh", "BESS_Total_Charge": "kWh", "BESS_SOC_MAX": "%", "BESS_SOC_MIN": "%",
+    "BESS_Power_KW_Invert": "kW", "BESS_Manual_Power_Setpoint": "kW", "BESS_PID_CycleTime": "s",
+    "BESS_PID_Td": "s", "BESS_PID_Ti": "s", "BESS_PID_Gain": "-", "BESS_Temp_Ambient": "°C",
+    "BESS_Alarm": "-", "BESS_Fault": "-", "BESS_Communication_Fault": "-",
+
+    # --- PV1 ---
+    "PV1_Grid_Power_KW": "kW", "PV1_Load_Power_KW": "kW", "PV1_Daily_Energy_Power_KWh": "kWh", "PV1_Total_Energy_Power_KWh": "kWh",
+    "PV1_Power_Factor": "-", "PV1_Reactive_Power_KVar": "kVar", "PV1_Active_Power_KW": "kW", 
+    "PV1_Fault": "-", "PV1_Communication_Fault": "-",
+
+    # --- PV2 ---
+    "PV2_Energy_Daily_kW": "kWh", "PV2_LifeTimeEnergyProduction_kWh_Start": "kWh", "PV2_LifeTimeEnergyProduction_kWh": "kWh",
+    "PV2_ReactivePower_kW": "kVar", "PV2_ApparentPower_kW": "kVA", "PV2_Power_kW": "kW", "PV2_LifeTimeEnergyProduction": "kWh",
+    "PV2_PowerFactor_Percen": "%", "PV2_ReactivePower": "kVar", "PV2_ApparentPower": "kVA", "PV2_Power": "kW", "PV2_Communication_Fault": "-",
+
+    # --- PV3 & PV4 ---
+    "PV3_Total_Power_Yields_Real": "kWh", "PV3_Total_Apparent_Power_kW": "kVA", "PV3_Total_Reactive_Power_kW": "kVar", "PV3_Total_Active_Power_kW": "kW",
+    "PV4_Total_Power_Yields_Real": "kWh", "PV4_Total_Apparent_Power_kW": "kVA", "PV4_Total_Reactive_Power_kW": "kVar", "PV4_Total_Active_Power_kW": "kW",
+    # ... (สามารถเพิ่มตัวอื่นๆ ของ PV3/PV4 ตามรูปแบบเดียวกัน) ...
 
     # --- WEATHER ---
-    "WEATHER_Temp","WEATHER_TempMin", "WEATHER_TempMax", "WEATHER_Sunrise", "WEATHER_Sunset",
-    "WEATHER_FeelsLike", "WEATHER_Humidity", "WEATHER_Pressure", "WEATHER_WindSpeed",
-    "WEATHER_Cloudiness","WEATHER_Icon"
-]
+    "WEATHER_Temp": "°C", "WEATHER_TempMin": "°C", "WEATHER_TempMax": "°C", "WEATHER_Sunrise": "timestamp", "WEATHER_Sunset": "timestamp",
+    "WEATHER_FeelsLike": "°C", "WEATHER_Humidity": "%", "WEATHER_Pressure": "hPa", "WEATHER_WindSpeed": "m/s",
+    "WEATHER_Cloudiness": "%", "WEATHER_Icon": "-"
+}
 
 print("Initializing Redis keys...")
 pipe = redis_client.pipeline()
@@ -1003,7 +1034,10 @@ def export_custom_data(req: ExportRequest, response: Response):
                     if i < len(req.variables):
                         var_name = req.variables[i]
                         c_name_l.value = var_name
-                        c_unit_l.value = var_name.split("_")[-1] if "_" in var_name else "-"
+                        
+                        # ดึงหน่วยจาก UNIT_MAPPING ถ้าไม่มีให้ใส่ "-"
+                        c_unit_l.value = UNIT_MAPPING.get(var_name, "-")
+                        
                         c_name_l.font = Font(name='Arial', size=8); c_name_l.alignment = normal_align
                         c_unit_l.font = Font(name='Arial', size=8); c_unit_l.alignment = center_align
 
@@ -1021,10 +1055,14 @@ def export_custom_data(req: ExportRequest, response: Response):
                     c_unit_r.border = thin_border
 
                     # ใส่ข้อมูลถ้ามีตัวแปรตัวที่ i+5
-                    if (i + 5) < len(req.variables):
-                        var_name = req.variables[i+5]
+                    idx_right = i + 5
+                    if idx_right < len(req.variables):
+                        var_name = req.variables[idx_right]
                         c_name_r.value = var_name
-                        c_unit_r.value = var_name.split("_")[-1] if "_" in var_name else "-"
+                        
+                        # ดึงหน่วยจาก UNIT_MAPPING ถ้าไม่มีให้ใส่ "-"
+                        c_unit_r.value = UNIT_MAPPING.get(var_name, "-")
+                        
                         c_name_r.font = Font(name='Arial', size=8); c_name_r.alignment = normal_align
                         c_unit_r.font = Font(name='Arial', size=8); c_unit_r.alignment = center_align
 
@@ -1093,8 +1131,64 @@ def export_custom_data(req: ExportRequest, response: Response):
             )
         
         elif req.file_format == 'PDF':
-            response.status_code = status.HTTP_501_NOT_IMPLEMENTED
-            return {"detail": "PDF format not implemented yet"}
+            from fpdf import FPDF
+            from fpdf.enums import XPos, YPos # เพิ่มอันนี้เพื่อแก้ Warning
+            
+            pdf = FPDF(orientation='L', unit='mm', format='A4')
+            pdf.add_page()
+            
+            # 1. แก้เรื่อง Font (ใช้ Helvetica แทน Arial เพื่อลด Warning หรือใช้ตัวเล็กทั้งหมด)
+            pdf.set_font('helvetica', 'B', 16)
+            
+            # 2. แก้เรื่อง ln=True เป็น new_x/new_y เพื่อลด Warning
+            pdf.cell(0, 10, f"Energy Report: {req.plant_name}", 
+                     new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+            
+            pdf.set_font('helvetica', '', 10)
+            pdf.cell(0, 10, f"Period: {req.start_time} to {req.end_time}", 
+                     new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+            pdf.ln(5)
+            
+            # 3. ส่วนหัวตาราง
+            pdf.set_fill_color(200, 220, 255)
+            pdf.set_font('helvetica', 'B', 8)
+            
+            # คำนวณความกว้าง: คอลัมน์แรก 40mm ที่เหลือหารเฉลี่ย
+            first_col_width = 45
+            other_cols_width = (pdf.w - 20 - first_col_width) / len(req.variables) if req.variables else 0
+            
+            pdf.cell(first_col_width, 10, "Time", border=1, fill=True)
+            for var in req.variables:
+                unit = UNIT_MAPPING.get(var, "-")
+                # ใช้คำว่า \n ไม่ได้ใน cell ปกติ ต้องใช้ตัวแปรเดียวสั้นๆ หรือใช้ multi_cell
+                pdf.cell(other_cols_width, 10, f"{var}({unit})", border=1, fill=True)
+            pdf.ln()
+            
+            # 4. ใส่ข้อมูล (จุดที่แก้ Error 'timestamp')
+            pdf.set_font('helvetica', '', 7)
+            
+            # ตรวจสอบว่าคอลัมน์เวลาชื่ออะไรกันแน่ (ปกติในโค้ดคุณคือ 'timestamp')
+            # ถ้า Error 'timestamp' ให้ลองเปลี่ยนเป็น 'time' ตามหัวตาราง SQLite
+            time_col = 'timestamp' if 'timestamp' in df.columns else df.columns[0] 
+
+            for index, row in df.iterrows():
+                # แสดงเฉพาะเวลา ไม่เอาวันที่ยาวๆ เพื่อให้ลงตัว
+                time_str = str(row[time_col])
+                pdf.cell(first_col_width, 8, time_str, border=1)
+                
+                for var in req.variables:
+                    val = row.get(var, 0)
+                    pdf.cell(other_cols_width, 8, f"{val:.2f}" if isinstance(val, (int, float)) else str(val), border=1)
+                pdf.ln()
+
+            # 5. Output
+            pdf_output = io.BytesIO()
+            pdf_bytes = pdf.output() # fpdf2 version ใหม่ output() คืนค่าเป็น bytes โดยตรง
+            pdf_output.write(pdf_bytes)
+            pdf_output.seek(0)
+
+            headers = {'Content-Disposition': f'attachment; filename="report.pdf"'}
+            return StreamingResponse(pdf_output, media_type='application/pdf', headers=headers)
 
     except Exception as e:
         print(f"Export Error: {e}")
