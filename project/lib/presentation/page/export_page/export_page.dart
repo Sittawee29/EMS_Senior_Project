@@ -194,10 +194,12 @@ class _ExportPageState extends State<ExportPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _buildTransferButton(
-                          icon: Icons.arrow_forward_rounded,
-                          onPressed: _moveToRight,
-                          color: primaryColor,
-                        ),
+                        icon: Icons.arrow_forward_rounded,
+                        // ถ้าครบ 10 แล้ว และตัวแปรที่เลือกอยู่ไม่ได้อยู่ในลิสต์ขวา (ป้องกันการกดซ้ำ)
+                        // หรือจะปล่อยให้กดแล้วไปติด SnackBar แจ้งเตือนข้างบนก็ได้ครับ
+                        onPressed: _moveToRight, 
+                        color: selectedVariables.length >= 10 ? Colors.grey : primaryColor, // เปลี่ยนสีปุ่มเป็นสีเทาถ้าเต็ม
+                      ),
                         const SizedBox(height: 12),
                         _buildTransferButton(
                           icon: Icons.arrow_back_rounded,
@@ -701,6 +703,19 @@ class _ExportPageState extends State<ExportPage> {
 
   void _moveToRight() {
     if (_tempSelectedVariable != null && _tempSelectedVariable!.isNotEmpty) {
+      // --- เพิ่มเงื่อนไขเช็คจำนวนที่นี่ ---
+      if (selectedVariables.length >= 10) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("You can select a maximum of 10 variables"),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return; // หยุดการทำงาน ไม่เพิ่มตัวแปรที่ 11
+      }
+      // ----------------------------
+
       setState(() {
         selectedVariables.add(_tempSelectedVariable!);
         availableVariables.remove(_tempSelectedVariable!);

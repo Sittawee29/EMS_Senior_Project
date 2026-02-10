@@ -18,7 +18,7 @@ import requests
 import pandas as pd
 from typing import List
 from pydantic import BaseModel
-from fastapi.responses import StreamingResponse 
+from fastapi.responses import StreamingResponse
 
 class ExportRequest(BaseModel):
     start_time: str
@@ -932,7 +932,7 @@ def export_custom_data(req: ExportRequest, response: Response):
 
                 # --- ส่วนที่ 1: Header (Plant & Date) ---
                 worksheet.row_dimensions[1].height = 40
-                worksheet.merge_cells('A1:E1')
+                worksheet.merge_cells('A1:L1')
                 worksheet.merge_cells('A2:B2')
                 worksheet.merge_cells('C2:E2')
                 worksheet.merge_cells('A3:B3')
@@ -962,93 +962,121 @@ def export_custom_data(req: ExportRequest, response: Response):
                 # --- ส่วนที่ 2: Variable Table (Legend) ---
                 start_meta_row = 5
                 
-                cell_point = worksheet.cell(row=start_meta_row, column=1, value="Point")
-                cell_point.font = bold_font
-                cell_point.border = thin_border
-                cell_point.alignment = center_align
-                cell_point.fill = gray_fill
+                # 1. เขียน Header (แถวที่ 5)
+                def write_header_row(start_col):
+                    # Point
+                    cp = worksheet.cell(row=start_meta_row, column=start_col, value="Point")
+                    cp.font = bold_font; cp.border = thin_border; cp.alignment = center_align; cp.fill = gray_fill
+                    # Name (Merge 4 cells: B-E หรือ H-K)
+                    worksheet.merge_cells(start_row=start_meta_row, start_column=start_col+1, end_row=start_meta_row, end_column=start_col+4)
+                    cn = worksheet.cell(row=start_meta_row, column=start_col+1, value="Name")
+                    cn.font = bold_font; cn.alignment = center_align; cn.fill = gray_fill
+                    for col in range(start_col+1, start_col+5):
+                        worksheet.cell(row=start_meta_row, column=col).border = thin_border
+                    # Unit
+                    cu = worksheet.cell(row=start_meta_row, column=start_col+5, value="Unit")
+                    cu.font = bold_font; cu.border = thin_border; cu.alignment = center_align; cu.fill = gray_fill
 
-                worksheet.merge_cells(start_row=start_meta_row, start_column=2, end_row=start_meta_row, end_column=3)
-                cell_name = worksheet.cell(row=start_meta_row, column=2, value="Name")
-                cell_name.font = bold_font
-                cell_name.border = thin_border
-                cell_name.alignment = center_align
-                cell_name.fill = gray_fill
-                worksheet.cell(row=start_meta_row, column=3).border = thin_border
+                write_header_row(1)  # ฝั่งซ้าย (A5-F5)
+                write_header_row(7)  # ฝั่งขวา (G5-L5)
 
-                cell_unit = worksheet.cell(row=start_meta_row, column=4, value="Unit")
-                cell_unit.font = bold_font
-                cell_unit.border = thin_border
-                cell_unit.alignment = center_align
-                cell_unit.fill = gray_fill
+                # 2. เขียนข้อมูลหรือโครงสร้างว่าง (แถวที่ 6-10)
+                for i in range(5): # วน 5 แถวเสมอ
+                    current_r = start_meta_row + 1 + i
+                    
+                    # --- จัดการฝั่งซ้าย (A-F) ---
+                    # ใส่เลข Point และตีกรอบเสมอ
+                    c_p_l = worksheet.cell(row=current_r, column=1, value=i+1)
+                    c_p_l.font = Font(name='Arial', size=8); c_p_l.border = thin_border; c_p_l.alignment = center_align; c_p_l.fill = gray_fill
+                    
+                    worksheet.merge_cells(start_row=current_r, start_column=2, end_row=current_r, end_column=5)
+                    c_name_l = worksheet.cell(row=current_r, column=2)
+                    c_unit_l = worksheet.cell(row=current_r, column=6)
+                    
+                    # ตีกรอบช่อง Name และ Unit เสมอ
+                    for col in range(2, 6): worksheet.cell(row=current_r, column=col).border = thin_border
+                    c_unit_l.border = thin_border
 
-                current_row = start_meta_row + 1
-                for idx, var_name in enumerate(req.variables, 1):
-                    unit = "-"
-                    if "_" in var_name: unit = var_name.split("_")[-1]
+                    # ใส่ข้อมูลถ้ามีตัวแปรตัวที่ i
+                    if i < len(req.variables):
+                        var_name = req.variables[i]
+                        c_name_l.value = var_name
+                        c_unit_l.value = var_name.split("_")[-1] if "_" in var_name else "-"
+                        c_name_l.font = Font(name='Arial', size=8); c_name_l.alignment = normal_align
+                        c_unit_l.font = Font(name='Arial', size=8); c_unit_l.alignment = center_align
+
+                    # --- จัดการฝั่งขวา (G-L) ---
+                    # ใส่เลข Point 6-10 และตีกรอบเสมอ
+                    c_p_r = worksheet.cell(row=current_r, column=7, value=i+6)
+                    c_p_r.font = Font(name='Arial', size=8); c_p_r.border = thin_border; c_p_r.alignment = center_align; c_p_r.fill = gray_fill
                     
-                    c1 = worksheet.cell(row=current_row, column=1, value=idx)
-                    c1.font = Font(name='Arial', bold=False, size=8)
-                    c1.border = thin_border
-                    c1.alignment = center_align
-                    c1.fill = gray_fill
-                    
-                    worksheet.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=3)
-                    c2 = worksheet.cell(row=current_row, column=2, value=var_name)
-                    c2.font = Font(name='Arial', bold=False, size=8)
-                    c2.border = thin_border
-                    c2.alignment = normal_align
-                    worksheet.cell(row=current_row, column=3).border = thin_border
-                    
-                    c4 = worksheet.cell(row=current_row, column=4, value=unit)
-                    c4.font = Font(name='Arial', bold=False, size=8)
-                    c4.border = thin_border
-                    c4.alignment = center_align
-                    
-                    current_row += 1
+                    worksheet.merge_cells(start_row=current_r, start_column=8, end_row=current_r, end_column=11)
+                    c_name_r = worksheet.cell(row=current_r, column=8)
+                    c_unit_r = worksheet.cell(row=current_r, column=12)
+
+                    # ตีกรอบช่อง Name และ Unit เสมอ
+                    for col in range(8, 12): worksheet.cell(row=current_r, column=col).border = thin_border
+                    c_unit_r.border = thin_border
+
+                    # ใส่ข้อมูลถ้ามีตัวแปรตัวที่ i+5
+                    if (i + 5) < len(req.variables):
+                        var_name = req.variables[i+5]
+                        c_name_r.value = var_name
+                        c_unit_r.value = var_name.split("_")[-1] if "_" in var_name else "-"
+                        c_name_r.font = Font(name='Arial', size=8); c_name_r.alignment = normal_align
+                        c_unit_r.font = Font(name='Arial', size=8); c_unit_r.alignment = center_align
+
+                current_row = start_meta_row + 6
 
                 # --- ส่วนที่ 3: Data Table ---
                 data_start_row = current_row + 2
-                
-                # เขียนข้อมูลลง Sheet (Column จะเป็น Point 1, Point 2... แล้ว)
-                df_resampled.iloc[:, []].to_excel(writer, sheet_name='ExportData', startrow=data_start_row-1, startcol=0, header=False)
-                df_resampled.to_excel(writer, sheet_name='ExportData', startrow=data_start_row - 1, startcol=2, index=False)
-                worksheet.cell(row=data_start_row, column=1).value = "Date / Time"
-                last_data_row = data_start_row + len(df_resampled)
-                num_vars = len(df_resampled.columns)
-                end_col_idx = 2 + num_vars 
-                
-                for r in range(data_start_row, last_data_row + 1):
-                    # --- จัดการ Column A (Date/Time) ---
-                    worksheet.merge_cells(start_row=r, start_column=1, end_row=r, end_column=2)
-                    cell_a = worksheet.cell(row=r, column=1)
-                    cell_b = worksheet.cell(row=r, column=2)
-                    cell_a.border = thin_border
-                    cell_b.border = thin_border
-                    if r == data_start_row:
-                        cell_a.font = bold_font
-                        cell_a.alignment = center_align
-                        cell_a.fill = blue_fill
-                        cell_b.fill = blue_fill
-                    else:
-                        cell_a.font = Font(name='Arial', bold=False, size=8)
-                        cell_a.number_format = 'dd/mm/yyyy hh:mm'
-                        cell_a.alignment = center_align # หรือ left ตามต้องการ
+                df_resampled.columns = new_col_names
+                df_resampled.index.name = None 
+                data_start_row = current_row + 2 
+                df_resampled.iloc[:, []].to_excel(writer, sheet_name='ExportData', startrow=data_start_row, startcol=0, header=False)
+                df_resampled.to_excel(writer, sheet_name='ExportData', startrow=data_start_row, startcol=2, index=False, header=False)
 
-                    # --- จัดการ Column C เป็นต้นไป (Data Points) ---
-                    # เริ่มที่ Col 3 (C) ไปจนถึง Col สุดท้าย
-                    for c in range(3, end_col_idx + 1):
+                last_data_row = data_start_row + len(df_resampled)
+                max_data_col = 12 
+
+                # วนลูปจัดการ Format
+                for r in range(data_start_row, last_data_row + 1):
+                    
+                    # แก้ไขจุดที่ 2: การ Merge และ Border (ต้องระบุพิกัดให้ชัดเจน)
+                    worksheet.merge_cells(start_row=r, start_column=1, end_row=r, end_column=2)
+                    
+                    # ต้องดักจับเซลล์หลักหลัง Merge
+                    cell_dt = worksheet.cell(row=r, column=1)
+                    
+                    # ตีกรอบทั้งช่องที่ 1 และ 2 (เพื่อให้เส้นรอบวง Merged Cell สมบูรณ์)
+                    worksheet.cell(row=r, column=1).border = thin_border
+                    worksheet.cell(row=r, column=2).border = thin_border
+                    
+                    if r == data_start_row:
+                        # ส่วนหัวตาราง (แถวที่ 12)
+                        cell_dt.value = "Date / Time"
+                        cell_dt.font = bold_font
+                        cell_dt.alignment = center_align
+                        cell_dt.fill = blue_fill
+                        worksheet.cell(row=r, column=2).fill = blue_fill # ใส่สีให้ครบช่องที่ merge
+                    else:
+                        # ส่วนข้อมูล (แถวที่ 13 เป็นต้นไป)
+                        cell_dt.font = Font(name='Arial', size=8)
+                        cell_dt.number_format = 'dd/mm/yyyy hh:mm'
+                        cell_dt.alignment = center_align
+
+                    # --- ส่วน Point 1-10 ---
+                    for c in range(3, max_data_col + 1):
                         cell = worksheet.cell(row=r, column=c)
                         cell.border = thin_border
                         
                         if r == data_start_row:
-                            # Header (Point 1, Point 2...)
+                            cell.value = f"Point {c-2}"
                             cell.font = bold_font
                             cell.alignment = center_align
                             cell.fill = blue_fill 
                         else:
-                            # Value
-                            cell.font = Font(name='Arial', bold=False, size=8)
+                            cell.font = Font(name='Arial', size=8)
                             cell.alignment = right_align
                             cell.number_format = '0.0000'
 
@@ -1073,10 +1101,6 @@ def export_custom_data(req: ExportRequest, response: Response):
     
 @app.get("/api/check_db_tables")
 def check_db_tables():
-    """
-    API นี้ใช้สำหรับ Debug เพื่อดูว่าใน Database มีตารางชื่ออะไรบ้าง
-    และมีคอลัมน์อะไรบ้าง
-    """
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
