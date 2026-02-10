@@ -29,9 +29,7 @@ class ExportRequest(BaseModel):
     plant_name: str = "UTI Factory"
     units: List[str] = None
 
-# ==========================================
 # 1. Config & Setup
-# ==========================================
 MQTT_BROKER = "iicloud.tplinkdns.com"
 MQTT_PORT = 7036
 MQTT_USER = "mqtt_user"
