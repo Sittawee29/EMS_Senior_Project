@@ -19,6 +19,8 @@ import pandas as pd
 from typing import List
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
+from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 
 class ExportRequest(BaseModel):
     start_time: str
@@ -1131,63 +1133,140 @@ def export_custom_data(req: ExportRequest, response: Response):
             )
         
         elif req.file_format == 'PDF':
-            from fpdf import FPDF
-            from fpdf.enums import XPos, YPos # เพิ่มอันนี้เพื่อแก้ Warning
-            
-            pdf = FPDF(orientation='L', unit='mm', format='A4')
+            # เปลี่ยน orientation เป็น 'P' (Portrait)
+            pdf = FPDF(orientation='P', unit='mm', format='A4')
+            pdf.set_auto_page_break(auto=True, margin=15)
             pdf.add_page()
             
-            # 1. แก้เรื่อง Font (ใช้ Helvetica แทน Arial เพื่อลด Warning หรือใช้ตัวเล็กทั้งหมด)
-            pdf.set_font('helvetica', 'B', 16)
+            # --- Config Colors & Fonts ---
+            pdf.set_font('helvetica', 'B', 14)
+            # สีเทา (Legend)
+            gray_color = (221, 221, 221)
+            # สีฟ้า (Header)
+            blue_color = (176, 196, 222)
             
-            # 2. แก้เรื่อง ln=True เป็น new_x/new_y เพื่อลด Warning
-            pdf.cell(0, 10, f"Energy Report: {req.plant_name}", 
-                     new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+            # --- 1. Title ---
+            pdf.cell(0, 10, req.plant_name, align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.ln(2)
+
+            # --- 2. Info Block ---
+            pdf.set_font('helvetica', 'B', 8)
+            pdf.cell(30, 5, "Report Date :", align='R')
+            pdf.set_font('helvetica', '', 8)
             
-            pdf.set_font('helvetica', '', 10)
-            pdf.cell(0, 10, f"Period: {req.start_time} to {req.end_time}", 
-                     new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+            start_dt_obj = datetime.strptime(req.start_time, "%Y-%m-%d %H:%M:%S")
+            end_dt_obj = datetime.strptime(req.end_time, "%Y-%m-%d %H:%M:%S")
+            date_str = f"{start_dt_obj.strftime('%d %b %Y %H:%M')} - {end_dt_obj.strftime('%d %b %Y %H:%M')}"
+            pdf.cell(60, 5, date_str, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+            pdf.set_font('helvetica', 'B', 8)
+            pdf.cell(30, 5, "Print Date :", align='R')
+            pdf.set_font('helvetica', '', 8)
+            pdf.cell(60, 5, datetime.now().strftime('%d %b %Y %H:%M:%S'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             pdf.ln(5)
+
+            # --- 3. Legend Table ---
+            # ปรับความกว้างให้พอดีกับแนวตั้ง (Usable Width ~190mm)
+            # แบ่งซ้ายขวา: Side Width = 10+45+15 = 70mm
+            # 2 ข้าง = 140mm + Gap 10mm = 150mm (เหลือที่ว่างสบายๆ)
+            col_w_pt = 15
+            col_w_nm = 64
+            col_w_un = 15
+            gap = 0 
             
-            # 3. ส่วนหัวตาราง
-            pdf.set_fill_color(200, 220, 255)
+            # Header Row for Legend
+            pdf.set_fill_color(*gray_color)
             pdf.set_font('helvetica', 'B', 8)
             
-            # คำนวณความกว้าง: คอลัมน์แรก 40mm ที่เหลือหารเฉลี่ย
-            first_col_width = 45
-            other_cols_width = (pdf.w - 20 - first_col_width) / len(req.variables) if req.variables else 0
+            # Left Header
+            pdf.cell(col_w_pt, 6, "Point", border=1, align='C', fill=True)
+            pdf.cell(col_w_nm, 6, "Name", border=1, align='C', fill=True)
+            pdf.cell(col_w_un, 6, "Unit", border=1, align='C', fill=True)
             
-            pdf.cell(first_col_width, 10, "Time", border=1, fill=True)
-            for var in req.variables:
-                unit = UNIT_MAPPING.get(var, "-")
-                # ใช้คำว่า \n ไม่ได้ใน cell ปกติ ต้องใช้ตัวแปรเดียวสั้นๆ หรือใช้ multi_cell
-                pdf.cell(other_cols_width, 10, f"{var}({unit})", border=1, fill=True)
+            #pdf.cell(gap, 6, "", border=0) # Gap
+            
+            # Right Header
+            pdf.cell(col_w_pt, 6, "Point", border=1, align='C', fill=True)
+            pdf.cell(col_w_nm, 6, "Name", border=1, align='C', fill=True)
+            pdf.cell(col_w_un, 6, "Unit", border=1, align='C', fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+            # Rows (Loop 5 times)
+            for i in range(5):
+                pdf.set_font('helvetica', '', 8)
+                
+                # --- Left Side ---
+                idx_left = i
+                name_l = req.variables[idx_left] if idx_left < len(req.variables) else ""
+                unit_l = UNIT_MAPPING.get(name_l, "-") if name_l else ""
+                
+                pdf.set_fill_color(*gray_color)
+                pdf.cell(col_w_pt, 6, str(i+1), border=1, align='C', fill=True)
+                pdf.cell(col_w_nm, 6, name_l, border=1, align='L')
+                pdf.cell(col_w_un, 6, unit_l, border=1, align='C')
+                
+                #pdf.cell(gap, 6, "", border=0)
+
+                # --- Right Side ---
+                idx_right = i + 5
+                name_r = req.variables[idx_right] if idx_right < len(req.variables) else ""
+                unit_r = UNIT_MAPPING.get(name_r, "-") if name_r else ""
+                
+                pdf.set_fill_color(*gray_color)
+                pdf.cell(col_w_pt, 6, str(i+6), border=1, align='C', fill=True)
+                pdf.cell(col_w_nm, 6, name_r, border=1, align='L')
+                pdf.cell(col_w_un, 6, unit_r, border=1, align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+            pdf.ln(5)
+
+            # --- 4. Data Table ---
+            # ปรับความกว้างสำหรับแนวตั้ง:
+            # Date = 30mm
+            # Values = 16mm * 10 columns = 160mm
+            # Total = 190mm (พอดีหน้ากระดาษเป๊ะ)
+            w_date = 30
+            w_val = 16 
+            
+            # Header
+            pdf.set_fill_color(*blue_color)
+            pdf.set_font('helvetica', 'B', 7) # ลด font header เล็กน้อย
+            
+            pdf.cell(w_date, 8, "Date / Time", border=1, align='C', fill=True)
+            for i in range(10):
+                pdf.cell(w_val, 8, f"Point {i+1}", border=1, align='C', fill=True)
             pdf.ln()
             
-            # 4. ใส่ข้อมูล (จุดที่แก้ Error 'timestamp')
-            pdf.set_font('helvetica', '', 7)
+            # Data Rows
+            pdf.set_font('helvetica', '', 7) # Font เนื้อหาขนาด 7
             
-            # ตรวจสอบว่าคอลัมน์เวลาชื่ออะไรกันแน่ (ปกติในโค้ดคุณคือ 'timestamp')
-            # ถ้า Error 'timestamp' ให้ลองเปลี่ยนเป็น 'time' ตามหัวตาราง SQLite
-            time_col = 'timestamp' if 'timestamp' in df.columns else df.columns[0] 
+            if 'timestamp' not in df_resampled.columns:
+                df_resampled.reset_index(inplace=True)
 
-            for index, row in df.iterrows():
-                # แสดงเฉพาะเวลา ไม่เอาวันที่ยาวๆ เพื่อให้ลงตัว
-                time_str = str(row[time_col])
-                pdf.cell(first_col_width, 8, time_str, border=1)
+            for _, row in df_resampled.iterrows():
+                # Date
+                ts = row['timestamp']
+                date_str = ts.strftime('%d/%m/%Y %H:%M') if hasattr(ts, 'strftime') else str(ts)
+                pdf.cell(w_date, 6, date_str, border=1, align='C')
                 
-                for var in req.variables:
-                    val = row.get(var, 0)
-                    pdf.cell(other_cols_width, 8, f"{val:.2f}" if isinstance(val, (int, float)) else str(val), border=1)
+                # Values (10 Columns)
+                for i in range(10):
+                    if i < len(new_col_names):
+                        val = row[new_col_names[i]]
+                        val_str = f"{val:.4f}" if isinstance(val, (int, float)) else str(val)
+                    else:
+                        val_str = ""
+                    
+                    pdf.cell(w_val, 6, val_str, border=1, align='R')
+                
                 pdf.ln()
 
-            # 5. Output
+            # Output PDF
             pdf_output = io.BytesIO()
-            pdf_bytes = pdf.output() # fpdf2 version ใหม่ output() คืนค่าเป็น bytes โดยตรง
+            pdf_bytes = pdf.output()
             pdf_output.write(pdf_bytes)
             pdf_output.seek(0)
-
-            headers = {'Content-Disposition': f'attachment; filename="report.pdf"'}
+            
+            filename = f"{req.plant_name}-{req.start_time[:10]}.pdf"
+            headers = {'Content-Disposition': f'attachment; filename="{filename}"'}
             return StreamingResponse(pdf_output, media_type='application/pdf', headers=headers)
 
     except Exception as e:
