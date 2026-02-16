@@ -202,9 +202,8 @@ class _ExportPageState extends State<ExportPage> {
                     child: _buildListBox(
                       title: "Available Variables",
                       items: availableVariables,
-                      // [MODIFIED] ไม่ต้อง Highlight แล้ว ให้เป็น null
                       selectedItem: null, 
-                      // [MODIFIED] เมื่อกด ให้เรียกฟังก์ชันย้ายทันที (_addVariable)
+                      // เมื่อกด ให้ย้ายไปขวาทันที
                       onTap: (val) => _addVariable(val),
                       isSource: true,
                     ),
@@ -218,7 +217,6 @@ class _ExportPageState extends State<ExportPage> {
                       children: [
                         _buildTransferButton(
                         icon: Icons.arrow_forward_rounded,
-                        // เช็คเงื่อนไข: ถ้าครบ 10 ตัว ปุ่มจะเป็นสีเทา
                         onPressed: _moveToRight, 
                         color: selectedVariables.length >= 10 ? Colors.grey : primaryColor,
                       ),
@@ -238,7 +236,8 @@ class _ExportPageState extends State<ExportPage> {
                       title: "To Export",
                       items: selectedVariables,
                       selectedItem: null,
-                      onTap: (val) {},
+                      // เมื่อกด ให้ลบออกทันที
+                      onTap: (val) => _removeVariable(val),
                       isOrdered: true,
                       isSource: false,
                     ),
@@ -255,7 +254,6 @@ class _ExportPageState extends State<ExportPage> {
             SizedBox(
               height: 48,
               child: ElevatedButton.icon(
-                // ถ้ายังไม่เลือกตัวแปร (Empty) ให้ปิดปุ่ม (null)
                 onPressed: selectedVariables.isEmpty ? null : _handleExport,
                 
                 icon: const Icon(Icons.cloud_download_rounded, size: 24),
@@ -695,13 +693,19 @@ class _ExportPageState extends State<ExportPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         child: Row(
                           children: [
-                            if(isOrdered)
+                            // [MODIFIED] Logic สำหรับแสดงไอคอน
+                            if(isOrdered) ...[
+                              // แสดงไอคอนลบ (-) สีแดง
+                              const Icon(Icons.remove_circle_outline, size: 16, color: Colors.red),
+                              const SizedBox(width: 6),
+                              // แสดงตัวเลขลำดับ (ยังคงไว้เพื่อให้รู้ลำดับ Point)
                               Container(
                                 width: 18, height: 18,
                                 margin: const EdgeInsets.only(right: 8),
                                 decoration: BoxDecoration(color: primaryColor, shape: BoxShape.circle),
                                 child: Center(child: Text("${index + 1}", style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))),
                               )
+                            ]
                             else if(isSource)
                               const Icon(Icons.add_circle_outline, size: 16, color: Colors.grey)
                             else 
@@ -727,9 +731,11 @@ class _ExportPageState extends State<ExportPage> {
   // 8. Logic Methods (ฟังก์ชันการทำงานหลัก)
   // ===========================================================================
 
+  // [MODIFIED] แก้ไขให้เมื่อกดลูกศรขวา จะย้ายตัวบนสุด (availableVariables.first) ทันที
   void _moveToRight() {
-    if (_tempSelectedVariable != null && _tempSelectedVariable!.isNotEmpty) {
-      // ตรวจสอบจำนวนตัวแปรว่าเกิน 10 หรือไม่
+    // เช็คว่ามีตัวแปรให้ย้ายไหม
+    if (availableVariables.isNotEmpty) {
+      // เช็คจำนวนว่าเกิน 10 หรือไม่
       if (selectedVariables.length >= 10) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -742,16 +748,22 @@ class _ExportPageState extends State<ExportPage> {
       }
 
       setState(() {
-        selectedVariables.add(_tempSelectedVariable!);
-        availableVariables.remove(_tempSelectedVariable!);
-        _tempSelectedVariable = null;
+        // เลือกตัวบนสุดเสมอ
+        String variableToMove = availableVariables.first;
+        
+        selectedVariables.add(variableToMove);
+        availableVariables.removeAt(0); // ลบตัวแรกออก
+        
+        // เคลียร์ค่า highlight เดิมทิ้ง (กันเหนียว)
+        if (_tempSelectedVariable == variableToMove) {
+          _tempSelectedVariable = null;
+        }
       });
     }
   }
   
-  // [NEW FUNCTION] ย้ายข้อมูลทันทีเมื่อกดเลือก (ไม่ต้องกดลูกศร)
+  // ย้ายข้อมูลทันทีเมื่อกดเลือก (ฝั่ง Available -> To Export)
   void _addVariable(String variable) {
-    // 1. เช็คจำนวนว่าเกิน 10 หรือไม่
     if (selectedVariables.length >= 10) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -763,15 +775,23 @@ class _ExportPageState extends State<ExportPage> {
       return;
     }
 
-    // 2. ย้ายข้อมูลจากซ้ายไปขวา
     setState(() {
       selectedVariables.add(variable);
       availableVariables.remove(variable);
-      
-      // เคลียร์ค่า highlight เดิมทิ้ง (เพื่อป้องกัน error)
       if (_tempSelectedVariable == variable) {
         _tempSelectedVariable = null;
       }
+    });
+  }
+
+  // ย้ายข้อมูลกลับเมื่อกดลบ (ฝั่ง To Export -> Available)
+  void _removeVariable(String variable) {
+    setState(() {
+      selectedVariables.remove(variable);
+      availableVariables.add(variable);
+      // จัดเรียงลำดับใน Available Variables ให้เหมือนเดิมตาม Master List
+      availableVariables.sort((a, b) => 
+          _masterVariables.indexOf(a).compareTo(_masterVariables.indexOf(b)));
     });
   }
 
@@ -812,11 +832,9 @@ class _ExportPageState extends State<ExportPage> {
 
   // ฟังก์ชันกดปุ่ม Export เพื่อส่งข้อมูลไป Server
   void _handleExport() async {
-    // สร้าง DateTime
     final startDT = DateTime(startDate.year, startDate.month, startDate.day, startHour, startMinute);
     final endDT = DateTime(endDate.year, endDate.month, endDate.day, endHour, endMinute);
 
-    // ตรวจสอบความถูกต้องของเวลา (Start ต้องน้อยกว่า End)
     if (startDT.isAfter(endDT)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Error: Start time must be before End time"), backgroundColor: Colors.red),
@@ -841,54 +859,41 @@ class _ExportPageState extends State<ExportPage> {
       body: body,
     );
 
-    // --- ตรวจสอบ Response จาก Server ---
-    
     if (response.statusCode == 200) {
-      // เช็ค Header ว่าใช่ไฟล์ Excel/PDF หรือไม่?
       final contentType = response.headers['content-type'] ?? '';
       
-      // กรณี 1: ถ้า Server ส่งกลับมาเป็น JSON (แปลว่ามี Error แจ้งกลับมา เช่น ไม่มีข้อมูล)
       if (contentType.contains('application/json')) {
          final jsonResponse = jsonDecode(response.body);
          String serverMessage = jsonResponse['error'] ?? 'Unknown Error';
          
-         // แสดง Dialog แจ้งเตือนผู้ใช้
          if (mounted) {
            showDialog(
              context: context, 
              builder: (c) => AlertDialog(
                title: const Text("Export Failed"),
-               content: Text(serverMessage), // เช่น "No data found..."
+               content: Text(serverMessage), 
                actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text("OK"))],
              )
            );
          }
       } 
-      // กรณี 2: ถ้าเป็นไฟล์ (Excel/PDF) ให้ Save ลงเครื่อง
       else {
         String ext = selectedFormat == 'Excel' ? 'xlsx' : 'pdf';
         MimeType mimeType = selectedFormat == 'Excel' ? MimeType.microsoftExcel : MimeType.pdf;
          
-         // ตั้งชื่อ Default ไว้ก่อน
         String fileName = "UTI_Factory_Report"; 
-        print("ALL HEADERS: ${response.headers}"); 
-        print("Check Key: ${response.headers['content-disposition']}");
-         
         String? contentDisposition = response.headers['content-disposition'];
          
-        // พยายามแกะชื่อไฟล์จาก Header
         if (contentDisposition != null) {
           RegExp regex = RegExp(r'''filename[^;=\n]*=((['"]).*?\2|[^;\n]*)''');
           var match = regex.firstMatch(contentDisposition);
             
           if (match != null && match.group(1) != null) {
-               // ลบ Quote และ Space
             String rawName = match.group(1)!
             .replaceAll('"', '')
             .replaceAll("'", '')
             .trim(); 
                
-               // ตัดนามสกุลออก (ป้องกันการซ้ำซ้อน)
             if (rawName.toLowerCase().endsWith('.$ext')) {
               fileName = rawName.substring(0, rawName.length - (ext.length + 1));
             } else {
@@ -897,7 +902,6 @@ class _ExportPageState extends State<ExportPage> {
           }
         }
 
-         // สั่ง Save ไฟล์
          await FileSaver.instance.saveFile(
             name: fileName,
             bytes: response.bodyBytes,
@@ -912,7 +916,6 @@ class _ExportPageState extends State<ExportPage> {
          }
       }
     } else {
-      // กรณี Server Error (500, 404)
       print("Server Error Log: ${response.body}"); 
       if (mounted) {
          ScaffoldMessenger.of(context).showSnackBar(
