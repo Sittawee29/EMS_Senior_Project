@@ -21,6 +21,7 @@ from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
+import os # <--- เพิ่ม import os
 
 class ExportRequest(BaseModel):
     start_time: str
@@ -36,7 +37,17 @@ MQTT_BROKER = "iicloud.tplinkdns.com"
 MQTT_PORT = 7036
 MQTT_USER = "mqtt_user"
 MQTT_PASS = "ADMINktt5120@"
-DB_NAME = "energy_data.db"
+
+# ==============================================================================
+# [FIXED] ตั้งค่า Path ของ Database ให้เป็นแบบตายตัว (Absolute Path)
+# เพื่อป้องกันปัญหาข้อมูลหายเมื่อ Run จากต่าง Folder
+# ==============================================================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # หาตำแหน่งไฟล์ API_server.py
+DB_NAME = os.path.join(BASE_DIR, "energy_data.db")    # บังคับสร้าง db ไว้ข้างๆ ไฟล์นี้เสมอ
+
+print(f"--------------------------------------------------")
+print(f"Database Path: {DB_NAME}") # แสดงตำแหน่งไฟล์ DB ให้เห็นชัดๆ
+print(f"--------------------------------------------------")
 
 # Redis Configuration
 REDIS_HOST = "localhost"
@@ -872,7 +883,7 @@ def get_data_range():
         cursor = conn.cursor()
         
         # หาเวลาน้อยสุดและมากสุด
-        cursor.execute("SELECT MIN(timestamp), MAX(timestamp) FROM energy_data")
+        cursor.execute("SELECT MIN(timestamp), MAX(timestamp) FROM system_logs")
         result = cursor.fetchone()
         conn.close()
 
@@ -929,7 +940,7 @@ def export_custom_data(req: ExportRequest, response: Response):
             '4 hours': '4h', '6 hours': '6h', '1 day': '1D'
         }
         pandas_step = step_map.get(req.step, '5min')
-        df_resampled = df.resample(pandas_step).mean()
+        df_resampled = df.resample(pandas_step).mean().fillna("Server Closed")
 
         # =================================================================
         # [NEW 1] เปลี่ยนชื่อ Column เป็น Point 1, Point 2, ... ก่อน Export

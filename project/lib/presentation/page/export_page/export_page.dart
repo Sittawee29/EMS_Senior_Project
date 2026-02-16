@@ -14,16 +14,22 @@ class ExportPage extends StatefulWidget {
 }
 
 class _ExportPageState extends State<ExportPage> {
-  // --- Theme Colors ---
+  // ===========================================================================
+  // 1. Theme & Colors (ธีมและสีหลัก)
+  // ===========================================================================
   final Color primaryColor = Colors.indigo;
   final Color secondaryColor = Colors.indigo.shade50;
   
-  // --- Global Data Constraints ---
+  // ===========================================================================
+  // 2. Global Data Constraints (ตัวแปรสำหรับขอบเขตข้อมูล)
+  // ===========================================================================
   DateTime? minGlobalDate;
   DateTime? maxGlobalDate;
   bool isLoading = true;
 
-  // --- Selected State ---
+  // ===========================================================================
+  // 3. Selected State (สถานะค่าที่ผู้ใช้เลือก)
+  // ===========================================================================
   DateTime startDate = DateTime.now();
   DateTime endDate = DateTime.now();
 
@@ -32,7 +38,7 @@ class _ExportPageState extends State<ExportPage> {
   int endHour = 23;
   int endMinute = 55;
 
-  // --- Standard Options ---
+  // --- Standard Options (ตัวเลือกเวลา) ---
   final List<int> allHours = List.generate(24, (index) => index);
   final List<int> allMinutes = List.generate(12, (index) => index * 5);
 
@@ -45,7 +51,9 @@ class _ExportPageState extends State<ExportPage> {
   String selectedFormat = 'Excel';
   final List<String> formats = ['Excel', 'PDF'];
 
-  // --- Variable Selection State ---
+  // ===========================================================================
+  // 4. Variable Selection State (รายการตัวแปร)
+  // ===========================================================================
   final List<String> _masterVariables = const [
     "METER_V1", "METER_V2", "METER_V3",
     "METER_I1", "METER_I2", "METER_I3",
@@ -83,10 +91,15 @@ class _ExportPageState extends State<ExportPage> {
   late List<String> availableVariables;
   List<String> selectedVariables = [];
   String? _tempSelectedVariable;
+
+  // --- API Configuration ---
   static const String serverIp = 'localhost'; 
   static const String serverPort = '8000';
   final String baseUrl = "http://$serverIp:$serverPort";
 
+  // ===========================================================================
+  // 5. Init State & Data Fetching
+  // ===========================================================================
   @override
   void initState() {
     super.initState();
@@ -94,6 +107,7 @@ class _ExportPageState extends State<ExportPage> {
     _fetchDataRange();
   }
 
+  // ดึงช่วงเวลาที่มีข้อมูลจาก Server
   Future<void> _fetchDataRange() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/api/data_range'));
@@ -136,6 +150,9 @@ class _ExportPageState extends State<ExportPage> {
     debugPrint(message);
   }
 
+  // ===========================================================================
+  // 6. UI Builder (ส่วนแสดงผลหน้าจอ)
+  // ===========================================================================
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -160,34 +177,40 @@ class _ExportPageState extends State<ExportPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 1. Time Configuration Section
+            // -----------------------------------------------------------------
+            // ส่วนที่ 1: Time Configuration (ตั้งค่าเวลา)
+            // -----------------------------------------------------------------
             _buildSectionHeader("Time Configuration", Icons.access_time_filled),
             const SizedBox(height: 8), 
             _buildControlPanel(),
 
             const SizedBox(height: 20), 
 
-            // 2. Variable Selection Section
+            // -----------------------------------------------------------------
+            // ส่วนที่ 2: Variable Selection (เลือกตัวแปร)
+            // -----------------------------------------------------------------
             _buildSectionHeader("Variable Selection", Icons.list_alt),
             const SizedBox(height: 8), 
             
-            // Dual List Box Container
+            // กล่องคู่ ซ้าย-ขวา สำหรับเลือกตัวแปร
             SizedBox(
               height: 320, 
               child: Row(
                 children: [
-                  // Left Box
+                  // --- กล่องซ้าย: ตัวแปรที่มีให้เลือก (Available) ---
                   Expanded(
                     child: _buildListBox(
                       title: "Available Variables",
                       items: availableVariables,
-                      selectedItem: _tempSelectedVariable,
-                      onTap: (val) => setState(() => _tempSelectedVariable = val),
+                      // [MODIFIED] ไม่ต้อง Highlight แล้ว ให้เป็น null
+                      selectedItem: null, 
+                      // [MODIFIED] เมื่อกด ให้เรียกฟังก์ชันย้ายทันที (_addVariable)
+                      onTap: (val) => _addVariable(val),
                       isSource: true,
                     ),
                   ),
                   
-                  // Center Controls
+                  // --- ปุ่มตรงกลาง (Center Controls) ---
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Column(
@@ -195,10 +218,9 @@ class _ExportPageState extends State<ExportPage> {
                       children: [
                         _buildTransferButton(
                         icon: Icons.arrow_forward_rounded,
-                        // ถ้าครบ 10 แล้ว และตัวแปรที่เลือกอยู่ไม่ได้อยู่ในลิสต์ขวา (ป้องกันการกดซ้ำ)
-                        // หรือจะปล่อยให้กดแล้วไปติด SnackBar แจ้งเตือนข้างบนก็ได้ครับ
+                        // เช็คเงื่อนไข: ถ้าครบ 10 ตัว ปุ่มจะเป็นสีเทา
                         onPressed: _moveToRight, 
-                        color: selectedVariables.length >= 10 ? Colors.grey : primaryColor, // เปลี่ยนสีปุ่มเป็นสีเทาถ้าเต็ม
+                        color: selectedVariables.length >= 10 ? Colors.grey : primaryColor,
                       ),
                         const SizedBox(height: 12),
                         _buildTransferButton(
@@ -210,7 +232,7 @@ class _ExportPageState extends State<ExportPage> {
                     ),
                   ),
 
-                  // Right Box
+                  // --- กล่องขวา: ตัวแปรที่เลือกแล้ว (To Export) ---
                   Expanded(
                     child: _buildListBox(
                       title: "To Export",
@@ -227,25 +249,23 @@ class _ExportPageState extends State<ExportPage> {
 
             const SizedBox(height: 25),
 
-            // 3. Export Action
+            // -----------------------------------------------------------------
+            // ส่วนที่ 3: ปุ่ม Export (Generate & Download)
+            // -----------------------------------------------------------------
             SizedBox(
               height: 48,
               child: ElevatedButton.icon(
-                // -------------------------------------------------------------
-                // [MODIFIED] Check if selectedVariables is empty. 
-                // If empty -> null (Disabled/Grey), else -> _handleExport (Enabled)
-                // -------------------------------------------------------------
+                // ถ้ายังไม่เลือกตัวแปร (Empty) ให้ปิดปุ่ม (null)
                 onPressed: selectedVariables.isEmpty ? null : _handleExport,
                 
                 icon: const Icon(Icons.cloud_download_rounded, size: 24),
                 label: const Text("Generate & Download", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
-                  // กำหนดสีตอน Disabled ให้เป็นสีเทาชัดเจน (Optional: Flutter ทำให้อัตโนมัติอยู่แล้วถ้า onPressed เป็น null)
                   disabledBackgroundColor: Colors.grey[300], 
                   disabledForegroundColor: Colors.grey[500],
                   foregroundColor: Colors.white,
-                  elevation: selectedVariables.isEmpty ? 0 : 3, // เอาเงาออกถ้ากดไม่ได้
+                  elevation: selectedVariables.isEmpty ? 0 : 3,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                 ),
@@ -257,6 +277,10 @@ class _ExportPageState extends State<ExportPage> {
       ),
     );
   }
+
+  // ===========================================================================
+  // 7. Widget Helper Methods (ตัวช่วยสร้าง Widget ย่อย)
+  // ===========================================================================
 
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
@@ -699,11 +723,13 @@ class _ExportPageState extends State<ExportPage> {
     );
   }
 
-  // --- Logic Methods (Unchanged Logic) ---
+  // ===========================================================================
+  // 8. Logic Methods (ฟังก์ชันการทำงานหลัก)
+  // ===========================================================================
 
   void _moveToRight() {
     if (_tempSelectedVariable != null && _tempSelectedVariable!.isNotEmpty) {
-      // --- เพิ่มเงื่อนไขเช็คจำนวนที่นี่ ---
+      // ตรวจสอบจำนวนตัวแปรว่าเกิน 10 หรือไม่
       if (selectedVariables.length >= 10) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -712,9 +738,8 @@ class _ExportPageState extends State<ExportPage> {
             duration: Duration(seconds: 2),
           ),
         );
-        return; // หยุดการทำงาน ไม่เพิ่มตัวแปรที่ 11
+        return; 
       }
-      // ----------------------------
 
       setState(() {
         selectedVariables.add(_tempSelectedVariable!);
@@ -722,6 +747,32 @@ class _ExportPageState extends State<ExportPage> {
         _tempSelectedVariable = null;
       });
     }
+  }
+  
+  // [NEW FUNCTION] ย้ายข้อมูลทันทีเมื่อกดเลือก (ไม่ต้องกดลูกศร)
+  void _addVariable(String variable) {
+    // 1. เช็คจำนวนว่าเกิน 10 หรือไม่
+    if (selectedVariables.length >= 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("You can select a maximum of 10 variables"),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    // 2. ย้ายข้อมูลจากซ้ายไปขวา
+    setState(() {
+      selectedVariables.add(variable);
+      availableVariables.remove(variable);
+      
+      // เคลียร์ค่า highlight เดิมทิ้ง (เพื่อป้องกัน error)
+      if (_tempSelectedVariable == variable) {
+        _tempSelectedVariable = null;
+      }
+    });
   }
 
   void _moveToLeft() {
@@ -759,12 +810,13 @@ class _ExportPageState extends State<ExportPage> {
 
   bool isDateSameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
 
+  // ฟังก์ชันกดปุ่ม Export เพื่อส่งข้อมูลไป Server
   void _handleExport() async {
     // สร้าง DateTime
     final startDT = DateTime(startDate.year, startDate.month, startDate.day, startHour, startMinute);
     final endDT = DateTime(endDate.year, endDate.month, endDate.day, endHour, endMinute);
 
-    // ตรวจสอบความถูกต้องของเวลา
+    // ตรวจสอบความถูกต้องของเวลา (Start ต้องน้อยกว่า End)
     if (startDT.isAfter(endDT)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Error: Start time must be before End time"), backgroundColor: Colors.red),
@@ -789,7 +841,7 @@ class _ExportPageState extends State<ExportPage> {
       body: body,
     );
 
-    // --- จุดที่แก้ไข: เช็คว่า Server ส่งอะไรกลับมา ---
+    // --- ตรวจสอบ Response จาก Server ---
     
     if (response.statusCode == 200) {
       // เช็ค Header ว่าใช่ไฟล์ Excel/PDF หรือไม่?
@@ -812,7 +864,7 @@ class _ExportPageState extends State<ExportPage> {
            );
          }
       } 
-      // กรณี 2: ถ้าเป็นไฟล์ (Excel/PDF) ให้ Save ตามปกติ
+      // กรณี 2: ถ้าเป็นไฟล์ (Excel/PDF) ให้ Save ลงเครื่อง
       else {
         String ext = selectedFormat == 'Excel' ? 'xlsx' : 'pdf';
         MimeType mimeType = selectedFormat == 'Excel' ? MimeType.microsoftExcel : MimeType.pdf;
@@ -824,8 +876,8 @@ class _ExportPageState extends State<ExportPage> {
          
         String? contentDisposition = response.headers['content-disposition'];
          
+        // พยายามแกะชื่อไฟล์จาก Header
         if (contentDisposition != null) {
-            // [แก้ไข] ใช้ r'''...''' (Triple quotes) เพื่อให้ใส่ ' และ " ได้โดยไม่ Error
           RegExp regex = RegExp(r'''filename[^;=\n]*=((['"]).*?\2|[^;\n]*)''');
           var match = regex.firstMatch(contentDisposition);
             
@@ -836,7 +888,7 @@ class _ExportPageState extends State<ExportPage> {
             .replaceAll("'", '')
             .trim(); 
                
-               // ตัดนามสกุลออก (ป้องกันการซ้ำซ้อน เช่น Report.xlsx.xlsx)
+               // ตัดนามสกุลออก (ป้องกันการซ้ำซ้อน)
             if (rawName.toLowerCase().endsWith('.$ext')) {
               fileName = rawName.substring(0, rawName.length - (ext.length + 1));
             } else {
@@ -845,6 +897,7 @@ class _ExportPageState extends State<ExportPage> {
           }
         }
 
+         // สั่ง Save ไฟล์
          await FileSaver.instance.saveFile(
             name: fileName,
             bytes: response.bodyBytes,
@@ -860,7 +913,7 @@ class _ExportPageState extends State<ExportPage> {
       }
     } else {
       // กรณี Server Error (500, 404)
-      print("Server Error Log: ${response.body}"); // ดู log นี้ใน Debug Console ของ Flutter
+      print("Server Error Log: ${response.body}"); 
       if (mounted) {
          ScaffoldMessenger.of(context).showSnackBar(
            SnackBar(content: Text("Server Error: ${response.statusCode}"), backgroundColor: Colors.red),
