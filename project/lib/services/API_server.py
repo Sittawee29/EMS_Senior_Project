@@ -19,6 +19,8 @@ import pandas as pd
 from typing import List
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
+from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 
 class ExportRequest(BaseModel):
     start_time: str
@@ -52,7 +54,6 @@ try:
 except Exception as e:
     print(f"\033[91m𐄂\033[0m Failed to connect to Redis: {e}")
 
-# รายชื่อ Keys ทั้งหมดที่จะใช้งาน
 DEFAULT_KEYS = [
     # --- METER ---
     "METER_V1", "METER_V2", "METER_V3",
@@ -77,30 +78,62 @@ DEFAULT_KEYS = [
     "BESS_PID_Td", "BESS_PID_Ti", "BESS_PID_Gain", "BESS_Temp_Ambient",
     "BESS_Alarm", "BESS_Fault", "BESS_Communication_Fault",
 
-    # --- PV1 ---
+    # --- PV1-4 & WEATHER (ย่อเพื่อให้ดูง่าย) ---
     "PV1_Grid_Power_KW", "PV1_Load_Power_KW", "PV1_Daily_Energy_Power_KWh", "PV1_Total_Energy_Power_KWh",
     "PV1_Power_Factor", "PV1_Reactive_Power_KVar", "PV1_Active_Power_KW", "PV1_Fault", "PV1_Communication_Fault",
-
-    # --- PV2 ---
     "PV2_Energy_Daily_kW", "PV2_LifeTimeEnergyProduction_kWh_Start", "PV2_LifeTimeEnergyProduction_kWh",
     "PV2_ReactivePower_kW", "PV2_ApparentPower_kW", "PV2_Power_kW", "PV2_LifeTimeEnergyProduction",
     "PV2_PowerFactor_Percen", "PV2_ReactivePower", "PV2_ApparentPower", "PV2_Power", "PV2_Communication_Fault",
-
-    # --- PV3 ---
     "PV3_Total_Power_Yields_Real", "PV3_Total_Apparent_Power_kW", "PV3_Total_Reactive_Power_kW", "PV3_Total_Active_Power_kW",
-    "PV3_Total_Reactive_Power", "PV3_Total_Active_Power", "PV3_Total_Apparent_Power", "PV3_Total_Power_Yields",
-    "PV3_Daily_Power_Yields", "PV3_Nominal_Active_Power", "PV3_Communication_Fault",
-
-    # --- PV4 ---
     "PV4_Total_Power_Yields_Real", "PV4_Total_Apparent_Power_kW", "PV4_Total_Reactive_Power_kW", "PV4_Total_Active_Power_kW",
-    "PV4_Total_Reactive_Power", "PV4_Total_Active_Power", "PV4_Total_Apparent_Power", "PV4_Total_Power_Yields",
-    "PV4_Daily_Power_Yields", "PV4_Nominal_Active_Power", "PV4_Communication_Fault",
+    "WEATHER_Temp","WEATHER_TempMin", "WEATHER_TempMax", "WEATHER_Humidity", "WEATHER_WindSpeed"
+]
+
+UNIT_MAPPING = {
+    # --- METER ---
+    "METER_V1": "V", "METER_V2": "V", "METER_V3": "V",
+    "METER_I1": "A", "METER_I2": "A", "METER_I3": "A",
+    "METER_KW": "kW", "METER_Total_KWH": "kWh",
+    "METER_Export_KVARH": "kVarh", "METER_Export_KWH": "kWh", 
+    "METER_Import_KVARH": "kVarh", "METER_Import_KWH": "kWh",
+    "METER_Total_KVARH": "kVarh", "METER_Hz": "Hz", "METER_PF": "-",
+    "METER_I_Total": "A", "METER_KVAR": "kVar", "METER_KW_Invert": "kW", "METER_Grid_Power_KW": "kW",
+
+    # --- EMS ---
+    "PV_Total_Energy": "kWh", "PV_Daily_Energy": "kWh", "Load_Total_Energy": "kWh", "Load_Daily_Energy": "kWh",
+    "GRID_Total_Import_Energy": "kWh", "GRID_Daily_Import_Energy": "kWh", "GRID_Total_Export_Energy": "kWh", "GRID_Daily_Export_Energy": "kWh",
+    "BESS_Daily_Charge_Energy": "kWh", "BESS_Daily_Discharge_Energy": "kWh", "EMS_CO2_Equivalent": "kg",
+    "EMS_EnergyProducedFromPV_Daily": "kWh", "EMS_EnergyFeedToGrid_Daily": "kWh", "EMS_EnergyConsumption_Daily": "kWh",
+    "EMS_EnergyFeedFromGrid_Daily": "kWh", "EMS_SolarPower_kW": "kW", "EMS_LoadPower_kW": "kW", "EMS_BatteryPower_kW": "kW",
+    "EMS_EnergyProducedFromPV_kWh": "kWh", "EMS_EnergyFeedFromGrid_kWh": "kWh", "EMS_EnergyConsumption_kWh": "kWh",
+
+    # --- BESS ---
+    "BESS_SOC": "%", "BESS_SOH": "%", "BESS_V": "V", "BESS_I": "A", "BESS_KW": "kW", "BESS_Temperature": "°C",
+    "BESS_Total_Discharge": "kWh", "BESS_Total_Charge": "kWh", "BESS_SOC_MAX": "%", "BESS_SOC_MIN": "%",
+    "BESS_Power_KW_Invert": "kW", "BESS_Manual_Power_Setpoint": "kW", "BESS_PID_CycleTime": "s",
+    "BESS_PID_Td": "s", "BESS_PID_Ti": "s", "BESS_PID_Gain": "-", "BESS_Temp_Ambient": "°C",
+    "BESS_Alarm": "-", "BESS_Fault": "-", "BESS_Communication_Fault": "-",
+
+    # --- PV1 ---
+    "PV1_Grid_Power_KW": "kW", "PV1_Load_Power_KW": "kW", "PV1_Daily_Energy_Power_KWh": "kWh", "PV1_Total_Energy_Power_KWh": "kWh",
+    "PV1_Power_Factor": "-", "PV1_Reactive_Power_KVar": "kVar", "PV1_Active_Power_KW": "kW", 
+    "PV1_Fault": "-", "PV1_Communication_Fault": "-",
+
+    # --- PV2 ---
+    "PV2_Energy_Daily_kW": "kWh", "PV2_LifeTimeEnergyProduction_kWh_Start": "kWh", "PV2_LifeTimeEnergyProduction_kWh": "kWh",
+    "PV2_ReactivePower_kW": "kVar", "PV2_ApparentPower_kW": "kVA", "PV2_Power_kW": "kW", "PV2_LifeTimeEnergyProduction": "kWh",
+    "PV2_PowerFactor_Percen": "%", "PV2_ReactivePower": "kVar", "PV2_ApparentPower": "kVA", "PV2_Power": "kW", "PV2_Communication_Fault": "-",
+
+    # --- PV3 & PV4 ---
+    "PV3_Total_Power_Yields_Real": "kWh", "PV3_Total_Apparent_Power_kW": "kVA", "PV3_Total_Reactive_Power_kW": "kVar", "PV3_Total_Active_Power_kW": "kW",
+    "PV4_Total_Power_Yields_Real": "kWh", "PV4_Total_Apparent_Power_kW": "kVA", "PV4_Total_Reactive_Power_kW": "kVar", "PV4_Total_Active_Power_kW": "kW",
+    # ... (สามารถเพิ่มตัวอื่นๆ ของ PV3/PV4 ตามรูปแบบเดียวกัน) ...
 
     # --- WEATHER ---
-    "WEATHER_Temp","WEATHER_TempMin", "WEATHER_TempMax", "WEATHER_Sunrise", "WEATHER_Sunset",
-    "WEATHER_FeelsLike", "WEATHER_Humidity", "WEATHER_Pressure", "WEATHER_WindSpeed",
-    "WEATHER_Cloudiness","WEATHER_Icon"
-]
+    "WEATHER_Temp": "°C", "WEATHER_TempMin": "°C", "WEATHER_TempMax": "°C", "WEATHER_Sunrise": "timestamp", "WEATHER_Sunset": "timestamp",
+    "WEATHER_FeelsLike": "°C", "WEATHER_Humidity": "%", "WEATHER_Pressure": "hPa", "WEATHER_WindSpeed": "m/s",
+    "WEATHER_Cloudiness": "%", "WEATHER_Icon": "-"
+}
 
 print("Initializing Redis keys...")
 pipe = redis_client.pipeline()
@@ -1001,7 +1034,10 @@ def export_custom_data(req: ExportRequest, response: Response):
                     if i < len(req.variables):
                         var_name = req.variables[i]
                         c_name_l.value = var_name
-                        c_unit_l.value = var_name.split("_")[-1] if "_" in var_name else "-"
+                        
+                        # ดึงหน่วยจาก UNIT_MAPPING ถ้าไม่มีให้ใส่ "-"
+                        c_unit_l.value = UNIT_MAPPING.get(var_name, "-")
+                        
                         c_name_l.font = Font(name='Arial', size=8); c_name_l.alignment = normal_align
                         c_unit_l.font = Font(name='Arial', size=8); c_unit_l.alignment = center_align
 
@@ -1019,10 +1055,14 @@ def export_custom_data(req: ExportRequest, response: Response):
                     c_unit_r.border = thin_border
 
                     # ใส่ข้อมูลถ้ามีตัวแปรตัวที่ i+5
-                    if (i + 5) < len(req.variables):
-                        var_name = req.variables[i+5]
+                    idx_right = i + 5
+                    if idx_right < len(req.variables):
+                        var_name = req.variables[idx_right]
                         c_name_r.value = var_name
-                        c_unit_r.value = var_name.split("_")[-1] if "_" in var_name else "-"
+                        
+                        # ดึงหน่วยจาก UNIT_MAPPING ถ้าไม่มีให้ใส่ "-"
+                        c_unit_r.value = UNIT_MAPPING.get(var_name, "-")
+                        
                         c_name_r.font = Font(name='Arial', size=8); c_name_r.alignment = normal_align
                         c_unit_r.font = Font(name='Arial', size=8); c_unit_r.alignment = center_align
 
@@ -1091,8 +1131,141 @@ def export_custom_data(req: ExportRequest, response: Response):
             )
         
         elif req.file_format == 'PDF':
-            response.status_code = status.HTTP_501_NOT_IMPLEMENTED
-            return {"detail": "PDF format not implemented yet"}
+            # เปลี่ยน orientation เป็น 'P' (Portrait)
+            pdf = FPDF(orientation='P', unit='mm', format='A4')
+            pdf.set_auto_page_break(auto=True, margin=15)
+            pdf.add_page()
+            
+            # --- Config Colors & Fonts ---
+            pdf.set_font('helvetica', 'B', 14)
+            # สีเทา (Legend)
+            gray_color = (221, 221, 221)
+            # สีฟ้า (Header)
+            blue_color = (176, 196, 222)
+            
+            # --- 1. Title ---
+            pdf.cell(0, 10, req.plant_name, align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.ln(2)
+
+            # --- 2. Info Block ---
+            pdf.set_font('helvetica', 'B', 8)
+            pdf.cell(30, 5, "Report Date :", align='R')
+            pdf.set_font('helvetica', '', 8)
+            
+            start_dt_obj = datetime.strptime(req.start_time, "%Y-%m-%d %H:%M:%S")
+            end_dt_obj = datetime.strptime(req.end_time, "%Y-%m-%d %H:%M:%S")
+            date_str = f"{start_dt_obj.strftime('%d %b %Y %H:%M')} - {end_dt_obj.strftime('%d %b %Y %H:%M')}"
+            pdf.cell(60, 5, date_str, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+            pdf.set_font('helvetica', 'B', 8)
+            pdf.cell(30, 5, "Print Date :", align='R')
+            pdf.set_font('helvetica', '', 8)
+            pdf.cell(60, 5, datetime.now().strftime('%d %b %Y %H:%M:%S'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.ln(5)
+
+            # --- 3. Legend Table ---
+            # ปรับความกว้างให้พอดีกับแนวตั้ง (Usable Width ~190mm)
+            # แบ่งซ้ายขวา: Side Width = 10+45+15 = 70mm
+            # 2 ข้าง = 140mm + Gap 10mm = 150mm (เหลือที่ว่างสบายๆ)
+            col_w_pt = 15
+            col_w_nm = 64
+            col_w_un = 15
+            gap = 0 
+            
+            # Header Row for Legend
+            pdf.set_fill_color(*gray_color)
+            pdf.set_font('helvetica', 'B', 8)
+            
+            # Left Header
+            pdf.cell(col_w_pt, 6, "Point", border=1, align='C', fill=True)
+            pdf.cell(col_w_nm, 6, "Name", border=1, align='C', fill=True)
+            pdf.cell(col_w_un, 6, "Unit", border=1, align='C', fill=True)
+            
+            #pdf.cell(gap, 6, "", border=0) # Gap
+            
+            # Right Header
+            pdf.cell(col_w_pt, 6, "Point", border=1, align='C', fill=True)
+            pdf.cell(col_w_nm, 6, "Name", border=1, align='C', fill=True)
+            pdf.cell(col_w_un, 6, "Unit", border=1, align='C', fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+            # Rows (Loop 5 times)
+            for i in range(5):
+                pdf.set_font('helvetica', '', 8)
+                
+                # --- Left Side ---
+                idx_left = i
+                name_l = req.variables[idx_left] if idx_left < len(req.variables) else ""
+                unit_l = UNIT_MAPPING.get(name_l, "-") if name_l else ""
+                
+                pdf.set_fill_color(*gray_color)
+                pdf.cell(col_w_pt, 6, str(i+1), border=1, align='C', fill=True)
+                pdf.cell(col_w_nm, 6, name_l, border=1, align='L')
+                pdf.cell(col_w_un, 6, unit_l, border=1, align='C')
+                
+                #pdf.cell(gap, 6, "", border=0)
+
+                # --- Right Side ---
+                idx_right = i + 5
+                name_r = req.variables[idx_right] if idx_right < len(req.variables) else ""
+                unit_r = UNIT_MAPPING.get(name_r, "-") if name_r else ""
+                
+                pdf.set_fill_color(*gray_color)
+                pdf.cell(col_w_pt, 6, str(i+6), border=1, align='C', fill=True)
+                pdf.cell(col_w_nm, 6, name_r, border=1, align='L')
+                pdf.cell(col_w_un, 6, unit_r, border=1, align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+            pdf.ln(5)
+
+            # --- 4. Data Table ---
+            # ปรับความกว้างสำหรับแนวตั้ง:
+            # Date = 30mm
+            # Values = 16mm * 10 columns = 160mm
+            # Total = 190mm (พอดีหน้ากระดาษเป๊ะ)
+            w_date = 30
+            w_val = 16 
+            
+            # Header
+            pdf.set_fill_color(*blue_color)
+            pdf.set_font('helvetica', 'B', 7) # ลด font header เล็กน้อย
+            
+            pdf.cell(w_date, 8, "Date / Time", border=1, align='C', fill=True)
+            for i in range(10):
+                pdf.cell(w_val, 8, f"Point {i+1}", border=1, align='C', fill=True)
+            pdf.ln()
+            
+            # Data Rows
+            pdf.set_font('helvetica', '', 7) # Font เนื้อหาขนาด 7
+            
+            if 'timestamp' not in df_resampled.columns:
+                df_resampled.reset_index(inplace=True)
+
+            for _, row in df_resampled.iterrows():
+                # Date
+                ts = row['timestamp']
+                date_str = ts.strftime('%d/%m/%Y %H:%M') if hasattr(ts, 'strftime') else str(ts)
+                pdf.cell(w_date, 6, date_str, border=1, align='C')
+                
+                # Values (10 Columns)
+                for i in range(10):
+                    if i < len(new_col_names):
+                        val = row[new_col_names[i]]
+                        val_str = f"{val:.4f}" if isinstance(val, (int, float)) else str(val)
+                    else:
+                        val_str = ""
+                    
+                    pdf.cell(w_val, 6, val_str, border=1, align='R')
+                
+                pdf.ln()
+
+            # Output PDF
+            pdf_output = io.BytesIO()
+            pdf_bytes = pdf.output()
+            pdf_output.write(pdf_bytes)
+            pdf_output.seek(0)
+            
+            filename = f"{req.plant_name}-{req.start_time[:10]}.pdf"
+            headers = {'Content-Disposition': f'attachment; filename="{filename}"'}
+            return StreamingResponse(pdf_output, media_type='application/pdf', headers=headers)
 
     except Exception as e:
         print(f"Export Error: {e}")

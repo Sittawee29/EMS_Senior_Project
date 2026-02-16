@@ -164,12 +164,12 @@ class _HCurveState extends State<HCurve> {
     }
   }
 
-  // --- [ใหม่] ฟังก์ชันเลือกเฉพาะ เดือน/ปี สำหรับโหมด Monthly ---
+
   Future<void> _showMonthPicker(BuildContext context) async {
     final DateTime firstDate = _minDataDate ?? DateTime(2020);
     final DateTime lastDate = _maxDataDate ?? DateTime.now();
     
-    // ปีที่กำลังเลือกใน Dialog (เริ่มต้นที่ปีปัจจุบันที่เลือกอยู่)
+
     int displayYear = _currentDate.year;
 
     final DateTime? picked = await showDialog<DateTime>(
@@ -370,11 +370,11 @@ class _HCurveState extends State<HCurve> {
                 height: 300, 
                 child: Center(child: CircularProgressIndicator())
               )
-            : _LineChart(
-                timeLabels: _currentLabels, // ส่ง Labels ที่เป็น Dynamic ไป
+            : _ChartDisplay( // <--- เปลี่ยนจาก _LineChart เป็น _ChartDisplay
+                timeLabels: _currentLabels,
                 historyData: _historyData,
                 graphType: _selectedType,
-                selectedPeriod: _selectedPeriod, // --- ส่ง period ไปด้วย ---
+                selectedPeriod: _selectedPeriod,
                 hiddenIndices: _hiddenIndices,
               ),
 
@@ -585,23 +585,31 @@ class _HCurveState extends State<HCurve> {
   }
 }
 
-class _LineChart extends StatelessWidget {
+class _ChartDisplay extends StatefulWidget {
   final List<String> timeLabels;
   final List<Map<String, dynamic>> historyData;
   final GraphType graphType;
   final TimePeriod selectedPeriod;
-  final Set<int> hiddenIndices; // --- [ใหม่] รับค่า ---
+  final Set<int> hiddenIndices;
 
-  const _LineChart({
+  const _ChartDisplay({
     required this.timeLabels,
     required this.historyData,
     required this.graphType,
     required this.selectedPeriod,
-    required this.hiddenIndices, // --- [ใหม่] ---
+    required this.hiddenIndices,
   });
 
-  String _getUnit() { /* ... (เหมือนเดิม) ... */ 
-      switch (graphType) {
+  @override
+  State<_ChartDisplay> createState() => _ChartDisplayState();
+}
+
+class _ChartDisplayState extends State<_ChartDisplay> {
+  int _touchedIndex = -1; // เก็บตำแหน่งที่แตะสำหรับกราฟแท่ง
+
+  // --- Helpers ---
+  String _getUnit() {
+    switch (widget.graphType) {
       case GraphType.power: return 'kW';
       case GraphType.energy: return 'kWh';
       case GraphType.voltage: return 'V';
@@ -610,100 +618,103 @@ class _LineChart extends StatelessWidget {
       default: return '';
     }
   }
-  
-  String _getSeriesName(int index) { /* ... (เหมือนเดิม) ... */ 
-     switch (graphType) {
+
+  String _getSeriesName(int index) {
+    switch (widget.graphType) {
       case GraphType.power:
-        switch (index) {
-          case 0: return 'PV Production';
-          case 1: return 'Load Consumption';
-          case 2: return 'Grid Power';
-          case 3: return 'BESS Power';
-          default: return '';
-        }
+        return ['PV Production', 'Load Consumption', 'Grid Power', 'BESS Power'][index];
       case GraphType.energy:
-        switch (index) {
-          case 0: return 'PV Production';
-          case 1: return 'Consumption';
-          case 2: return 'BESS Charge';
-          case 3: return 'BESS Discharge';
-          default: return '';
-        }
+        return ['PV Production', 'Consumption', 'BESS Charge', 'BESS Discharge'][index];
       case GraphType.voltage:
-        switch (index) {
-          case 0: return 'Phase 1';
-          case 1: return 'Phase 2';
-          case 2: return 'Phase 3';
-          default: return '';
-        }
+        return ['Phase 1', 'Phase 2', 'Phase 3'][index];
       case GraphType.current:
-        switch (index) {
-          case 0: return 'Phase 1';
-          case 1: return 'Phase 2';
-          case 2: return 'Phase 3';
-          default: return '';
-        }
+        return ['Phase 1', 'Phase 2', 'Phase 3'][index];
+      case GraphType.SoC: return 'SoC (%)';
+      case GraphType.co2: return 'CO₂ Saved';
+      default: return '';
+    }
+  }
+
+  List<_SeriesSpec> _getSeriesSpecs() {
+    List<_SeriesSpec> specs = [];
+    void add(int idx, String key, Color color) {
+      if (!widget.hiddenIndices.contains(idx)) {
+        specs.add(_SeriesSpec(idx, key, color));
+      }
+    }
+
+    switch (widget.graphType) {
+      case GraphType.power:
+        add(0, "EMS_SolarPower_kW", Palette.lightBlue);
+        add(1, "EMS_LoadPower_kW", Palette.orange);
+        add(2, "METER_KW", Palette.red);
+        add(3, "EMS_BatteryPower_kW", Palette.green);
+        break;
+      case GraphType.energy:
+        add(0, "EMS_EnergyProducedFromPV_Daily", Colors.blue);
+        add(1, "EMS_EnergyConsumption_Daily", Colors.red);
+        add(2, "BESS_Daily_Charge_Energy", Colors.green);
+        add(3, "BESS_Daily_Discharge_Energy", Colors.orange);
+        break;
+      case GraphType.voltage:
+        add(0, "METER_V1", Colors.red);
+        add(1, "METER_V2", Colors.yellow);
+        add(2, "METER_V3", Colors.blue);
+        break;
+      case GraphType.current:
+        add(0, "METER_I1", Colors.red);
+        add(1, "METER_I2", Colors.yellow);
+        add(2, "METER_I3", Colors.blue);
+        break;
       case GraphType.SoC:
-        return 'SoC (%)';
-
+        add(0, "BESS_SOC", Colors.green);
+        break;
       case GraphType.co2:
-        return 'CO₂ Saved';
-        default: return '';
-        
+        add(0, "EMS_CO2_Equivalent", Colors.teal);
+        break;
     }
-  }
-  
-  double? _getValue(Map<String, dynamic> row, String key) { /* ... (เหมือนเดิม) ... */ 
-      if (row[key] == null) return null;
-    try {
-      return double.parse(row[key].toString());
-    } catch (e) {
-      return null;
-    }
+    return specs;
   }
 
-  // --- 2. แก้ไข: ปรับ Logic การ Map ข้อมูลลงกราฟ ตาม Period ---
+  double? _getValue(Map<String, dynamic> row, String key) {
+    if (row[key] == null) return null;
+    try { return double.parse(row[key].toString()); } catch (e) { return null; }
+  }
+
   List<FlSpot> _getPoints(String key) {
-    Map<int, double> map = {}; // เปลี่ยน Key เป็น int (Index ของแกน X)
-    
-    for (var r in historyData) {
+    Map<int, double> map = {};
+    for (var r in widget.historyData) {
       if (r['timestamp'] == null) continue;
       try {
         DateTime dt = DateTime.parse(r['timestamp'].toString());
         int xIndex = 0;
-        
-        if (selectedPeriod == TimePeriod.daily) {
-          // Logic เดิม (แปลงเป็น index 5 นาที)
+        if (widget.selectedPeriod == TimePeriod.daily) {
           int totalMinutes = dt.hour * 60 + dt.minute;
-          int roundedTotalMinutes = (totalMinutes ~/ 5) * 5;
-          xIndex = roundedTotalMinutes ~/ 5; // Index 0 - 287
-        } else if (selectedPeriod == TimePeriod.monthly) {
-          // ใช้ "วันที่" เป็น Index (เริ่ม 0 คือวันที่ 1)
-          xIndex = dt.day - 1; 
-        } else if (selectedPeriod == TimePeriod.yearly) {
-          // ใช้ "เดือน" เป็น Index (เริ่ม 0 คือ Jan)
+          xIndex = totalMinutes ~/ 5;
+        } else if (widget.selectedPeriod == TimePeriod.monthly) {
+          xIndex = dt.day - 1;
+        } else {
           xIndex = dt.month - 1;
         }
-
         double? v = _getValue(r, key);
-        // ถ้าข้อมูลซ้ำใน Period เดียวกัน (เช่น Monthly แต่อ่านข้อมูลรายชม.) อาจจะต้องหา Avg หรือ Sum
-        // แต่เบื้องต้นใช้ค่าล่าสุด หรือค่าแรกที่เจอไปก่อนตาม Logic เดิม
         if (v != null) map[xIndex] = v;
       } catch (e) {}
     }
 
     List<FlSpot> spots = [];
-    // Loop ตามจำนวน Labels (288 หรือ 31 หรือ 12)
-    for (int i = 0; i < timeLabels.length; i++) {
+    int maxPoints = widget.selectedPeriod == TimePeriod.daily ? 288 : (widget.selectedPeriod == TimePeriod.monthly ? 31 : 12);
+    for (int i = 0; i < maxPoints; i++) {
       if (map.containsKey(i)) {
         spots.add(FlSpot(i.toDouble(), map[i]!));
+      } else if (widget.selectedPeriod != TimePeriod.daily) {
+        spots.add(FlSpot(i.toDouble(), 0));
       }
     }
     return spots;
   }
 
-  double _calculateNiceInterval(double range) { /* ... (เหมือนเดิม) ... */ 
-      if (range == 0) return 10;
+  double _calculateNiceInterval(double range) {
+    if (range == 0) return 10;
     double roughInterval = range / 5;
     double magnitude = pow(10, (log(roughInterval) / ln10).floor()).toDouble();
     double normalized = roughInterval / magnitude;
@@ -715,207 +726,125 @@ class _LineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<LineChartBarData> lines = [];
-
-    // --- [ใหม่] Helper function เพื่อเช็คการซ่อน ---
-    void addLineIfVisible(int index, String key, Color color) {
-      if (!hiddenIndices.contains(index)) {
-         // *** สำคัญ: ต้องใส่ชื่อ Key ให้ตรงกับข้อมูลจริงของคุณ ***
-        lines.add(_buildLine(_getPoints(key), color));
-      }
-    }
-    // ... (การ add lines เหมือนเดิม) ...
-    switch (graphType) {
-      case GraphType.power:
-        // เดิม: lines.add(_buildLine(_getPoints("EMS_SolarPower_kW"), Palette.lightBlue));
-        // ใหม่:
-        addLineIfVisible(0, "EMS_SolarPower_kW", Palette.lightBlue);
-        addLineIfVisible(1, "EMS_LoadPower_kW", Palette.orange); 
-        addLineIfVisible(2, "METER_KW", Palette.red); 
-        addLineIfVisible(3, "EMS_BatteryPower_kW", Palette.green);
-        break;
-
-      case GraphType.energy:
-        addLineIfVisible(0, "EMS_EnergyProducedFromPV_Daily", Colors.blue);
-        addLineIfVisible(1, "EMS_EnergyConsumption_Daily", Colors.red);
-        addLineIfVisible(2, "BESS_Daily_Charge_Energy", Colors.green);
-        addLineIfVisible(3, "BESS_Daily_Discharge_Energy", Colors.orange);
-        break;
-
-      case GraphType.voltage:
-        addLineIfVisible(0, "METER_V1", Colors.red);
-        addLineIfVisible(1, "METER_V2", Colors.yellow);
-        addLineIfVisible(2, "METER_V3", Colors.blue);
-        break;
-
-      case GraphType.current:
-        addLineIfVisible(0, "METER_I1", Colors.red);
-        addLineIfVisible(1, "METER_I2", Colors.yellow);
-        addLineIfVisible(2, "METER_I3", Colors.blue);
-        break;
-
-      case GraphType.SoC:
-        addLineIfVisible(0, "BESS_SOC", Colors.green);
-        break;
-
-      case GraphType.co2:
-        addLineIfVisible(0, "EMS_CO2_Equivalent", Colors.teal);
-        break;
+    List<_SeriesSpec> specs = _getSeriesSpecs();
+    
+    // คำนวณ Scale
+    List<FlSpot> allPoints = [];
+    Map<int, List<FlSpot>> seriesDataMap = {};
+    for (var s in specs) {
+      var points = _getPoints(s.key);
+      seriesDataMap[s.index] = points;
+      allPoints.addAll(points);
     }
 
     double minY = 0;
     double maxY = 10;
     double interval = 5;
-    List<FlSpot> allSpots = lines.expand((line) => line.spots).toList();
-
-    if (allSpots.isNotEmpty) {
-      double dataMin = allSpots.map((e) => e.y).reduce(min);
-      double dataMax = allSpots.map((e) => e.y).reduce(max);
-      if (dataMin > 0) dataMin = 0;
-      double range = dataMax - dataMin;
+    if (allPoints.isNotEmpty) {
+      double dataMin = allPoints.map((e) => e.y).reduce(min);
+      double dataMax = allPoints.map((e) => e.y).reduce(max);
+      
+      double minBound = (dataMin < 0) ? dataMin : 0;
+      double range = dataMax - minBound;
       interval = _calculateNiceInterval(range);
-      minY = (dataMin / interval).floor() * interval;
+      
+      minY = (minBound / interval).floor() * interval;
       maxY = (dataMax / interval).ceil() * interval;
       if (minY == maxY) maxY += interval;
     }
 
-    // --- 3. แก้ไข: กำหนด maxX และ X-Interval ตาม Period ---
     double maxX;
     double xInterval;
-    
-    if (selectedPeriod == TimePeriod.daily) {
+    if (widget.selectedPeriod == TimePeriod.daily) {
       maxX = 288;
-      xInterval = 24; // ทุก 2 ชั่วโมง
-    } else if (selectedPeriod == TimePeriod.monthly) {
-      maxX = 30; // Index 0-30 (31 วัน)
-      xInterval = 5; // ทุก 5 วัน
+      xInterval = 24;
+    } else if (widget.selectedPeriod == TimePeriod.monthly) {
+      maxX = 31;
+      xInterval = 5;
     } else {
-      maxX = 11; // Index 0-11 (12 เดือน)
-      xInterval = 1; // ทุก 1 เดือน
+      maxX = 12;
+      xInterval = 1;
     }
+
+    if (widget.selectedPeriod == TimePeriod.daily) {
+      return _buildLineChart(specs, seriesDataMap, minY, maxY, interval, maxX, xInterval);
+    } else {
+      return _buildBarChart(specs, seriesDataMap, minY, maxY, interval, maxX, xInterval);
+    }
+  }
+
+  // --- 1. กราฟเส้น (Daily) ---
+  Widget _buildLineChart(
+    List<_SeriesSpec> specs,
+    Map<int, List<FlSpot>> seriesDataMap,
+    double minY, double maxY, double interval,
+    double maxX, double xInterval
+  ) {
+    List<LineChartBarData> lines = specs.map((s) {
+      return LineChartBarData(
+        spots: seriesDataMap[s.index] ?? [],
+        isCurved: true,
+        color: s.color,
+        barWidth: 2,
+        dotData: const FlDotData(show: false),
+        belowBarData: BarAreaData(show: true, cutOffY: 0, applyCutOffY: true, color: s.color.withOpacity(0.1)),
+        aboveBarData: BarAreaData(show: true, cutOffY: 0, applyCutOffY: true, color: s.color.withOpacity(0.1)),
+      );
+    }).toList();
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxHeight: 250, maxWidth: 900),
       child: Padding(
-        padding: const EdgeInsets.only(left: 32.0, right: 32.0, top: 10.0), 
+        padding: const EdgeInsets.only(left: 32.0, right: 32.0, top: 10.0),
         child: LineChart(
           LineChartData(
-            minX: 0,
-            maxX: maxX, // ใช้ค่า Dynamic
-            minY: minY,
-            maxY: maxY,
+            minX: 0, maxX: maxX,
+            minY: minY, maxY: maxY,
             lineTouchData: LineTouchData(
               handleBuiltInTouches: true,
               getTouchedSpotIndicator: (LineChartBarData barData, List<int> spotIndexes) {
                 return spotIndexes.map((spotIndex) {
                   return TouchedSpotIndicatorData(
                     const FlLine(color: Colors.blueGrey, strokeWidth: 1, dashArray: [5, 5]),
-                    FlDotData(
-                      getDotPainter: (spot, percent, barData, index) {
-                        return FlDotCirclePainter(
-                          radius: 3,
-                          color: barData.color ?? Colors.blue,
-                        );
-                      },
-                    ),
+                    FlDotData(getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(radius: 3, color: barData.color ?? Colors.blue)),
                   );
                 }).toList();
               },
               touchTooltipData: LineTouchTooltipData(
-                getTooltipColor: (touchedSpot) => Colors.blueGrey.withOpacity(0.1),
+                getTooltipColor: (_) => Colors.blueGrey.withOpacity(0.1),
                 tooltipRoundedRadius: 8,
                 tooltipPadding: const EdgeInsets.all(12),
                 maxContentWidth: 300,
-                tooltipHorizontalOffset: 60, 
-                fitInsideHorizontally: true, 
+                tooltipHorizontalOffset: 60,
+                fitInsideHorizontally: true,
                 fitInsideVertically: true,
-                getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
-                  touchedBarSpots.sort((a, b) => a.barIndex.compareTo(b.barIndex));
-                  return touchedBarSpots.map((barSpot) {
+                getTooltipItems: (touchedSpots) {
+                  touchedSpots.sort((a, b) => a.barIndex.compareTo(b.barIndex));
+                  return touchedSpots.map((barSpot) {
                     final flSpot = barSpot;
+                    final spec = specs.firstWhere((s) => s.color == barSpot.bar.color, orElse: () => specs[0]);
                     final index = flSpot.x.toInt();
-                    // ดึง Label ตาม Index
-                    final time = (index >= 0 && index < timeLabels.length) ? timeLabels[index] : '';
+                    final time = (index >= 0 && index < widget.timeLabels.length) ? widget.timeLabels[index] : '';
+                    final lineText = '${_getSeriesName(spec.index)}: ${flSpot.y.toStringAsFixed(2)} ${_getUnit()}';
                     
-                    final isFirst = barSpot == touchedBarSpots.first;
-                    final name = _getSeriesName(barSpot.barIndex);
-                    final lineText = '$name: ${flSpot.y.toStringAsFixed(2)} ${_getUnit()}';
-
-                    if (isFirst) {
+                    if (barSpot == touchedSpots.first) {
                       return LineTooltipItem(
-                        '$time\n', // แสดง Label (เวลา/วันที่/เดือน) ตรงหัว Tooltip
-                        const TextStyle(
-                          color: Color.fromARGB(255, 22, 39, 128),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: lineText,
-                            style: TextStyle(color: barSpot.bar.color, fontWeight: FontWeight.bold, fontSize: 12),
-                          ),
-                        ],
-                      );
-                    } else {
-                      return LineTooltipItem(
-                        lineText, 
-                        TextStyle(color: barSpot.bar.color, fontWeight: FontWeight.bold, fontSize: 12),
+                        '$time\n',
+                        const TextStyle(color: Color.fromARGB(255, 22, 39, 128), fontWeight: FontWeight.bold, fontSize: 14),
+                        children: [TextSpan(text: lineText, style: TextStyle(color: spec.color, fontWeight: FontWeight.bold, fontSize: 12))],
                       );
                     }
+                    return LineTooltipItem(lineText, TextStyle(color: spec.color, fontWeight: FontWeight.bold, fontSize: 12));
                   }).toList();
                 },
+              ),
             ),
-          ),
             gridData: FlGridData(
-              show: true,
-              drawVerticalLine: true,
-              horizontalInterval: interval,
+              show: true, horizontalInterval: interval,
               getDrawingHorizontalLine: (_) => const FlLine(color: Palette.mediumGrey40, strokeWidth: 0.5),
               getDrawingVerticalLine: (_) => const FlLine(color: Palette.mediumGrey40, strokeWidth: 0.5),
             ),
-            titlesData: FlTitlesData(
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 50, 
-                  interval: interval,
-                  getTitlesWidget: (value, meta) {
-                    if (value % interval != 0 && value != minY && value != maxY) return const SizedBox();
-                    return SideTitleWidget(
-                      axisSide: meta.axisSide,
-                      space: 4,
-                      child: Text(
-                        value.toInt().toString(),
-                        style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.right,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 32,
-                  interval: xInterval, // ใช้ Interval Dynamic
-                  getTitlesWidget: (value, meta) {
-                    final index = value.toInt();
-                    if (index >= 0 && index < timeLabels.length) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          timeLabels[index],
-                          style: const TextStyle(fontSize: 10, color: Colors.grey),
-                        ),
-                      );
-                    }
-                    return const SizedBox();
-                  },
-                ),
-              ),
-              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            ),
+            titlesData: _buildTitles(interval, xInterval),
             borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey.withOpacity(0.2))),
             lineBarsData: lines,
           ),
@@ -924,36 +853,141 @@ class _LineChart extends StatelessWidget {
     );
   }
 
-  LineChartBarData _buildLine(List<FlSpot> spots, Color color) {
-    final bool showCurved = selectedPeriod == TimePeriod.daily;
+  // --- 2. กราฟแท่ง (Monthly/Yearly) ---
+  Widget _buildBarChart(
+    List<_SeriesSpec> specs,
+    Map<int, List<FlSpot>> seriesDataMap,
+    double minY, double maxY, double interval,
+    double maxX, double xInterval
+  ) {
+    List<BarChartGroupData> barGroups = [];
+    int xCount = widget.selectedPeriod == TimePeriod.monthly ? 31 : 12;
+    double barWidth = 12.0 / (specs.isEmpty ? 1 : specs.length);
+    if (barWidth > 16) barWidth = 16;
 
-    return LineChartBarData(
-      spots: spots,
-      isCurved: showCurved,
-      color: color,
-      barWidth: 2,
-      dotData: FlDotData(
-        show: !showCurved,
-        getDotPainter: (spot, percent, barData, index) {
-          return FlDotCirclePainter(
-            radius: 3.0,
-            color: color,
-          );
-        },
-      ),
-      // -------------------------------
-      belowBarData: BarAreaData(
-        show: true,
-        cutOffY: 0,
-        applyCutOffY: true,
-        color: color.withOpacity(0.1),
-      ),
-      aboveBarData: BarAreaData(
-        show: true,
-        cutOffY: 0,
-        applyCutOffY: true,
-        color: color.withOpacity(0.1),
+    for (int x = 0; x < xCount; x++) {
+      List<BarChartRodData> rods = [];
+      for (var spec in specs) {
+        final spots = seriesDataMap[spec.index] ?? [];
+        final spot = spots.firstWhere((element) => element.x.toInt() == x, orElse: () => FlSpot(x.toDouble(), 0));
+        rods.add(
+          BarChartRodData(
+            toY: spot.y, color: spec.color, width: barWidth,
+            borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4)),
+          ),
+        );
+      }
+      barGroups.add(BarChartGroupData(x: x, barRods: rods, barsSpace: 4));
+    }
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 250, maxWidth: 900),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 32.0, right: 32.0, top: 10.0),
+        child: BarChart(
+          BarChartData(
+            maxY: maxY, minY: minY,
+            // [คงเดิม] เส้นประแนวตั้งเหมือน LineChart
+            extraLinesData: ExtraLinesData(
+              verticalLines: [
+                if (_touchedIndex != -1)
+                  VerticalLine(
+                    x: _touchedIndex.toDouble(),
+                    color: Colors.blueGrey,
+                    strokeWidth: 1,
+                    dashArray: [5, 5],
+                  ),
+              ],
+            ),
+            barTouchData: BarTouchData(
+              touchCallback: (FlTouchEvent event, barTouchResponse) {
+                setState(() {
+                  if (!event.isInterestedForInteractions || barTouchResponse == null || barTouchResponse.spot == null) {
+                    _touchedIndex = -1;
+                    return;
+                  }
+                  _touchedIndex = barTouchResponse.spot!.touchedBarGroupIndex;
+                });
+              },
+              touchTooltipData: BarTouchTooltipData(
+                getTooltipColor: (group) => Colors.blueGrey.withOpacity(0.1),
+                tooltipRoundedRadius: 8,
+                tooltipPadding: const EdgeInsets.all(12),
+                maxContentWidth: 300,
+                tooltipMargin: 8,
+                fitInsideHorizontally: true,
+                fitInsideVertically: true,
+                
+                getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                  final spec = specs[rodIndex];
+                  final timeLabel = (group.x >= 0 && group.x < widget.timeLabels.length) ? widget.timeLabels[group.x] : '';
+                  
+                  // [แก้ไขใหม่] แสดง Header (วันที่/เดือน) ใน *ทุกค่า* (ทุก Rod)
+                  // โดยไม่ต้องเช็ค if (rodIndex == 0) แล้ว
+                  return BarTooltipItem(
+                    '$timeLabel\n',
+                    const TextStyle(color: Color.fromARGB(255, 22, 39, 128), fontWeight: FontWeight.bold, fontSize: 14),
+                    children: [
+                      TextSpan(
+                        text: '${_getSeriesName(spec.index)}: ${rod.toY.toStringAsFixed(2)} ${_getUnit()}',
+                        style: TextStyle(color: spec.color, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            titlesData: _buildTitles(interval, xInterval),
+            gridData: FlGridData(
+              show: true, drawVerticalLine: false, horizontalInterval: interval,
+              getDrawingHorizontalLine: (_) => const FlLine(color: Palette.mediumGrey40, strokeWidth: 0.5),
+            ),
+            borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey.withOpacity(0.2))),
+            barGroups: barGroups,
+          ),
+        ),
       ),
     );
   }
+
+  FlTitlesData _buildTitles(double yInterval, double xInterval) {
+    return FlTitlesData(
+      leftTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true, reservedSize: 50, interval: yInterval,
+          getTitlesWidget: (value, meta) {
+             if (value % yInterval != 0 && value != 0) return const SizedBox();
+             return SideTitleWidget(
+               axisSide: meta.axisSide, space: 4,
+               child: Text(value.toInt().toString(), style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+             );
+          },
+        ),
+      ),
+      bottomTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true, reservedSize: 32, interval: xInterval,
+          getTitlesWidget: (value, meta) {
+            final index = value.toInt();
+            if (index >= 0 && index < widget.timeLabels.length) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(widget.timeLabels[index], style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              );
+            }
+            return const SizedBox();
+          },
+        ),
+      ),
+      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+    );
+  }
+}
+
+class _SeriesSpec {
+  final int index;
+  final String key;
+  final Color color;
+  _SeriesSpec(this.index, this.key, this.color);
 }
