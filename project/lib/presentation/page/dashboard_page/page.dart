@@ -59,13 +59,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 style: TextStyles.myriadProSemiBold32DarkBlue,
               ),
             ),
-            const SizedBox(height: 28),
-            _InformationRow(
-               totalProduction: data.EMS_EnergyProducedFromPV_kWh,
-               gridFeedIn: data.EMS_EnergyFeedFromGrid_kWh,
-               co2Prevention: data.EMS_CO2_Equivalent,
-               netRevenue: (data.GRID_Daily_Export_Energy - data.GRID_Daily_Import_Energy)*4.5, // ตัวอย่าง: รายรับ - รายจ่าย
-            ),
+            
             const SizedBox(height: 22),
             Wrap(
               spacing: 22,
@@ -92,7 +86,20 @@ class _DashboardPageState extends State<DashboardPage> {
                 _WeatherBox(),
               ],
             ),
-            // ...
+            const SizedBox(height: 22),
+            _InformationRow(
+               column1: data.EMS_EnergyConsumption_kWh,
+               column2: data.EMS_EnergyConsumption_Daily,
+               column3: data.EMS_EnergyProducedFromPV_kWh,
+               column4: data.EMS_EnergyProducedFromPV_Daily,
+            ),
+            const SizedBox(height: 22),
+            _InformationRow2(
+               column1: data.EMS_CO2_Equivalent,
+               column2: data.EMS_RenewRatioLifetime,
+               column3: data.EMS_RenewRatioDaily,
+               column4: data.EMS_EnergyProducedFromPV_Daily,
+            ),
           ],
         );
       },

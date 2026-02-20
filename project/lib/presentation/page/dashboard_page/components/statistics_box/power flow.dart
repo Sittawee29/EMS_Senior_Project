@@ -134,14 +134,14 @@ class _PowerFlowState extends State<PowerFlow> with SingleTickerProviderStateMix
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       // Solar (Show Total)
-                      _buildComplexItem('assets/images/solar.png','Production','${solarPower.toStringAsFixed(2)} kW','',Colors.orange),
+                      _buildComplexItem('assets/images/solar.png','PV cells','${solarPower.toStringAsFixed(2)} kW','',Colors.orange),
                       // Grid
                       _buildComplexItem('assets/images/grid.png','Grid',gridText,gridStatus,gridColor), 
                     ],
                   ),
                 ),
                 // --- ส่วนกลาง: House ---
-                _buildItem('assets/images/house.png', '', ''),
+                _buildItem('assets/images/inverter.png', '', ''),
                 // --- ส่วนล่าง: Battery & Consumption ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -149,7 +149,7 @@ class _PowerFlowState extends State<PowerFlow> with SingleTickerProviderStateMix
                     // Battery
                     _buildComplexItem('assets/images/BESS.png','Battery ${bessSOC.toStringAsFixed(1)}%',battText,battStatus,battColor),
                     // Consumption
-                    _buildComplexItem('assets/images/consumption.png','Consumption','${loadPower.toStringAsFixed(2)} kW','',Colors.blue),
+                    _buildComplexItem('assets/images/factory.png','Consumption','${loadPower.toStringAsFixed(2)} kW','',Colors.blue),
                   ],
                 ),
               ],
@@ -177,7 +177,7 @@ class _PowerFlowState extends State<PowerFlow> with SingleTickerProviderStateMix
   Widget _buildItem(String img, String title, String val) {
     return Column(
       children: [
-        Image.asset(img, width: 80, height: 80),
+        Image.asset(img, width: 120, height: 120),
         if (title.isNotEmpty) Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         if (val.isNotEmpty) Text(val),
       ],

@@ -25,6 +25,8 @@ class DashboardData {
   double EMS_EnergyFeedFromGrid_Daily;
   double EMS_SolarPower_kW;
   double EMS_LoadPower_kW;
+  double EMS_RenewRatioDaily;
+  double EMS_RenewRatioLifetime;
   //BESS
   double BESS_SOC;
   double BESS_SOH;
@@ -136,6 +138,8 @@ class DashboardData {
     this.EMS_EnergyFeedFromGrid_Daily = 0.0,
     this.EMS_SolarPower_kW = 0.0,
     this.EMS_LoadPower_kW = 0.0,
+    this.EMS_RenewRatioDaily = 0.0,
+    this.EMS_RenewRatioLifetime = 0.0,
     this.BESS_SOC = 0.0,
     this.BESS_SOH = 0.0,
     this.BESS_V = 0.0,
@@ -242,6 +246,8 @@ class DashboardData {
       EMS_EnergyFeedFromGrid_Daily: (json['EMS_EnergyFeedFromGrid_Daily'] ?? 0).toDouble(),
       EMS_SolarPower_kW: (json['EMS_SolarPower_kW'] ?? 0).toDouble(),
       EMS_LoadPower_kW: (json['EMS_LoadPower_kW'] ?? 0).toDouble(),
+      EMS_RenewRatioDaily: (json['EMS_RenewRatioDaily'] ?? 0).toDouble(),
+      EMS_RenewRatioLifetime: (json['EMS_RenewRatioLifetime'] ?? 0).toDouble(),
       BESS_SOC: (json['BESS_SOC'] ?? 0).toDouble(),
       BESS_SOH: (json['BESS_SOH'] ?? 0).toDouble(),
       BESS_V: (json['BESS_V'] ?? 0).toDouble(),

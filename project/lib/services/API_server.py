@@ -73,6 +73,7 @@ DEFAULT_KEYS = [
     "METER_Export_KVARH", "METER_Export_KWH", "METER_Import_KVARH", "METER_Import_KWH",
     "METER_Total_KVARH", "METER_Hz", "METER_PF",
     "METER_I_Total", "METER_KVAR", "METER_KW_Invert", "METER_Grid_Power_KW",
+    "EMS_RenewRatioDaily","EMS_RenewRatioLifetime",
 
     # --- EMS ---
     "PV_Total_Energy", "PV_Daily_Energy", "Load_Total_Energy", "Load_Daily_Energy",
@@ -109,6 +110,7 @@ UNIT_MAPPING = {
     "METER_Import_KVARH": "kVarh", "METER_Import_KWH": "kWh",
     "METER_Total_KVARH": "kVarh", "METER_Hz": "Hz", "METER_PF": "-",
     "METER_I_Total": "A", "METER_KVAR": "kVar", "METER_KW_Invert": "kW", "METER_Grid_Power_KW": "kW",
+    "EMS_RenewRatioDaily": "%", "EMS_RenewRatioLifetime": "%",
 
     # --- EMS ---
     "PV_Total_Energy": "kWh", "PV_Daily_Energy": "kWh", "Load_Total_Energy": "kWh", "Load_Daily_Energy": "kWh",
@@ -258,6 +260,7 @@ def on_message(client, userdata, msg):
 
         if "{" in payload and "}" in payload:
             try:
+                #print(f"DEBUG: JSON Detected -> {data_json}")
                 data_json = json.loads(payload)
                 
                 def clean_val(v):
@@ -468,14 +471,13 @@ mqtt_client.on_disconnect = on_disconnect
 def get_dashboard_data():
     try:
         pipe = redis_client.pipeline()
-        for k in DEFAULT_KEYS: 
+        for k in DEFAULT_KEYS:
             pipe.get(k)
         values = pipe.execute()
         
         data = {}
         for i, key in enumerate(DEFAULT_KEYS):
             val = values[i]
-            
             if key == "WEATHER_Icon":
                 data[key] = val if val else "01d"
             else:
@@ -483,10 +485,27 @@ def get_dashboard_data():
                     data[key] = round(float(val), 4) if val else 0.0
                 except:
                     data[key] = 0.0
+
+        pv_daily = data.get("EMS_EnergyProducedFromPV_Daily", 0.0)
+        load_daily = data.get("EMS_EnergyConsumption_Daily", 0.0)
+        
+        if load_daily > 0:
+            data["EMS_RenewRatioDaily"] = round(pv_daily / load_daily, 4)
+        else:
+            data["EMS_RenewRatioDaily"] = 0.0
+
+        pv_life = data.get("EMS_EnergyProducedFromPV_kWh", 0.0)
+        load_life = data.get("EMS_EnergyConsumption_kWh", 0.0)
+        
+        if load_life > 0:
+            data["EMS_RenewRatioLifetime"] = round(pv_life / load_life, 4)
+        else:
+            data["EMS_RenewRatioLifetime"] = 0.0
+
         return data
     except Exception as e:
         return {"error": str(e)}
-
+    
 # ==========================================
 # 1. API หาช่วงวันที่ที่มีข้อมูล (Data Range)
 # ==========================================
