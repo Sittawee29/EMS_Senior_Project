@@ -33,26 +33,41 @@ class _WeatherData {
   });
 
   factory _WeatherData.fromServer(Map<String, dynamic> json) {
+
     double getVal(String key) => (json[key] != null) ? (json[key] as num).toDouble() : 0.0;
-    String getStr(String key) => (json[key] != null) ? json[key].toString() : '01d';
+    
+    int getInt(String key) => (json[key] != null) ? (json[key] as num).toInt() : 0;
+    
+    String rawIconCode = (json['WEATHER_Icon'] != null) ? json['WEATHER_Icon'].toString() : '01d';
+    int currentHour = DateTime.now().hour;
+    bool isDaytime = currentHour >= 6 && currentHour <= 17;
+    
+    String finalIconCode = rawIconCode;
+    
+    // ถ้าเป็นกลางคืน แต่โค้ดลงท้ายด้วย 'd' (Day) ให้เปลี่ยนเป็น 'n' (Night)
+    if (!isDaytime && rawIconCode.endsWith('d')) {
+      finalIconCode = rawIconCode.substring(0, rawIconCode.length - 1) + 'n';
+    } 
+    // ถ้าเป็นกลางวัน แต่โค้ดลงท้ายด้วย 'n' (Night) ให้เปลี่ยนเป็น 'd' (Day)
+    else if (isDaytime && rawIconCode.endsWith('n')) {
+      finalIconCode = rawIconCode.substring(0, rawIconCode.length - 1) + 'd';
+    }
 
     return _WeatherData(
       cityName: 'Bangkok',
       temp: getVal('WEATHER_Temp'),
       
       tempMin: getVal('WEATHER_TempMin'), 
-      tempMax: getVal('WEATHER_TempMax'),
+      tempMax: getVal('WEATHER_TempMax'), 
+      feelsLike: getVal('WEATHER_FeelsLike'), 
       
-      feelsLike: getVal('WEATHER_FeelsLike'),
-      description: 'Live Weather',
+      description: 'Clear',
       humidity: getVal('WEATHER_Humidity'),
       windSpeed: getVal('WEATHER_WindSpeed'),
-      pressure: getVal('WEATHER_Pressure').toInt(),
-      iconCode: getStr('WEATHER_Icon'),
-      
-      // [NEW] เปลี่ยนตรงนี้ (แปลง double เป็น int เพราะ timestamp เป็นจำนวนเต็ม)
-      sunrise: getVal('WEATHER_Sunrise').toInt(),
-      sunset: getVal('WEATHER_Sunset').toInt(),
+      pressure: getInt('WEATHER_Pressure'), 
+      iconCode: finalIconCode,
+      sunrise: getInt('WEATHER_Sunrise'), 
+      sunset: getInt('WEATHER_Sunset'),
     );
   }
 }

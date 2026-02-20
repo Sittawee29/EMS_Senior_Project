@@ -98,7 +98,8 @@ DEFAULT_KEYS = [
     "PV2_PowerFactor_Percen", "PV2_ReactivePower", "PV2_ApparentPower", "PV2_Power", "PV2_Communication_Fault",
     "PV3_Total_Power_Yields_Real", "PV3_Total_Apparent_Power_kW", "PV3_Total_Reactive_Power_kW", "PV3_Total_Active_Power_kW",
     "PV4_Total_Power_Yields_Real", "PV4_Total_Apparent_Power_kW", "PV4_Total_Reactive_Power_kW", "PV4_Total_Active_Power_kW",
-    "WEATHER_Temp","WEATHER_TempMin", "WEATHER_TempMax", "WEATHER_Humidity", "WEATHER_WindSpeed"
+    "WEATHER_Temp", "WEATHER_TempMin", "WEATHER_TempMax", "WEATHER_Humidity", "WEATHER_WindSpeed",
+    "WEATHER_Sunrise", "WEATHER_Sunset", "WEATHER_FeelsLike", "WEATHER_Pressure", "WEATHER_Icon"
 ]
 
 UNIT_MAPPING = {
@@ -330,7 +331,7 @@ def weather_loop():
                     "WEATHER_Temp": data['main']['temp'],
                     "WEATHER_TempMin": data['main']['temp_min'],
                     "WEATHER_TempMax": data['main']['temp_max'],
-                    "WEATHER_Sunrise": data['sys']['sunrise'], # เป็น Unix Timestamp (ตัวเลขยาวๆ)
+                    "WEATHER_Sunrise": data['sys']['sunrise'],
                     "WEATHER_Sunset": data['sys']['sunset'],
                     "WEATHER_FeelsLike": data['main']['feels_like'],
                     "WEATHER_Humidity": data['main']['humidity'],
