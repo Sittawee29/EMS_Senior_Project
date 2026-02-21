@@ -22,6 +22,7 @@ from fastapi.responses import StreamingResponse
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 import os # <--- เพิ่ม import os
+from fastapi import APIRouter
 
 class ExportRequest(BaseModel):
     start_time: str
@@ -1328,6 +1329,37 @@ def check_db_tables():
         conn.close()
         return {"status": "ok", "tables": db_structure}
 
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/holidays/{year}")
+def get_holidays(year: str):
+    target_url = f"https://gateway.api.bot.or.th/financial-institutions-holidays/?year={year}"
+    token = "eyJvcmciOiI2NzM1NzgwZWM4YzFlYjAwMDEyYTM3NzEiLCJpZCI6IjNhNGViOGU0YTY5NjQ5ZmJhMDU3MjlmMThiZmRiOTQzIiwiaCI6Im11cm11cjEyOCJ9"
+    
+    current_headers = {
+        'X-IBM-Client-Id': token,
+        'Authorization': f'Bearer {token}',
+        'accept': 'application/json'
+    }
+
+    try:
+        resp = requests.get(target_url, headers=current_headers, timeout=10)
+        
+        if resp.status_code == 200:
+            res_data = resp.json()
+            h_list = res_data.get('result', {}).get('data', [])
+            h_dates = [
+                d.get('Date') for d in h_list 
+                if d.get('Date') and d.get('Date') != f"{year}-01-02"
+            ]
+            # ----------------------------------------------
+
+            print(f"DEBUG: Found {len(h_dates)} holidays (Excluded Jan 2nd)")
+            return {"status": "ok", "holidays": h_dates}
+        else:
+            return {"status": "error", "message": f"BOT API Error {resp.status_code}"}
+            
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

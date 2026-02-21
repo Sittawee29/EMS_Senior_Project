@@ -43,12 +43,13 @@ class _HCurveState extends State<HCurve> {
         return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     }
   }
-
+  List<String> _holidayDates = [];
   @override
   void initState() {
     super.initState();
     _fetchDataRange(); // 1. หาขอบเขตข้อมูลก่อน
     _loadData();       // 2. โหลดข้อมูลกราฟ
+    _fetchHolidays();
     _refreshTimer = Timer.periodic(const Duration(minutes: 5), (_) => _loadData());
   }
 
@@ -125,45 +126,21 @@ class _HCurveState extends State<HCurve> {
 
   // --- [ใหม่] ฟังก์ชันเปิดปฏิทิน (Calendar) ---
   Future<void> _showCalendar() async {
-    // 1. ถ้าเป็น Monthly ให้ใช้ Dialog เลือกเดือนแบบพิเศษที่เราสร้าง
-    if (_selectedPeriod == TimePeriod.monthly) {
-      await _showMonthPicker(context);
-      return;
-    }
-
-    // 2. ถ้าเป็น Daily หรือ Yearly ใช้ของเดิม
-    final DateTime firstDate = _minDataDate ?? DateTime(2020);
-    final DateTime lastDate = _maxDataDate ?? DateTime.now();
-
-    DatePickerMode initialMode = DatePickerMode.day;
-    if (_selectedPeriod == TimePeriod.yearly) {
-       initialMode = DatePickerMode.year; 
-    }
-
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _currentDate,
-      firstDate: firstDate,
-      lastDate: lastDate,
-      initialDatePickerMode: initialMode,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: Palette.lightBlue),
-          ),
-          child: child!,
-        );
-      },
+      firstDate: _minDataDate ?? DateTime(2020),
+      lastDate: _maxDataDate ?? DateTime(2030),
     );
 
-    if (picked != null) {
+    if (picked != null && picked != _currentDate) {
       setState(() {
         _currentDate = picked;
       });
       _loadData();
+      _fetchHolidays(); // โหลดวันหยุดใหม่เผื่อเลือกข้ามปี
     }
   }
-
 
   Future<void> _showMonthPicker(BuildContext context) async {
     final DateTime firstDate = _minDataDate ?? DateTime(2020);
@@ -256,10 +233,37 @@ class _HCurveState extends State<HCurve> {
     );
 
     if (picked != null) {
+      bool isYearChanged = _currentDate.year != picked.year;
+
       setState(() {
         _currentDate = picked;
       });
+      
       _loadData();
+      
+      if (isYearChanged) {
+        _fetchHolidays();
+      }
+    }
+  }
+
+  Future<void> _fetchHolidays() async {
+    final year = _currentDate.year.toString();
+    final url = Uri.parse('http://$serverIp:$serverPort/api/holidays/$year');
+    
+    try {
+      final response = await http.get(url).timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'ok') {
+          setState(() {
+            _holidayDates = List<String>.from(data['holidays']);
+          });
+          print("Holidays loaded: $_holidayDates");
+        }
+      }
+    } catch (e) {
+      print("Error fetching holidays: $e");
     }
   }
 
@@ -376,6 +380,9 @@ class _HCurveState extends State<HCurve> {
                 graphType: _selectedType,
                 selectedPeriod: _selectedPeriod,
                 hiddenIndices: _hiddenIndices,
+                holidayDates: _holidayDates,
+                currentDate: _currentDate,
+                
               ),
 
         const SizedBox(height: 20),
@@ -591,6 +598,8 @@ class _ChartDisplay extends StatefulWidget {
   final GraphType graphType;
   final TimePeriod selectedPeriod;
   final Set<int> hiddenIndices;
+  final List<String> holidayDates;
+  final DateTime currentDate;
 
   const _ChartDisplay({
     required this.timeLabels,
@@ -598,6 +607,8 @@ class _ChartDisplay extends StatefulWidget {
     required this.graphType,
     required this.selectedPeriod,
     required this.hiddenIndices,
+    required this.holidayDates,
+    required this.currentDate,
   });
 
   @override
@@ -970,9 +981,30 @@ class _ChartDisplayState extends State<_ChartDisplay> {
           getTitlesWidget: (value, meta) {
             final index = value.toInt();
             if (index >= 0 && index < widget.timeLabels.length) {
+              String currentLabel = widget.timeLabels[index];
+              bool isHoliday = false;
+
+              // --- แปลงป้ายกำกับเป็นวันที่ YYYY-MM-DD เพื่อไปเช็คกับวันหยุด ---
+              if (widget.selectedPeriod == TimePeriod.monthly) {
+                String yearStr = widget.currentDate.year.toString();
+                String monthStr = widget.currentDate.month.toString().padLeft(2, '0');
+                String dayStr = currentLabel.padLeft(2, '0');
+                String fullDateStr = "$yearStr-$monthStr-$dayStr";
+                
+                isHoliday = widget.holidayDates.contains(fullDateStr);
+              }
+
               return Padding(
                 padding: const EdgeInsets.only(top: 8.0),
-                child: Text(widget.timeLabels[index], style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                child: Text(
+                  currentLabel, 
+                  style: TextStyle(
+                    fontSize: 10, 
+                    // ถ้าเป็นวันหยุดให้แดง ถ้าไม่ใช่ให้เทา
+                    color: isHoliday ? Colors.red : Colors.grey,
+                    fontWeight: isHoliday ? FontWeight.bold : FontWeight.normal,
+                  )
+                ),
               );
             }
             return const SizedBox();
