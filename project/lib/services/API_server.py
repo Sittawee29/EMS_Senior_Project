@@ -1349,14 +1349,21 @@ def get_holidays(year: str):
         if resp.status_code == 200:
             res_data = resp.json()
             h_list = res_data.get('result', {}).get('data', [])
-            h_dates = [
-                d.get('Date') for d in h_list 
-                if d.get('Date') and d.get('Date') != f"{year}-01-02"
-            ]
-            # ----------------------------------------------
+            
+            h_dates = []
+            h_details = {}
+            
+            for d in h_list:
+                date_str = d.get('Date')
+                if date_str and date_str != f"{year}-01-02":
+                    h_dates.append(date_str)
+                    h_details[date_str] = d.get('HolidayDescriptionThai', 'วันหยุด')
 
             print(f"DEBUG: Found {len(h_dates)} holidays (Excluded Jan 2nd)")
-            return {"status": "ok", "holidays": h_dates}
+            return {
+                "status": "ok",
+                "holidays": h_dates,
+                "holiday_details": h_details}
         else:
             return {"status": "error", "message": f"BOT API Error {resp.status_code}"}
             

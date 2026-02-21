@@ -24,7 +24,215 @@ class _HCurveState extends State<HCurve> {
 
   // --- [ใหม่] ตัวแปรเก็บ index ที่ต้องการซ่อน ---
   final Set<int> _hiddenIndices = {};
+  // 1. ฟังก์ชันเช็คว่า "มีข้อมูลให้เลือกหรือไม่"
+  bool _hasData(DateTime day) {
+    // สมมติว่าตอนนี้เช็คจาก _minDataDate และ _maxDataDate
+    // (ถ้าในอนาคตคุณมี List วันที่ที่มีข้อมูลจาก Database สามารถนำมาเช็คตรงนี้ได้เลย)
+    if (_minDataDate == null || _maxDataDate == null) return true;
+    
+    DateTime dateOnly = DateTime(day.year, day.month, day.day);
+    DateTime minOnly = DateTime(_minDataDate!.year, _minDataDate!.month, _minDataDate!.day);
+    DateTime maxOnly = DateTime(_maxDataDate!.year, _maxDataDate!.month, _maxDataDate!.day);
+    
+    return dateOnly.compareTo(minOnly) >= 0 && dateOnly.compareTo(maxOnly) <= 0;
+  }
 
+  // 2. ฟังก์ชันแปลชื่อเดือนเป็นภาษาไทย/อังกฤษ ให้ดูสวยงาม
+  String _getMonthName(int month) {
+    const months = ["", "January", "February", "March", "April", "May", "June", 
+                    "July", "August", "September", "October", "November", "December"];
+    return months[month];
+  }
+
+  // 3. ฟังก์ชันสร้าง Custom Calendar ตัวใหม่
+  Future<void> _showCustomCalendar() async {
+    // ใช้ viewMonth เพื่อให้เลื่อนดูเดือนอื่นได้โดยที่กราฟยังไม่เปลี่ยน
+    DateTime viewMonth = DateTime(_currentDate.year, _currentDate.month, 1);
+    const List<String> weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            // คำนวณวันในเดือน
+            DateTime firstDay = DateTime(viewMonth.year, viewMonth.month, 1);
+            DateTime lastDay = DateTime(viewMonth.year, viewMonth.month + 1, 0);
+            int daysInMonth = lastDay.day;
+            int firstWeekday = firstDay.weekday == 7 ? 0 : firstDay.weekday; // ให้ Sunday = 0
+
+            // ดึงรายการวันหยุดเฉพาะของเดือนที่กำลังดูอยู่
+            String viewMonthStr = "${viewMonth.year}-${viewMonth.month.toString().padLeft(2, '0')}";
+            List<String> holidaysInThisMonth = _holidayDates.where((date) => date.startsWith(viewMonthStr)).toList();
+
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Container(
+                width: 350,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min, // ให้กล่องยืดตามเนื้อหา
+                  children: [
+                    // --- ส่วนหัว (เลือกเดือน/ปี) ---
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.chevron_left),
+                          onPressed: () {
+                            setDialogState(() {
+                              viewMonth = DateTime(viewMonth.year, viewMonth.month - 1, 1);
+                            });
+                            // สามารถเรียก API วันหยุดล่วงหน้าได้ถ้าข้ามปี
+                          },
+                        ),
+                        Text(
+                          "${_getMonthName(viewMonth.month)} ${viewMonth.year}",
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.chevron_right),
+                          onPressed: () {
+                            setDialogState(() {
+                              viewMonth = DateTime(viewMonth.year, viewMonth.month + 1, 1);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // --- ส่วนหัวตารางวัน (Su, Mo, Tu...) ---
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: weekdays.map((w) => SizedBox(
+                        width: 30,
+                        child: Text(w, textAlign: TextAlign.center, 
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold, 
+                            color: (w == 'Sun' || w == 'Sat') ? Colors.red : Colors.grey[700]
+                          )),
+                      )).toList(),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // --- ส่วนตารางวันที่ ---
+                    GridView.builder(
+                      shrinkWrap: true, // สำคัญ! เพื่อไม่ให้ GridView ทะลุ Dialog
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 7,
+                        childAspectRatio: 1.2,
+                      ),
+                      itemCount: daysInMonth + firstWeekday,
+                      itemBuilder: (context, index) {
+                        if (index < firstWeekday) return const SizedBox();
+
+                        int dayNum = index - firstWeekday + 1;
+                        DateTime dayDate = DateTime(viewMonth.year, viewMonth.month, dayNum);
+                        
+                        bool isRed = _isRedDay(dayDate);
+                        bool hasData = _hasData(dayDate); // มีข้อมูลให้เลือกไหม?
+                        bool isSelected = dayDate.year == _currentDate.year && 
+                                          dayDate.month == _currentDate.month && 
+                                          dayDate.day == _currentDate.day;
+
+                        Color textColor;
+                        if (isSelected) {
+                          textColor = Colors.white; // สีขาวถ้าถูกเลือกอยู่
+                        } else if (isRed) {
+                          // วันหยุด: ถ้ามีข้อมูลเป็นแดงเข้ม ถ้าไม่มีเป็นแดงอ่อน
+                          textColor = hasData ? Colors.red : Colors.red.shade300; 
+                        } else {
+                          // วันปกติ: ถ้ามีข้อมูลเป็นดำ ถ้าไม่มีเป็นเทาอ่อน
+                          textColor = hasData ? Colors.black : Colors.grey.shade700;
+                        }
+
+                        return InkWell(
+                          onTap: hasData ? () {
+                            setState(() { _currentDate = dayDate; });
+                            _loadData();
+                            Navigator.pop(context);
+                          } : null,
+                          child: Container(
+                            alignment: Alignment.center,
+                            margin: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.blue : null,
+                              borderRadius: BorderRadius.circular(8),
+                              border: isSelected ? null : Border.all(color: Colors.transparent),
+                            ),
+                            child: Text(
+                              "$dayNum",
+                              style: TextStyle(
+                                color: textColor,
+                                fontWeight: (isRed || isSelected) ? FontWeight.bold : FontWeight.normal,
+                                // เอาเส้นขีดฆ่าออกแล้ว
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    
+                    const Divider(height: 20, thickness: 1),
+
+                    // --- ส่วน List แสดงวันหยุดด้านล่าง ---
+                    Container(
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("วันหยุดในเดือนนี้:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                          const SizedBox(height: 5),
+                          holidaysInThisMonth.isEmpty 
+                            ? const Text("- ไม่มีวันหยุดพิเศษ -", style: TextStyle(color: Colors.grey, fontSize: 12))
+                            : ConstrainedBox(
+                                constraints: const BoxConstraints(maxHeight: 100), // จำกัดความสูงของ List
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  itemCount: holidaysInThisMonth.length,
+                                  itemBuilder: (context, idx) {
+                                    String hDateStr = holidaysInThisMonth[idx];
+                                    int dNum = int.parse(hDateStr.split('-')[2]);
+                                    
+                                    // --- ดึงชื่อวันหยุดจาก Map ที่เราเตรียมไว้ ---
+                                    String hName = _holidayDetails[hDateStr] ?? 'วันหยุดพิเศษ';
+
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 6.0),
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start, // ดันไอคอนให้อยู่บรรทัดบนสุดเผื่อชื่อยาว
+                                        children: [
+                                          const Padding(
+                                            padding: EdgeInsets.only(top: 5.0),
+                                            child: Icon(Icons.circle, size: 6, color: Colors.red),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              "วันที่ $dNum: $hName", // แสดงรูปแบบ "วันที่ 13: วันสงกรานต์"
+                                              style: const TextStyle(fontSize: 13, color: Colors.red)
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
   // --- 1. แก้ไข: เปลี่ยน _timeLabels จากตัวแปรคงที่ เป็น Getter ที่เปลี่ยนตาม Period ---
   List<String> get _currentLabels {
     switch (_selectedPeriod) {
@@ -36,14 +244,16 @@ class _HCurveState extends State<HCurve> {
           return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
         });
       case TimePeriod.monthly:
-        // สร้างเลข 1 ถึง 31
-        return List.generate(31, (index) => (index + 1).toString());
+        int daysInMonth = DateTime(_currentDate.year, _currentDate.month + 1, 0).day;
+        
+        return List.generate(daysInMonth, (index) => (index + 1).toString());
       case TimePeriod.yearly:
         // ชื่อเดือนย่อ
         return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     }
   }
   List<String> _holidayDates = [];
+  Map<String, String> _holidayDetails = {};
   @override
   void initState() {
     super.initState();
@@ -121,24 +331,6 @@ class _HCurveState extends State<HCurve> {
     } catch (e) {
       debugPrint("Error loading data: $e");
       if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  // --- [ใหม่] ฟังก์ชันเปิดปฏิทิน (Calendar) ---
-  Future<void> _showCalendar() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _currentDate,
-      firstDate: _minDataDate ?? DateTime(2020),
-      lastDate: _maxDataDate ?? DateTime(2030),
-    );
-
-    if (picked != null && picked != _currentDate) {
-      setState(() {
-        _currentDate = picked;
-      });
-      _loadData();
-      _fetchHolidays(); // โหลดวันหยุดใหม่เผื่อเลือกข้ามปี
     }
   }
 
@@ -258,6 +450,9 @@ class _HCurveState extends State<HCurve> {
         if (data['status'] == 'ok') {
           setState(() {
             _holidayDates = List<String>.from(data['holidays']);
+            if (data['holiday_details'] != null) {
+              _holidayDetails = Map<String, String>.from(data['holiday_details']);
+            }
           });
           print("Holidays loaded: $_holidayDates");
         }
@@ -338,7 +533,7 @@ class _HCurveState extends State<HCurve> {
                     borderRadius: BorderRadius.circular(8),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(8),
-                      onTap: _showCalendar, // ย้ายคำสั่งกดมาไว้ตรงนี้ (ครอบทั้งปุ่ม)
+                      onTap: _showCustomCalendar, // ย้ายคำสั่งกดมาไว้ตรงนี้ (ครอบทั้งปุ่ม)
                       child: Container(
                         height: 36,
                         padding: const EdgeInsets.symmetric(horizontal: 8), // ระยะห่างภายใน
@@ -543,6 +738,16 @@ class _HCurveState extends State<HCurve> {
       ),
     );
   }
+
+  bool _isRedDay(DateTime day) {
+  // 1. เช็ควันเสาร์-อาทิตย์ (6 = Saturday, 7 = Sunday)
+  if (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday) {
+    return true;
+  }
+  // 2. เช็คจากรายการวันหยุด API (รูปแบบ YYYY-MM-DD)
+  String formatted = "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
+  return _holidayDates.contains(formatted);
+}
 
   Widget _buildLegend() {
     List<Widget> items = [];
@@ -809,7 +1014,8 @@ class _ChartDisplayState extends State<_ChartDisplay> {
         padding: const EdgeInsets.only(left: 32.0, right: 32.0, top: 10.0),
         child: LineChart(
           LineChartData(
-            minX: 0, maxX: maxX,
+            minX: 0, maxX: (widget.timeLabels.length - 1).toDouble(),
+            clipData: const FlClipData.all(),
             minY: minY, maxY: maxY,
             lineTouchData: LineTouchData(
               handleBuiltInTouches: true,
@@ -986,12 +1192,16 @@ class _ChartDisplayState extends State<_ChartDisplay> {
 
               // --- แปลงป้ายกำกับเป็นวันที่ YYYY-MM-DD เพื่อไปเช็คกับวันหยุด ---
               if (widget.selectedPeriod == TimePeriod.monthly) {
-                String yearStr = widget.currentDate.year.toString();
-                String monthStr = widget.currentDate.month.toString().padLeft(2, '0');
-                String dayStr = currentLabel.padLeft(2, '0');
-                String fullDateStr = "$yearStr-$monthStr-$dayStr";
-                
-                isHoliday = widget.holidayDates.contains(fullDateStr);
+                int dayInt = int.tryParse(currentLabel) ?? 0;
+                if (dayInt > 0) {
+                  DateTime dayDate = DateTime(widget.currentDate.year, widget.currentDate.month, dayInt);
+                  
+                  // เช็คทั้งวันหยุดจาก API และ เสาร์-อาทิตย์
+                  bool isWeekend = dayDate.weekday == DateTime.saturday || dayDate.weekday == DateTime.sunday;
+                  String fullStr = "${dayDate.year}-${dayDate.month.toString().padLeft(2, '0')}-${dayDate.day.toString().padLeft(2, '0')}";
+                  
+                  isHoliday = isWeekend || widget.holidayDates.contains(fullStr);
+                }
               }
 
               return Padding(
