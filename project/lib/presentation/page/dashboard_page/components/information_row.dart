@@ -7,47 +7,89 @@ class _InformationRow extends StatelessWidget {
   final double column3;
   final double column4;
 
+  final DateTime currentDate;
+  final ValueChanged<DateTime> onDateSelected;
+  final List<String> holidayDates;
+  final Map<String, String> holidayDetails;
+
   // Constructor ต้องรับ 4 ตัว (required)
   const _InformationRow({
     required this.column1,
     required this.column2,
     required this.column3,
     required this.column4,
+
+    required this.currentDate,
+    required this.onDateSelected,
+    this.holidayDates = const [],
+    this.holidayDetails = const {},
   });
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 22,
-      runSpacing: 22,
-      children: <Widget>[
-        _InformationBox(
-          icon: Icon(Icons.electrical_services,color: Colors.black,),
-          backgroundColor: Palette.orange.withOpacity(0.1),
-          number: column1/1000,
-          unit: 'MWh', 
-          text: 'Lifetime Total Consumption',
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _CalendarBox(
+          initialDate: currentDate, 
+          holidayDates: holidayDates,
+          holidayDetails: holidayDetails,
+          onDateSelected: onDateSelected, 
         ),
-        _InformationBox(
-          icon: Icon(Icons.electrical_services,color: Colors.black,),
-          backgroundColor: Palette.lightPurple.withOpacity(0.8),
-          number: column2,
-          unit: 'kWh',
-          text: 'Daily Consumption',
-        ),
-        _InformationBox(
-          icon: Icon(Icons.solar_power,color: Colors.black,),
-          backgroundColor: Palette.green.withOpacity(0.2),
-          number: column3/1000,
-          unit: 'MWh',
-          text: 'Lifetime Total Production',
-        ),
-        _InformationBox(
-          icon: Icon(Icons.solar_power,color: Colors.black,),
-          backgroundColor: Palette.yellow.withOpacity(0.2),
-          number: column4,
-          unit: 'kWh',
-          text: 'Daily Production',
+
+        const SizedBox(width: 22),
+        Expanded( // ใช้ Expanded เพื่อให้กล่องข้อมูลขยายเต็มพื้นที่ที่เหลือ
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _InformationBox(
+                      icon: const Icon(Icons.electrical_services, color: Colors.black),
+                      backgroundColor: Palette.orange.withOpacity(0.1),
+                      number: column1 / 1000,
+                      unit: 'MWh', 
+                      text: 'Lifetime Total Consumption',
+                    ),
+                  ),
+                  const SizedBox(width: 22), // ระยะห่างระหว่างกล่องซ้าย-ขวา
+                  Expanded(
+                    child: _InformationBox(
+                      icon: const Icon(Icons.electrical_services, color: Colors.black),
+                      backgroundColor: Palette.lightPurple.withOpacity(0.8),
+                      number: column2,
+                      unit: 'kWh',
+                      text: 'Daily Consumption',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              Row(
+                children: [
+                  Expanded(
+                    child: _InformationBox(
+                      icon: const Icon(Icons.solar_power, color: Colors.black),
+                      backgroundColor: Palette.green.withOpacity(0.2),
+                      number: column3 / 1000,
+                      unit: 'MWh',
+                      text: 'Lifetime Total Production',
+                    ),
+                  ),
+                  const SizedBox(width: 22),
+                  Expanded(
+                    child: _InformationBox(
+                      icon: const Icon(Icons.solar_power, color: Colors.black),
+                      backgroundColor: Palette.yellow.withOpacity(0.2),
+                      number: column4,
+                      unit: 'kWh',
+                      text: 'Daily Production',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -65,6 +107,7 @@ class _InformationRow2 extends StatelessWidget {
     required this.column2,
     required this.column3,
     required this.column4,
+
   });
 
   @override
@@ -93,6 +136,13 @@ class _InformationRow2 extends StatelessWidget {
           number: column3*100,
           unit: '%',
           text: 'RE Daily Ratio',
+        ),
+        _InformationBox(
+          icon: Icon(Icons.battery_charging_full_outlined,color: Colors.black,),
+          backgroundColor: Palette.green.withOpacity(0.2),
+          number: column4,
+          unit: '%',
+          text: 'BESS SOC',
         ),
       ],
     );

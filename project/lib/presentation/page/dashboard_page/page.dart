@@ -3,7 +3,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../theme/gen/assets.gen.dart';
 import '../../theme/palette.dart';
 import '../../theme/text_styles.dart';
 import '../../widget/name_and_color_row.dart';
@@ -32,13 +31,42 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  static const String serverIp = 'localhost'; 
+  static const String serverPort = '8000';
   final MqttService _mqttService = MqttService();
+  DateTime _currentDate = DateTime.now();
+  List<String> _holidayDates = [];
+  Map<String, String> _holidayDetails = {};
 
   @override
   void initState() {
     super.initState();
     // เริ่มเชื่อมต่อเมื่อเข้าหน้านี้
     _mqttService.connect();
+    _fetchHolidays();
+  }
+
+  Future<void> _fetchHolidays() async {
+    final year = _currentDate.year.toString();
+    final url = Uri.parse('http://$serverIp:$serverPort/api/holidays/$year');
+    
+    try {
+      final response = await http.get(url).timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'ok') {
+          setState(() {
+            _holidayDates = List<String>.from(data['holidays']);
+            if (data['holiday_details'] != null) {
+              _holidayDetails = Map<String, String>.from(data['holiday_details']);
+            }
+          });
+          print("Holidays loaded: $_holidayDates");
+        }
+      }
+    } catch (e) {
+      print("Error fetching holidays: $e");
+    }
   }
 
   @override
@@ -88,17 +116,25 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
             const SizedBox(height: 22),
             _InformationRow(
-               column1: data.EMS_EnergyConsumption_kWh,
-               column2: data.EMS_EnergyConsumption_Daily,
-               column3: data.EMS_EnergyProducedFromPV_kWh,
-               column4: data.EMS_EnergyProducedFromPV_Daily,
+              currentDate: _currentDate,
+              holidayDates: _holidayDates,
+              holidayDetails: _holidayDetails,
+              onDateSelected: (newDate) {
+                setState(() {
+                  _currentDate = newDate;
+                });
+              },
+              column1: data.EMS_EnergyConsumption_kWh,
+              column2: data.EMS_EnergyConsumption_Daily,
+              column3: data.EMS_EnergyProducedFromPV_kWh,
+              column4: data.EMS_EnergyProducedFromPV_Daily,
             ),
             const SizedBox(height: 22),
             _InformationRow2(
-               column1: data.EMS_CO2_Equivalent,
-               column2: data.EMS_RenewRatioLifetime,
-               column3: data.EMS_RenewRatioDaily,
-               column4: data.EMS_EnergyProducedFromPV_Daily,
+              column1: data.EMS_CO2_Equivalent,
+              column2: data.EMS_RenewRatioLifetime,
+              column3: data.EMS_RenewRatioDaily,
+              column4: data.BESS_SOC,
             ),
           ],
         );
