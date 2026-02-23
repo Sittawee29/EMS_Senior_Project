@@ -208,6 +208,167 @@ class _HCurveState extends State<HCurve> {
       },
     );
   }
+
+  Future<void> _showMonthPicker() async {
+    int viewYear = _currentDate.year;
+    const List<String> shortMonths = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Container(
+                width: 320,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.chevron_left),
+                          onPressed: () => setDialogState(() => viewYear--),
+                        ),
+                        Text(
+                          "$viewYear",
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.chevron_right),
+                          onPressed: () => setDialogState(() => viewYear++),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        childAspectRatio: 1.5,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                      ),
+                      itemCount: 12,
+                      itemBuilder: (context, index) {
+                        int monthNum = index + 1;
+                        bool isSelected = viewYear == _currentDate.year && monthNum == _currentDate.month;
+                        
+                        return InkWell(
+                          onTap: () {
+                            setState(() {
+                              _currentDate = DateTime(viewYear, monthNum, 1);
+                            });
+                            _loadData();
+                            Navigator.pop(context);
+                          },
+                          child: Container(
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.blue : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              shortMonths[index],
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : Colors.black87,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showYearPicker() async {
+    int currentYear = DateTime.now().year;
+    int minYear = _minDataDate?.year ?? (currentYear - 5);
+    int maxYear = _maxDataDate?.year ?? currentYear;
+    if (minYear > maxYear) minYear = maxYear - 5;
+    
+    List<int> years = List.generate(maxYear - minYear + 1, (index) => maxYear - index);
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            width: 320,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Select Year",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 300),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      childAspectRatio: 1.5,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                    ),
+                    itemCount: years.length,
+                    itemBuilder: (context, index) {
+                      int year = years[index];
+                      bool isSelected = year == _currentDate.year;
+
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            _currentDate = DateTime(year, 1, 1);
+                          });
+                          _loadData();
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: isSelected ? Colors.blue : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            "$year",
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black87,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   List<String> get _currentLabels {
     switch (_selectedPeriod) {
       case TimePeriod.daily:
@@ -395,7 +556,15 @@ class _HCurveState extends State<HCurve> {
                     borderRadius: BorderRadius.circular(8),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(8),
-                      onTap: _showCustomCalendar,
+                      onTap: () {
+                        if (_selectedPeriod == TimePeriod.daily) {
+                          _showCustomCalendar();
+                        } else if (_selectedPeriod == TimePeriod.monthly) {
+                          _showMonthPicker();
+                        } else if (_selectedPeriod == TimePeriod.yearly) {
+                          _showYearPicker();
+                        }
+                      },
                       child: Container(
                         height: 36,
                         padding: const EdgeInsets.symmetric(horizontal: 8),
