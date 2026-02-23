@@ -942,7 +942,15 @@ class _ChartDisplayState extends State<_ChartDisplay> {
     }
 
     List<FlSpot> spots = [];
-    int maxPoints = widget.selectedPeriod == TimePeriod.daily ? 288 : (widget.selectedPeriod == TimePeriod.monthly ? 31 : 12);
+    int maxPoints;
+    if (widget.selectedPeriod == TimePeriod.daily) {
+      maxPoints = 288;
+    } else if (widget.selectedPeriod == TimePeriod.monthly) {
+      maxPoints = DateTime(widget.currentDate.year, widget.currentDate.month + 1, 0).day;
+    } else {
+      maxPoints = 12;
+    }
+
     for (int i = 0; i < maxPoints; i++) {
       if (map.containsKey(i)) {
         spots.add(FlSpot(i.toDouble(), map[i]!));
@@ -993,13 +1001,33 @@ class _ChartDisplayState extends State<_ChartDisplay> {
       if (minY == maxY) maxY += interval;
     }
 
+    double minX = 0;
     double maxX;
     double xInterval;
+
     if (widget.selectedPeriod == TimePeriod.daily) {
-      maxX = 288;
-      xInterval = 24;
+      // หาจุดต่ำสุดและสูงสุดของแกน X จากข้อมูลที่มีอยู่จริง
+      if (allPoints.isNotEmpty) {
+        minX = allPoints.map((e) => e.x).reduce(min);
+        maxX = allPoints.map((e) => e.x).reduce(max);
+        if (minX == maxX) maxX = minX + 1; // ป้องกัน Error กรณีมีจุดข้อมูลแค่จุดเดียว
+      } else {
+        maxX = (widget.timeLabels.length - 1).toDouble();
+      }
+      
+      // ปรับความถี่ในการแสดง Label ตามช่วงเวลาที่เหลืออยู่
+      double xRange = maxX - minX;
+      if (xRange <= 12) {
+        xInterval = 2; // ประมาณ 10 นาที
+      } else if (xRange <= 36) {
+        xInterval = 6; // ประมาณ 30 นาที
+      } else if (xRange <= 72) {
+        xInterval = 12; // ประมาณ 1 ชั่วโมง
+      } else {
+        xInterval = 24; // 2 ชั่วโมง
+      }
     } else if (widget.selectedPeriod == TimePeriod.monthly) {
-      maxX = 31;
+      maxX = (widget.timeLabels.length - 1).toDouble(); 
       xInterval = 5;
     } else {
       maxX = 12;
@@ -1007,7 +1035,8 @@ class _ChartDisplayState extends State<_ChartDisplay> {
     }
 
     if (widget.selectedPeriod == TimePeriod.daily) {
-      return _buildLineChart(specs, seriesDataMap, minY, maxY, interval, maxX, xInterval);
+      // ส่ง minX และ maxX เข้าไปวาดกราฟเส้น
+      return _buildLineChart(specs, seriesDataMap, minY, maxY, interval, minX, maxX, xInterval);
     } else {
       return _buildBarChart(specs, seriesDataMap, minY, maxY, interval, maxX, xInterval);
     }
@@ -1017,7 +1046,7 @@ class _ChartDisplayState extends State<_ChartDisplay> {
     List<_SeriesSpec> specs,
     Map<int, List<FlSpot>> seriesDataMap,
     double minY, double maxY, double interval,
-    double maxX, double xInterval
+    double minX, double maxX, double xInterval
   ) {
     List<LineChartBarData> lines = specs.map((s) {
       return LineChartBarData(
@@ -1037,7 +1066,8 @@ class _ChartDisplayState extends State<_ChartDisplay> {
         padding: const EdgeInsets.only(left: 32.0, right: 32.0, top: 10.0),
         child: LineChart(
           LineChartData(
-            minX: 0, maxX: (widget.timeLabels.length - 1).toDouble(),
+            minX: minX, 
+            maxX: maxX, 
             clipData: const FlClipData.all(),
             minY: minY, maxY: maxY,
             lineTouchData: LineTouchData(
@@ -1100,7 +1130,7 @@ class _ChartDisplayState extends State<_ChartDisplay> {
     double maxX, double xInterval
   ) {
     List<BarChartGroupData> barGroups = [];
-    int xCount = widget.selectedPeriod == TimePeriod.monthly ? 31 : 12;
+    int xCount = widget.selectedPeriod == TimePeriod.monthly ? widget.timeLabels.length : 12;
     double barWidth = 12.0 / (specs.isEmpty ? 1 : specs.length);
     if (barWidth > 16) barWidth = 16;
 
@@ -1125,6 +1155,7 @@ class _ChartDisplayState extends State<_ChartDisplay> {
         padding: const EdgeInsets.only(left: 32.0, right: 32.0, top: 10.0),
         child: BarChart(
           BarChartData(
+            alignment: BarChartAlignment.spaceBetween, 
             maxY: maxY, minY: minY,
             extraLinesData: ExtraLinesData(
               verticalLines: [
