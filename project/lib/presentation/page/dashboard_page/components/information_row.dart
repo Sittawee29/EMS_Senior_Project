@@ -1,7 +1,6 @@
 part of '../page.dart';
 
 class _InformationRow extends StatelessWidget {
-  // ประกาศตัวแปร 4 ตัว
   final double column1;
   final double column2;
   final double column3;
@@ -12,7 +11,6 @@ class _InformationRow extends StatelessWidget {
   final List<String> holidayDates;
   final Map<String, String> holidayDetails;
 
-  // Constructor ต้องรับ 4 ตัว (required)
   const _InformationRow({
     required this.column1,
     required this.column2,
@@ -38,7 +36,7 @@ class _InformationRow extends StatelessWidget {
         ),
 
         const SizedBox(width: 22),
-        Expanded( // ใช้ Expanded เพื่อให้กล่องข้อมูลขยายเต็มพื้นที่ที่เหลือ
+        Expanded(
           child: Column(
             children: [
               Row(

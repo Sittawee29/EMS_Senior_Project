@@ -15,19 +15,15 @@ class _HCurveState extends State<HCurve> {
   static const String serverPort = '8000';
   GraphType _selectedType = GraphType.power;
   TimePeriod _selectedPeriod = TimePeriod.daily;
-  DateTime _currentDate = DateTime.now(); // วันที่ที่เลือกปัจจุบัน (Default: Today)
-  DateTime? _minDataDate; // วันแรกที่มีข้อมูลใน DB
-  DateTime? _maxDataDate; // วันสุดท้ายที่มีข้อมูลใน DB
+  DateTime _currentDate = DateTime.now();
+  DateTime? _minDataDate;
+  DateTime? _maxDataDate;
   List<Map<String, dynamic>> _historyData = [];
   bool _isLoading = true;
   Timer? _refreshTimer;
 
-  // --- [ใหม่] ตัวแปรเก็บ index ที่ต้องการซ่อน ---
   final Set<int> _hiddenIndices = {};
-  // 1. ฟังก์ชันเช็คว่า "มีข้อมูลให้เลือกหรือไม่"
   bool _hasData(DateTime day) {
-    // สมมติว่าตอนนี้เช็คจาก _minDataDate และ _maxDataDate
-    // (ถ้าในอนาคตคุณมี List วันที่ที่มีข้อมูลจาก Database สามารถนำมาเช็คตรงนี้ได้เลย)
     if (_minDataDate == null || _maxDataDate == null) return true;
     
     DateTime dateOnly = DateTime(day.year, day.month, day.day);
@@ -37,16 +33,13 @@ class _HCurveState extends State<HCurve> {
     return dateOnly.compareTo(minOnly) >= 0 && dateOnly.compareTo(maxOnly) <= 0;
   }
 
-  // 2. ฟังก์ชันแปลชื่อเดือนเป็นภาษาไทย/อังกฤษ ให้ดูสวยงาม
   String _getMonthName(int month) {
     const months = ["", "January", "February", "March", "April", "May", "June", 
                     "July", "August", "September", "October", "November", "December"];
     return months[month];
   }
 
-  // 3. ฟังก์ชันสร้าง Custom Calendar ตัวใหม่
   Future<void> _showCustomCalendar() async {
-    // ใช้ viewMonth เพื่อให้เลื่อนดูเดือนอื่นได้โดยที่กราฟยังไม่เปลี่ยน
     DateTime viewMonth = DateTime(_currentDate.year, _currentDate.month, 1);
     const List<String> weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -55,13 +48,10 @@ class _HCurveState extends State<HCurve> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            // คำนวณวันในเดือน
             DateTime firstDay = DateTime(viewMonth.year, viewMonth.month, 1);
             DateTime lastDay = DateTime(viewMonth.year, viewMonth.month + 1, 0);
             int daysInMonth = lastDay.day;
-            int firstWeekday = firstDay.weekday == 7 ? 0 : firstDay.weekday; // ให้ Sunday = 0
-
-            // ดึงรายการวันหยุดเฉพาะของเดือนที่กำลังดูอยู่
+            int firstWeekday = firstDay.weekday == 7 ? 0 : firstDay.weekday;
             String viewMonthStr = "${viewMonth.year}-${viewMonth.month.toString().padLeft(2, '0')}";
             List<String> holidaysInThisMonth = _holidayDates.where((date) => date.startsWith(viewMonthStr)).toList();
 
@@ -71,9 +61,8 @@ class _HCurveState extends State<HCurve> {
                 width: 350,
                 padding: const EdgeInsets.all(16),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min, // ให้กล่องยืดตามเนื้อหา
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // --- ส่วนหัว (เลือกเดือน/ปี) ---
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -83,7 +72,6 @@ class _HCurveState extends State<HCurve> {
                             setDialogState(() {
                               viewMonth = DateTime(viewMonth.year, viewMonth.month - 1, 1);
                             });
-                            // สามารถเรียก API วันหยุดล่วงหน้าได้ถ้าข้ามปี
                           },
                         ),
                         Text(
@@ -101,8 +89,6 @@ class _HCurveState extends State<HCurve> {
                       ],
                     ),
                     const SizedBox(height: 10),
-
-                    // --- ส่วนหัวตารางวัน (Su, Mo, Tu...) ---
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: weekdays.map((w) => SizedBox(
@@ -115,10 +101,8 @@ class _HCurveState extends State<HCurve> {
                       )).toList(),
                     ),
                     const SizedBox(height: 8),
-
-                    // --- ส่วนตารางวันที่ ---
                     GridView.builder(
-                      shrinkWrap: true, // สำคัญ! เพื่อไม่ให้ GridView ทะลุ Dialog
+                      shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 7,
@@ -132,19 +116,17 @@ class _HCurveState extends State<HCurve> {
                         DateTime dayDate = DateTime(viewMonth.year, viewMonth.month, dayNum);
                         
                         bool isRed = _isRedDay(dayDate);
-                        bool hasData = _hasData(dayDate); // มีข้อมูลให้เลือกไหม?
+                        bool hasData = _hasData(dayDate);
                         bool isSelected = dayDate.year == _currentDate.year && 
                                           dayDate.month == _currentDate.month && 
                                           dayDate.day == _currentDate.day;
 
                         Color textColor;
                         if (isSelected) {
-                          textColor = Colors.white; // สีขาวถ้าถูกเลือกอยู่
+                          textColor = Colors.white;
                         } else if (isRed) {
-                          // วันหยุด: ถ้ามีข้อมูลเป็นแดงเข้ม ถ้าไม่มีเป็นแดงอ่อน
                           textColor = hasData ? Colors.red : Colors.red.shade300; 
                         } else {
-                          // วันปกติ: ถ้ามีข้อมูลเป็นดำ ถ้าไม่มีเป็นเทาอ่อน
                           textColor = hasData ? Colors.black : Colors.grey.shade700;
                         }
 
@@ -167,17 +149,13 @@ class _HCurveState extends State<HCurve> {
                               style: TextStyle(
                                 color: textColor,
                                 fontWeight: (isRed || isSelected) ? FontWeight.bold : FontWeight.normal,
-                                // เอาเส้นขีดฆ่าออกแล้ว
                               ),
                             ),
                           ),
                         );
                       },
                     ),
-                    
                     const Divider(height: 20, thickness: 1),
-
-                    // --- ส่วน List แสดงวันหยุดด้านล่าง ---
                     Container(
                       alignment: Alignment.centerLeft,
                       child: Column(
@@ -188,21 +166,18 @@ class _HCurveState extends State<HCurve> {
                           holidaysInThisMonth.isEmpty 
                             ? const Text("- ไม่มีวันหยุดพิเศษ -", style: TextStyle(color: Colors.grey, fontSize: 12))
                             : ConstrainedBox(
-                                constraints: const BoxConstraints(maxHeight: 100), // จำกัดความสูงของ List
+                                constraints: const BoxConstraints(maxHeight: 100),
                                 child: ListView.builder(
                                   shrinkWrap: true,
                                   itemCount: holidaysInThisMonth.length,
                                   itemBuilder: (context, idx) {
                                     String hDateStr = holidaysInThisMonth[idx];
                                     int dNum = int.parse(hDateStr.split('-')[2]);
-                                    
-                                    // --- ดึงชื่อวันหยุดจาก Map ที่เราเตรียมไว้ ---
                                     String hName = _holidayDetails[hDateStr] ?? 'วันหยุดพิเศษ';
-
                                     return Padding(
                                       padding: const EdgeInsets.only(bottom: 6.0),
                                       child: Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start, // ดันไอคอนให้อยู่บรรทัดบนสุดเผื่อชื่อยาว
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           const Padding(
                                             padding: EdgeInsets.only(top: 5.0),
@@ -211,7 +186,7 @@ class _HCurveState extends State<HCurve> {
                                           const SizedBox(width: 8),
                                           Expanded(
                                             child: Text(
-                                              "วันที่ $dNum: $hName", // แสดงรูปแบบ "วันที่ 13: วันสงกรานต์"
+                                              "วันที่ $dNum: $hName",
                                               style: const TextStyle(fontSize: 13, color: Colors.red)
                                             ),
                                           ),
@@ -233,7 +208,6 @@ class _HCurveState extends State<HCurve> {
       },
     );
   }
-  // --- 1. แก้ไข: เปลี่ยน _timeLabels จากตัวแปรคงที่ เป็น Getter ที่เปลี่ยนตาม Period ---
   List<String> get _currentLabels {
     switch (_selectedPeriod) {
       case TimePeriod.daily:
@@ -257,8 +231,8 @@ class _HCurveState extends State<HCurve> {
   @override
   void initState() {
     super.initState();
-    _fetchDataRange(); // 1. หาขอบเขตข้อมูลก่อน
-    _loadData();       // 2. โหลดข้อมูลกราฟ
+    _fetchDataRange();
+    _loadData();
     _fetchHolidays();
     _refreshTimer = Timer.periodic(const Duration(minutes: 5), (_) => _loadData());
   }
@@ -271,13 +245,11 @@ class _HCurveState extends State<HCurve> {
 
   Future<void> _fetchDataRange() async {
     try {
-      // แก้ IP ให้ตรง server คุณ
       final response = await http.get(Uri.parse('http://$serverIp:$serverPort/api/data_range'));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (mounted) {
           setState(() {
-             // แปลง String เป็น DateTime
              if (data['min_date'] != null) _minDataDate = DateTime.parse(data['min_date']);
              if (data['max_date'] != null) _maxDataDate = DateTime.parse(data['max_date']);
           });
@@ -295,8 +267,6 @@ class _HCurveState extends State<HCurve> {
     try {
       String endpoint = '';
       String queryParams = '';
-
-      // สร้าง URL ตามโหมดที่เลือก
       if (_selectedPeriod == TimePeriod.daily) {
         endpoint = '/api/history/daily';
         String dateStr = DateFormat('yyyy-MM-dd').format(_currentDate);
@@ -334,111 +304,6 @@ class _HCurveState extends State<HCurve> {
     }
   }
 
-  Future<void> _showMonthPicker(BuildContext context) async {
-    final DateTime firstDate = _minDataDate ?? DateTime(2020);
-    final DateTime lastDate = _maxDataDate ?? DateTime.now();
-    
-
-    int displayYear = _currentDate.year;
-
-    final DateTime? picked = await showDialog<DateTime>(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // ปุ่มลดปี
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    onPressed: displayYear > firstDate.year
-                        ? () => setStateDialog(() => displayYear--)
-                        : null,
-                  ),
-                  // แสดงปี
-                  Text(
-                    "$displayYear",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  // ปุ่มเพิ่มปี
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed: displayYear < lastDate.year
-                        ? () => setStateDialog(() => displayYear++)
-                        : null,
-                  ),
-                ],
-              ),
-              content: SizedBox(
-                width: 300,
-                height: 300, // ความสูงของตารางเดือน
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3, // 3 คอลัมน์
-                    childAspectRatio: 1.5,
-                  ),
-                  itemCount: 12,
-                  itemBuilder: (context, index) {
-                    final int month = index + 1;
-                    // ตรวจสอบว่าเดือนนี้เลือกได้ไหม (ตาม min/max data)
-                    bool isSelectable = true;
-                    if (displayYear == firstDate.year && month < firstDate.month) isSelectable = false;
-                    if (displayYear == lastDate.year && month > lastDate.month) isSelectable = false;
-
-                    final bool isSelected = (displayYear == _currentDate.year && month == _currentDate.month);
-
-                    return InkWell(
-                      onTap: isSelectable
-                          ? () {
-                              // เมื่อเลือกเดือน ให้ส่งค่ากลับทันที
-                              Navigator.pop(context, DateTime(displayYear, month));
-                            }
-                          : null,
-                      child: Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: isSelected ? Palette.lightBlue : (isSelectable ? Colors.white : Colors.grey[200]),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isSelected ? Palette.lightBlue : Colors.grey.shade300,
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          DateFormat('MMM').format(DateTime(2022, month)), // ชื่อเดือนย่อ (Jan, Feb...)
-                          style: TextStyle(
-                            color: isSelectable ? (isSelected ? Colors.white : Colors.black) : Colors.grey,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-
-    if (picked != null) {
-      bool isYearChanged = _currentDate.year != picked.year;
-
-      setState(() {
-        _currentDate = picked;
-      });
-      
-      _loadData();
-      
-      if (isYearChanged) {
-        _fetchHolidays();
-      }
-    }
-  }
-
   Future<void> _fetchHolidays() async {
     final year = _currentDate.year.toString();
     final url = Uri.parse('http://$serverIp:$serverPort/api/holidays/$year');
@@ -462,7 +327,6 @@ class _HCurveState extends State<HCurve> {
     }
   }
 
-  // --- [ใหม่] Helper แสดงข้อความวันที่ที่เลือกอยู่ ---
   String _getDateLabel() {
     if (_selectedPeriod == TimePeriod.daily) {
       return DateFormat('dd MMM yyyy').format(_currentDate);
@@ -487,18 +351,17 @@ class _HCurveState extends State<HCurve> {
     }
   }
 
-  // --- [ใหม่] ฟังก์ชันสลับการแสดงผล ---
   void _toggleSeriesVisibility(int index) {
     setState(() {
       if (_hiddenIndices.contains(index)) {
-        _hiddenIndices.remove(index); // เปิด
+        _hiddenIndices.remove(index);
       } else {
-        _hiddenIndices.add(index); // ปิด
+        _hiddenIndices.add(index);
       }
     });
   }
   
-  String _getGraphTypeName(GraphType type) { /* ... (เหมือนเดิม) ... */ 
+  String _getGraphTypeName(GraphType type) {
     switch (type) {
       case GraphType.power: return "Power (kW)";
       case GraphType.energy: return "Energy (kWh)";
@@ -514,7 +377,6 @@ class _HCurveState extends State<HCurve> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ... (Header ส่วน Title และปุ่ม เลือก Period เหมือนเดิม) ...
         Padding(
           padding: const EdgeInsets.only(left: 32.0, top: 16.0, right: 32.0),
           child: Row(
@@ -528,19 +390,19 @@ class _HCurveState extends State<HCurve> {
                 children: [
                   _buildPeriodSelector(),
                   const SizedBox(width: 12),
-                  Material( // ใช้ Material เพื่อให้เห็น Effect เวลาแตะ
+                  Material(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(8),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(8),
-                      onTap: _showCustomCalendar, // ย้ายคำสั่งกดมาไว้ตรงนี้ (ครอบทั้งปุ่ม)
+                      onTap: _showCustomCalendar,
                       child: Container(
                         height: 36,
-                        padding: const EdgeInsets.symmetric(horizontal: 8), // ระยะห่างภายใน
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: Row(
                           children: [
                             const Icon(Icons.calendar_month, color: Palette.lightBlue, size: 20),
-                            const SizedBox(width: 8), // ระยะห่างระหว่างไอคอนกับตัวหนังสือ
+                            const SizedBox(width: 8),
                             Text(
                               _getDateLabel(), 
                               style: const TextStyle(
@@ -569,7 +431,7 @@ class _HCurveState extends State<HCurve> {
                 height: 300, 
                 child: Center(child: CircularProgressIndicator())
               )
-            : _ChartDisplay( // <--- เปลี่ยนจาก _LineChart เป็น _ChartDisplay
+            : _ChartDisplay(
                 timeLabels: _currentLabels,
                 historyData: _historyData,
                 graphType: _selectedType,
@@ -590,7 +452,6 @@ class _HCurveState extends State<HCurve> {
     );
   }
 
-  // ... (Method _buildPeriodSelector, _periodBtn, _buildGraphTypeDropdown, _buildLegend เหมือนเดิม) ...
   Widget _buildPeriodSelector() {
      return Container(
       decoration: BoxDecoration(
@@ -632,12 +493,11 @@ class _HCurveState extends State<HCurve> {
   }
 
   Widget _buildGraphTypeDropdown() {
-    // --- [ใหม่] กำหนดรายการที่จะแสดงใน Dropdown ตาม Period ---
     List<GraphType> availableTypes;
     if (_selectedPeriod == TimePeriod.monthly || _selectedPeriod == TimePeriod.yearly) {
-      availableTypes = [GraphType.energy]; // แสดงแค่ Energy
+      availableTypes = [GraphType.energy];
     } else {
-      availableTypes = GraphType.values;   // แสดงทั้งหมด (สำหรับ Daily)
+      availableTypes = GraphType.values;
     }
 
     return Container(
@@ -666,7 +526,6 @@ class _HCurveState extends State<HCurve> {
                 ),
               ),
               const SizedBox(width: 4),
-              // ถ้ามีตัวเลือกเดียว (Monthly/Yearly) อาจจะซ่อนลูกศรก็ได้ แต่ใส่ไว้ตามเดิมเพื่อให้ UI เหมือนเดิม
               const Icon(Icons.keyboard_arrow_down, size: 20, color: Colors.black54),
             ],
           ),
@@ -677,7 +536,6 @@ class _HCurveState extends State<HCurve> {
           });
         },
         itemBuilder: (BuildContext context) {
-          // --- [ใหม่] วนลูปสร้าง Item จาก availableTypes แทน GraphType.values ---
           return availableTypes.map((GraphType value) {
             final bool isSelected = value == _selectedType;
             return PopupMenuItem<GraphType>(
@@ -711,12 +569,12 @@ class _HCurveState extends State<HCurve> {
 
   Widget _buildLegendItem({required int index, required Color color, required String text}) {
     final bool isHidden = _hiddenIndices.contains(index);
-    final Color displayColor = isHidden ? Colors.grey : color; // สีจางลงเมื่อซ่อน
+    final Color displayColor = isHidden ? Colors.grey : color;
 
     return GestureDetector(
-      onTap: () => _toggleSeriesVisibility(index), // คลิกเพื่อ Toggle
+      onTap: () => _toggleSeriesVisibility(index),
       child: Container(
-        color: Colors.transparent, // ให้พื้นที่คลิกครอบคลุมง่ายขึ้น
+        color: Colors.transparent,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -740,18 +598,16 @@ class _HCurveState extends State<HCurve> {
   }
 
   bool _isRedDay(DateTime day) {
-  // 1. เช็ควันเสาร์-อาทิตย์ (6 = Saturday, 7 = Sunday)
   if (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday) {
     return true;
   }
-  // 2. เช็คจากรายการวันหยุด API (รูปแบบ YYYY-MM-DD)
   String formatted = "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
   return _holidayDates.contains(formatted);
 }
 
   Widget _buildLegend() {
     List<Widget> items = [];
-    void addSpace() => items.add(const SizedBox(width: 20)); // Helper
+    void addSpace() => items.add(const SizedBox(width: 20));
 
     switch (_selectedType) {
       case GraphType.power:
@@ -821,9 +677,8 @@ class _ChartDisplay extends StatefulWidget {
 }
 
 class _ChartDisplayState extends State<_ChartDisplay> {
-  int _touchedIndex = -1; // เก็บตำแหน่งที่แตะสำหรับกราฟแท่ง
+  int _touchedIndex = -1;
 
-  // --- Helpers ---
   String _getUnit() {
     switch (widget.graphType) {
       case GraphType.power: return 'kW';
@@ -989,7 +844,6 @@ class _ChartDisplayState extends State<_ChartDisplay> {
     }
   }
 
-  // --- 1. กราฟเส้น (Daily) ---
   Widget _buildLineChart(
     List<_SeriesSpec> specs,
     Map<int, List<FlSpot>> seriesDataMap,
@@ -1070,7 +924,6 @@ class _ChartDisplayState extends State<_ChartDisplay> {
     );
   }
 
-  // --- 2. กราฟแท่ง (Monthly/Yearly) ---
   Widget _buildBarChart(
     List<_SeriesSpec> specs,
     Map<int, List<FlSpot>> seriesDataMap,
@@ -1104,7 +957,6 @@ class _ChartDisplayState extends State<_ChartDisplay> {
         child: BarChart(
           BarChartData(
             maxY: maxY, minY: minY,
-            // [คงเดิม] เส้นประแนวตั้งเหมือน LineChart
             extraLinesData: ExtraLinesData(
               verticalLines: [
                 if (_touchedIndex != -1)
@@ -1138,9 +990,6 @@ class _ChartDisplayState extends State<_ChartDisplay> {
                 getTooltipItem: (group, groupIndex, rod, rodIndex) {
                   final spec = specs[rodIndex];
                   final timeLabel = (group.x >= 0 && group.x < widget.timeLabels.length) ? widget.timeLabels[group.x] : '';
-                  
-                  // [แก้ไขใหม่] แสดง Header (วันที่/เดือน) ใน *ทุกค่า* (ทุก Rod)
-                  // โดยไม่ต้องเช็ค if (rodIndex == 0) แล้ว
                   return BarTooltipItem(
                     '$timeLabel\n',
                     const TextStyle(color: Color.fromARGB(255, 22, 39, 128), fontWeight: FontWeight.bold, fontSize: 14),
@@ -1189,28 +1038,23 @@ class _ChartDisplayState extends State<_ChartDisplay> {
             if (index >= 0 && index < widget.timeLabels.length) {
               String currentLabel = widget.timeLabels[index];
               bool isHoliday = false;
-
-              // --- แปลงป้ายกำกับเป็นวันที่ YYYY-MM-DD เพื่อไปเช็คกับวันหยุด ---
               if (widget.selectedPeriod == TimePeriod.monthly) {
                 int dayInt = int.tryParse(currentLabel) ?? 0;
                 if (dayInt > 0) {
                   DateTime dayDate = DateTime(widget.currentDate.year, widget.currentDate.month, dayInt);
                   
-                  // เช็คทั้งวันหยุดจาก API และ เสาร์-อาทิตย์
                   bool isWeekend = dayDate.weekday == DateTime.saturday || dayDate.weekday == DateTime.sunday;
                   String fullStr = "${dayDate.year}-${dayDate.month.toString().padLeft(2, '0')}-${dayDate.day.toString().padLeft(2, '0')}";
                   
                   isHoliday = isWeekend || widget.holidayDates.contains(fullStr);
                 }
               }
-
               return Padding(
                 padding: const EdgeInsets.only(top: 8.0),
                 child: Text(
                   currentLabel, 
                   style: TextStyle(
                     fontSize: 10, 
-                    // ถ้าเป็นวันหยุดให้แดง ถ้าไม่ใช่ให้เทา
                     color: isHoliday ? Colors.red : Colors.grey,
                     fontWeight: isHoliday ? FontWeight.bold : FontWeight.normal,
                   )

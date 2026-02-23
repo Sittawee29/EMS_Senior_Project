@@ -7,7 +7,6 @@ class _InformationBox extends StatelessWidget {
     required this.number,
     required this.text,
     this.unit = '',
-    // ignore: unused_element_parameter
     this.showPercent = false,
   });
 
@@ -67,9 +66,6 @@ class _InformationBox extends StatelessWidget {
   }
 }
 
-// ==========================================
-// คลาสปฏิทิน (อัปเดต UI ให้ตรงกับรูปภาพ)
-// ==========================================
 class _CalendarBox extends StatefulWidget {
   const _CalendarBox({
     Key? key,
@@ -107,7 +103,6 @@ class _CalendarBoxState extends State<_CalendarBox> {
     return months[month];
   }
 
-  // --- เพิ่มฟังก์ชันหาชื่อวันในสัปดาห์ ---
   String _getDayName(int weekday) {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     return days[weekday - 1];
@@ -141,20 +136,14 @@ class _CalendarBoxState extends State<_CalendarBox> {
         color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(6), 
       ),
-      // --- เปลี่ยนเป็น Row เพื่อแบ่ง 2 คอลัมน์ ซ้าย-ขวา ---
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          
-          // ==========================================
-          // คอลัมน์ที่ 1 (ซ้าย) : โชว์วันที่เลือก และ วันหยุด
-          // ==========================================
           Expanded(
-            flex: 4, // อัตราส่วนพื้นที่ฝั่งซ้าย
+            flex: 4,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // แสดงชื่อวันและวันที่ (เช่น Monday 23)
                 Text(
                   "${_getDayName(_selectedDate.weekday)} ${_selectedDate.day}",
                   style: const TextStyle(
@@ -173,8 +162,6 @@ class _CalendarBoxState extends State<_CalendarBox> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                
-                // รายการวันหยุด
                 const Text(
                   "วันหยุดในเดือนนี้:", 
                   style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 15)
@@ -276,8 +263,6 @@ class _CalendarBoxState extends State<_CalendarBox> {
                   )).toList(),
                 ),
                 const SizedBox(height: 8),
-
-                // --- ตารางวันที่ ---
                 Expanded(
                   child: GridView.builder(
                     padding: EdgeInsets.zero,
@@ -301,27 +286,19 @@ class _CalendarBoxState extends State<_CalendarBox> {
                                         dayDate.month == _selectedDate.month &&
                                         dayDate.day == _selectedDate.day;
 
-                      return InkWell(
-                        onTap: () {
-                          setState(() {
-                            _selectedDate = dayDate;
-                          });
-                          widget.onDateSelected(dayDate);
-                        },
-                        child: Container(
-                          alignment: Alignment.center,
-                          margin: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: isSelected ? const Color(0x809E9E9E) : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            "$dayNum",
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : (isRed ? const Color(0xFFF44336) : Colors.grey[800]),
-                              fontWeight: (isRed || isSelected) ? FontWeight.bold : FontWeight.w500,
-                              fontSize: 14,
-                            ),
+                      return Container( // เปลี่ยนจาก InkWell เป็น Container
+                        alignment: Alignment.center,
+                        margin: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0x809E9E9E) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          "$dayNum",
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : (isRed ? const Color(0xFFF44336) : Colors.grey[800]),
+                            fontWeight: (isRed || isSelected) ? FontWeight.bold : FontWeight.w500,
+                            fontSize: 14,
                           ),
                         ),
                       );
