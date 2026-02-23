@@ -131,10 +131,13 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
             const SizedBox(height: 22),
             _InformationRow2(
-              column1: data.EMS_CO2_Equivalent,
-              column2: data.EMS_RenewRatioLifetime,
+              currentDate: _currentDate,
+              holidayDates: _holidayDates,
+              holidayDetails: _holidayDetails,
+              column2: data.EMS_CO2_Equivalent,
               column3: data.EMS_RenewRatioDaily,
-              column4: data.BESS_SOC,
+              column4: data.EMS_RenewRatioLifetime,
+              
             ),
           ],
         );

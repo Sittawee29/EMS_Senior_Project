@@ -95,17 +95,22 @@ class _InformationRow extends StatelessWidget {
 }
 
 class _InformationRow2 extends StatelessWidget {
-  final double column1;
   final double column2;
   final double column3;
   final double column4;
 
+  final DateTime currentDate;
+  final List<String> holidayDates;
+  final Map<String, String> holidayDetails;
+
   const _InformationRow2({
-    required this.column1,
     required this.column2,
     required this.column3,
     required this.column4,
 
+    required this.currentDate,
+    this.holidayDates = const [],
+    this.holidayDetails = const {},
   });
 
   @override
@@ -114,19 +119,17 @@ class _InformationRow2 extends StatelessWidget {
       spacing: 22,
       runSpacing: 22,
       children: <Widget>[
-        _InformationBox(
-          icon: Icon(Icons.energy_savings_leaf,color: Colors.black,),
-          backgroundColor: Palette.orange.withOpacity(0.1),
-          number: column1,
-          unit: 'CO₂e', 
-          text: 'CO₂ Prevention',
+        _TodayStatusBox(
+          currentDate: currentDate,
+          holidayDates: holidayDates,
+          holidayDetails: holidayDetails,
         ),
         _InformationBox(
-          icon: Icon(Icons.recycling,color: Colors.black,),
+          icon: Icon(Icons.energy_savings_leaf,color: Colors.black,),
           backgroundColor: Palette.lightPurple.withOpacity(0.8),
-          number: column2*100,
-          unit: '%',
-          text: 'RE Lifetime Ratio',
+          number: column2,
+          unit: 'CO₂e',
+          text: 'CO₂ Prevention',
         ),
         _InformationBox(
           icon: Icon(Icons.recycling,color: Colors.black,),
@@ -136,11 +139,11 @@ class _InformationRow2 extends StatelessWidget {
           text: 'RE Daily Ratio',
         ),
         _InformationBox(
-          icon: Icon(Icons.battery_charging_full_outlined,color: Colors.black,),
+          icon: Icon(Icons.recycling,color: Colors.black,),
           backgroundColor: Palette.green.withOpacity(0.2),
-          number: column4,
+          number: column4*100,
           unit: '%',
-          text: 'BESS SOC',
+          text: 'RE Lifetime Ratio',
         ),
       ],
     );

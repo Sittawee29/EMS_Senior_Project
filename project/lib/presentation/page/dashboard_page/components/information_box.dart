@@ -313,3 +313,111 @@ class _CalendarBoxState extends State<_CalendarBox> {
     );
   }
 }
+
+class _TodayStatusBox extends StatelessWidget {
+  const _TodayStatusBox({
+    Key? key,
+    required this.currentDate,
+    required this.holidayDates,
+    required this.holidayDetails,
+  }) : super(key: key);
+
+  final DateTime currentDate;
+  final List<String> holidayDates;
+  final Map<String, String> holidayDetails;
+
+  @override
+  Widget build(BuildContext context) {
+    // 1. แปลงวันที่ปัจจุบันให้เป็น Format YYYY-MM-DD เพื่อเอาไปเช็คใน List
+    String formattedDate = "${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}-${currentDate.day.toString().padLeft(2, '0')}";
+
+    // 2. ตรวจสอบเงื่อนไขว่าเป็นวันหยุดหรือไม่
+    bool isWeekend = currentDate.weekday == DateTime.saturday || currentDate.weekday == DateTime.sunday;
+    bool isApiHoliday = holidayDates.contains(formattedDate);
+
+    // 3. กำหนดตัวแปรสำหรับแสดงผล (Icon, สี, ข้อความ) ตามประเภทของวัน
+    String statusText;
+    String detailText;
+    Color iconColor;
+    Color bgColor;
+    IconData iconData;
+
+    if (isApiHoliday) {
+      // กรณี: วันหยุดจาก API (Bank of Thailand)
+      statusText = 'Holiday';
+      detailText = holidayDetails[formattedDate] ?? 'วันหยุดพิเศษ';
+      iconColor = const Color(0xFFF44336); // สีแดง
+      bgColor = const Color(0xFFF44336).withOpacity(0.1);
+      iconData = Icons.celebration;
+    } else if (isWeekend) {
+      // กรณี: เสาร์-อาทิตย์
+      statusText = 'Weekend';
+      detailText = 'วันหยุดสุดสัปดาห์';
+      iconColor = const Color(0xFFFF9800); // สีส้ม
+      bgColor = const Color(0xFFFF9800).withOpacity(0.1);
+      iconData = Icons.weekend;
+    } else {
+      // กรณี: วันทำงานปกติ
+      statusText = 'Workday';
+      detailText = 'วันทำงานปกติ';
+      iconColor = const Color(0xFF4CAF50); // สีเขียว
+      bgColor = const Color(0xFF4CAF50).withOpacity(0.1);
+      iconData = Icons.work;
+    }
+
+    // 4. วาด UI ให้เหมือน _InformationBox
+    return Container(
+      width: 292,
+      height: 172,
+      padding: const EdgeInsets.only(top: 22, bottom: 22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        children: <Widget>[
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: bgColor,
+            child: Icon(iconData, color: iconColor, size: 28),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                statusText,
+                style: TextStyles.myriadProSemiBold24Dark, // ใช้ Style เดิมของคุณ
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Center(
+                // 💡 5. ใส่ Tooltip เพื่อให้ผู้ใช้ดูข้อความเต็มได้เมื่อนำเมาส์ชี้หรือแตะค้าง
+                child: Tooltip(
+                  message: detailText, 
+                  textAlign: TextAlign.center,
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    detailText, 
+                    // 💡 6. ลดขนาด Font ลงเล็กน้อยเพื่อให้จุคำได้มากขึ้น (ใช้ copyWith)
+                    style: TextStyles.myriadProRegular16DarkGrey.copyWith(
+                      fontSize: 13, 
+                      height: 1.2, // จัดระยะห่างระหว่างบรรทัดให้ชิดกันขึ้น
+                    ), 
+                    textAlign: TextAlign.center,
+                    maxLines: 3, // 💡 7. เพิ่มเป็น 3 บรรทัด
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
