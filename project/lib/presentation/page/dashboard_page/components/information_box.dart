@@ -86,13 +86,33 @@ class _CalendarBox extends StatefulWidget {
 
 class _CalendarBoxState extends State<_CalendarBox> {
   late DateTime _selectedDate;
-  late DateTime _viewMonth; 
+  late DateTime _viewMonth;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _selectedDate = widget.initialDate;
     _viewMonth = DateTime(_selectedDate.year, _selectedDate.month, 1);
+    _startDailyCheckTimer();
+  }
+
+  void _startDailyCheckTimer() {
+    _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      final now = DateTime.now();
+      if (now.day != _selectedDate.day || now.month != _selectedDate.month || now.year != _selectedDate.year) {
+        setState(() {
+          _selectedDate = now;
+          _viewMonth = DateTime(now.year, now.month, 1);
+        }); 
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   String _getMonthName(int month) {
@@ -314,7 +334,8 @@ class _CalendarBoxState extends State<_CalendarBox> {
   }
 }
 
-class _TodayStatusBox extends StatelessWidget {
+// แปลงจาก StatelessWidget เป็น StatefulWidget
+class _TodayStatusBox extends StatefulWidget {
   const _TodayStatusBox({
     Key? key,
     required this.currentDate,
@@ -327,15 +348,45 @@ class _TodayStatusBox extends StatelessWidget {
   final Map<String, String> holidayDetails;
 
   @override
+  State<_TodayStatusBox> createState() => _TodayStatusBoxState();
+}
+
+class _TodayStatusBoxState extends State<_TodayStatusBox> {
+  late DateTime _currentDate;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentDate = widget.currentDate;
+    _startDailyCheckTimer();
+  }
+
+  void _startDailyCheckTimer() {
+    _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      final now = DateTime.now();
+      if (now.day != _currentDate.day || now.month != _currentDate.month || now.year != _currentDate.year) {
+        setState(() {
+          _currentDate = now; // อัพเดทค่า state ใหม่
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // 1. แปลงวันที่ปัจจุบันให้เป็น Format YYYY-MM-DD เพื่อเอาไปเช็คใน List
-    String formattedDate = "${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}-${currentDate.day.toString().padLeft(2, '0')}";
+    // เปลี่ยนมาใช้ _currentDate แทน widget.currentDate ตรงนี้
+    String formattedDate = "${_currentDate.year}-${_currentDate.month.toString().padLeft(2, '0')}-${_currentDate.day.toString().padLeft(2, '0')}";
 
-    // 2. ตรวจสอบเงื่อนไขว่าเป็นวันหยุดหรือไม่
-    bool isWeekend = currentDate.weekday == DateTime.saturday || currentDate.weekday == DateTime.sunday;
-    bool isApiHoliday = holidayDates.contains(formattedDate);
+    bool isWeekend = _currentDate.weekday == DateTime.saturday || _currentDate.weekday == DateTime.sunday;
+    bool isApiHoliday = widget.holidayDates.contains(formattedDate);
 
-    // 3. กำหนดตัวแปรสำหรับแสดงผล (Icon, สี, ข้อความ) ตามประเภทของวัน
     String statusText;
     String detailText;
     Color iconColor;
@@ -343,29 +394,26 @@ class _TodayStatusBox extends StatelessWidget {
     IconData iconData;
 
     if (isApiHoliday) {
-      // กรณี: วันหยุดจาก API (Bank of Thailand)
       statusText = 'Holiday';
-      detailText = holidayDetails[formattedDate] ?? 'วันหยุดพิเศษ';
-      iconColor = const Color(0xFFF44336); // สีแดง
+      detailText = widget.holidayDetails[formattedDate] ?? 'วันหยุดพิเศษ';
+      iconColor = const Color(0xFFF44336);
       bgColor = const Color(0xFFF44336).withOpacity(0.1);
       iconData = Icons.celebration;
     } else if (isWeekend) {
-      // กรณี: เสาร์-อาทิตย์
       statusText = 'Weekend';
       detailText = 'วันหยุดสุดสัปดาห์';
-      iconColor = const Color(0xFFFF9800); // สีส้ม
+      iconColor = const Color(0xFFFF9800);
       bgColor = const Color(0xFFFF9800).withOpacity(0.1);
       iconData = Icons.weekend;
     } else {
-      // กรณี: วันทำงานปกติ
       statusText = 'Workday';
       detailText = 'วันทำงานปกติ';
-      iconColor = const Color(0xFF4CAF50); // สีเขียว
+      iconColor = const Color(0xFF4CAF50);
       bgColor = const Color(0xFF4CAF50).withOpacity(0.1);
       iconData = Icons.work;
     }
 
-    // 4. วาด UI ให้เหมือน _InformationBox
+    // โค้ดส่วน Container ด้านล่างคงเดิม
     return Container(
       width: 292,
       height: 172,
@@ -387,7 +435,7 @@ class _TodayStatusBox extends StatelessWidget {
             children: <Widget>[
               Text(
                 statusText,
-                style: TextStyles.myriadProSemiBold24Dark, // ใช้ Style เดิมของคุณ
+                style: TextStyles.myriadProSemiBold24Dark,
               ),
             ],
           ),
@@ -396,20 +444,18 @@ class _TodayStatusBox extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Center(
-                // 💡 5. ใส่ Tooltip เพื่อให้ผู้ใช้ดูข้อความเต็มได้เมื่อนำเมาส์ชี้หรือแตะค้าง
                 child: Tooltip(
                   message: detailText, 
                   textAlign: TextAlign.center,
                   padding: const EdgeInsets.all(12),
                   child: Text(
                     detailText, 
-                    // 💡 6. ลดขนาด Font ลงเล็กน้อยเพื่อให้จุคำได้มากขึ้น (ใช้ copyWith)
                     style: TextStyles.myriadProRegular16DarkGrey.copyWith(
                       fontSize: 13, 
-                      height: 1.2, // จัดระยะห่างระหว่างบรรทัดให้ชิดกันขึ้น
+                      height: 1.2,
                     ), 
                     textAlign: TextAlign.center,
-                    maxLines: 3, // 💡 7. เพิ่มเป็น 3 บรรทัด
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

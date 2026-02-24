@@ -53,6 +53,21 @@ class _WeatherData {
       finalIconCode = rawIconCode.substring(0, rawIconCode.length - 1) + 'd';
     }
 
+    String getDescription(String code) {
+      switch (code) {
+        case '01d': case '01n': return 'Clear';
+        case '02d': case '02n': return 'Few Clouds';
+        case '03d': case '03n': return 'Scattered Clouds';
+        case '04d': case '04n': return 'Cloudy'; // หรือ Overcast Clouds
+        case '09d': case '09n': return 'Drizzle'; // ฝนปรอยๆ
+        case '10d': case '10n': return 'Rain'; // ฝนตก
+        case '11d': case '11n': return 'Thunderstorm'; // พายุ
+        case '13d': case '13n': return 'Snow'; // หิมะ
+        case '50d': case '50n': return 'Mist'; // หมอก
+        default: return 'Cloudy';
+      }
+    }
+
     return _WeatherData(
       cityName: 'Bangkok',
       temp: getVal('WEATHER_Temp'),
@@ -61,7 +76,7 @@ class _WeatherData {
       tempMax: getVal('WEATHER_TempMax'), 
       feelsLike: getVal('WEATHER_FeelsLike'), 
       
-      description: 'Clear',
+      description: getDescription(finalIconCode),
       humidity: getVal('WEATHER_Humidity'),
       windSpeed: getVal('WEATHER_WindSpeed'),
       pressure: getInt('WEATHER_Pressure'), 

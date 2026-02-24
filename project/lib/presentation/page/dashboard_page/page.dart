@@ -73,20 +73,14 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     return StreamBuilder<DashboardData>(
       stream: _mqttService.dataStream,
-      initialData: DashboardData(), // ค่าเริ่มต้นเป็น 0
+      initialData: DashboardData(),
       builder: (context, snapshot) {
         final data = snapshot.data!;
 
         return ListView(
           padding: const EdgeInsets.symmetric(horizontal: 40),
           children: <Widget>[
-            const Padding(
-              padding: EdgeInsets.only(top: 40.0),
-              child: Text(
-                'Welcome back!',
-                style: TextStyles.myriadProSemiBold32DarkBlue,
-              ),
-            ),
+            
             
             const SizedBox(height: 22),
             Wrap(

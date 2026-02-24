@@ -179,6 +179,7 @@ extension StringExtension on String {
 class SmartLabel extends StatelessWidget {
   final String title;
   final String value;
+  final String percentage;
   final Color color;
   final double angle;
 
@@ -186,6 +187,7 @@ class SmartLabel extends StatelessWidget {
     super.key,
     required this.title,
     required this.value,
+    required this.percentage,
     required this.color,
     required this.angle,
   });
@@ -198,14 +200,12 @@ class SmartLabel extends StatelessWidget {
 
     const titleStyle = TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600, height: 1.1);
     const valueStyle = TextStyle(fontSize: 12, color: Colors.black, fontWeight: FontWeight.bold, height: 1.1);
+    const percentStyle = TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, height: 1.1);
 
     return CustomPaint(
       painter: RadialLinePainter(
         angle: angle,
         color: Colors.grey.withOpacity(0.5),
-        // 👇 นี่คือ "ระยะห่างจากกึ่งกลางป้าย ถึง ปลายเส้น"
-        // ต้องกำหนดให้ยาวพอที่จะพ้นคำที่ยาวที่สุด (เช่น BESS Discharge)
-        // ถ้าเลขนี้คงที่ -> ปลายเส้นจะคงที่เสมอ
         fixedTipDistance: 65, 
       ),
       child: Container(
@@ -224,6 +224,11 @@ class SmartLabel extends StatelessWidget {
               textAlign: isTop ? TextAlign.center : (isLeft ? TextAlign.right : TextAlign.left),
               softWrap: false,
             ),
+            Text(percentage, 
+              style: percentStyle,
+              textAlign: isTop ? TextAlign.center : (isLeft ? TextAlign.right : TextAlign.left),
+              softWrap: false,
+            ),
           ],
         ),
       ),
@@ -234,7 +239,7 @@ class SmartLabel extends StatelessWidget {
 class RadialLinePainter extends CustomPainter {
   final double angle;
   final Color color;
-  final double fixedTipDistance; // เปลี่ยนจาก lineLength เป็น fixedTipDistance
+  final double fixedTipDistance;
 
   RadialLinePainter({
     required this.angle,
@@ -251,12 +256,10 @@ class RadialLinePainter extends CustomPainter {
 
     final center = Offset(size.width / 2, size.height / 2);
     
-    // คำนวณทิศทาง (ชี้เข้าหากราฟ)
     double radians = angle * (pi / 180); 
     double dx = cos(radians);
     double dy = sin(radians);
 
-    // --- 1. หาจุดเริ่ม (Start) ที่ขอบกล่องข้อความ ---
     double halfW = size.width / 2;
     double halfH = size.height / 2;
     
@@ -296,18 +299,16 @@ class TotalProduction extends StatelessWidget {
   final Color colorBatteryCharge = const Color(0xFF42A5F5);
 
   List<PieChartSectionData> generateSections() {
-    // เตรียมข้อมูลเพื่อคำนวณองศา
     final dataList = [
       {'value': prodUsed, 'color': colorSelfUsed, 'title': 'Self-used'},
       {'value': prodFeedIn, 'color': colorFeedIn, 'title': 'Feed-in'},
       {'value': prodBatteryCharge, 'color': colorBatteryCharge, 'title': 'BESS Charge'},
     ];
 
-    // คำนวณผลรวม (ถ้าเป็น 0 ให้กันหารด้วย 0)
     double sum = dataList.fold(0.0, (p, c) => p + (c['value'] as double));
     if (sum == 0) sum = 1;
 
-    double currentAngle = 0; // เริ่มต้นที่ 0 (ในโค้ด) ซึ่งจะเท่ากับ 180 (Visual)
+    double currentAngle = 0;
     List<PieChartSectionData> sections = [];
 
     for (var item in dataList) {
@@ -316,28 +317,26 @@ class TotalProduction extends StatelessWidget {
       String title = item['title'] as String;
 
       if (value > 0) {
-        // คำนวณ Sweep Angle (กินพื้นที่กี่องศา)
         double sweepAngle = (value / sum) * 360;
-        // คำนวณ Mid Angle (จุดกึ่งกลางของชิ้นนี้) เพื่อใช้ระบุตำแหน่งป้าย
         double midAngle = currentAngle + (sweepAngle / 2);
+        double percent = (totalValue > 0) ? (value / totalValue) * 100 : 0.0;
 
         sections.add(
           PieChartSectionData(
             color: color,
             value: value,
-            radius: 20, // ความหนาวงกลม
+            radius: 20,
             showTitle: false,
             badgeWidget: SmartLabel(
               title: title,
               value: '${value.toStringAsFixed(2)} kWh',
+              percentage: '${percent.toStringAsFixed(2)}%',
               color: color,
-              angle: midAngle, // ส่งองศากึ่งกลางไปให้ SmartLabel ตัดสินใจ
+              angle: midAngle,
             ),
-            // ปรับระยะห่าง: ถ้าอยู่ข้างบน (Feed-in) อาจต้องดันออกไปเยอะหน่อยกันชน
             badgePositionPercentageOffset: (midAngle > 80 && midAngle < 100) ? 4.3 : 4.3,
           ),
         );
-        // ขยับจุดเริ่มต้นไปยังชิ้นถัดไป
         currentAngle += sweepAngle;
       }
     }
@@ -352,7 +351,7 @@ class TotalProduction extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           SizedBox(
-            width: 400, // ขยายพื้นที่ให้กว้างพอ
+            width: 400,
             height: 200,
             child: Stack(
               alignment: Alignment.center,
@@ -360,9 +359,9 @@ class TotalProduction extends StatelessWidget {
               children: <Widget>[
                 PieChart(
                   PieChartData(
-                    startDegreeOffset: 180, // เริ่มวาดจาก 9 นาฬิกา
+                    startDegreeOffset: 180,
                     sectionsSpace: 2,
-                    centerSpaceRadius: 70, // รัศมีวงใน
+                    centerSpaceRadius: 70,
                     sections: generateSections(),
                   ),
                 ),
@@ -425,6 +424,7 @@ class TotalConsumption extends StatelessWidget {
       if (value > 0) {
         double sweepAngle = (value / sum) * 360;
         double midAngle = currentAngle + (sweepAngle / 2);
+        double percent = (totalValue > 0) ? (value / totalValue) * 100 : 0.0;
 
         sections.add(
           PieChartSectionData(
@@ -435,6 +435,7 @@ class TotalConsumption extends StatelessWidget {
             badgeWidget: SmartLabel(
               title: title,
               value: '${value.toStringAsFixed(2)} kWh',
+              percentage: '${percent.toStringAsFixed(2)}%',
               color: color,
               angle: midAngle,
             ),
