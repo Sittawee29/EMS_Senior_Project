@@ -895,10 +895,6 @@ def calculate_tou_units():
     
 @app.get("/api/data_range")
 def get_data_range():
-    """
-    คืนค่าวันแรกและวันสุดท้ายที่มีข้อมูลใน Database
-    เพื่อให้ Frontend กำหนดขอบเขตปฏิทินได้ถูกต้อง
-    """
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -963,9 +959,6 @@ def export_custom_data(req: ExportRequest, response: Response):
         pandas_step = step_map.get(req.step, '5min')
         df_resampled = df.resample(pandas_step).mean().fillna("Server Closed")
 
-        # =================================================================
-        # [NEW 1] เปลี่ยนชื่อ Column เป็น Point 1, Point 2, ... ก่อน Export
-        # =================================================================
         new_col_names = [f"Point {i}" for i in range(1, len(df_resampled.columns) + 1)]
         df_resampled.columns = new_col_names
 
@@ -1358,8 +1351,6 @@ def get_holidays(year: str):
                 if date_str and date_str != f"{year}-01-02":
                     h_dates.append(date_str)
                     h_details[date_str] = d.get('HolidayDescriptionThai', 'วันหยุด')
-
-            print(f"DEBUG: Found {len(h_dates)} holidays (Excluded Jan 2nd)")
             return {
                 "status": "ok",
                 "holidays": h_dates,
