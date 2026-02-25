@@ -134,7 +134,7 @@ class _PowerFlowState extends State<PowerFlow> with SingleTickerProviderStateMix
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       // Solar (Show Total)
-                      _buildComplexItem('assets/images/solar.png','PV cells','${solarPower.toStringAsFixed(2)} kW','',Colors.orange),
+                      _buildComplexItem('assets/images/solar.png','PV cells','${solarPower.toStringAsFixed(2)} kW','',Colors.yellow),
                       // Grid
                       _buildComplexItem('assets/images/grid.png','Grid',gridText,gridStatus,gridColor), 
                     ],
@@ -149,7 +149,7 @@ class _PowerFlowState extends State<PowerFlow> with SingleTickerProviderStateMix
                     // Battery
                     _buildComplexItem('assets/images/BESS.png','Battery ${bessSOC.toStringAsFixed(1)}%',battText,battStatus,battColor),
                     // Consumption
-                    _buildComplexItem('assets/images/MDB.png','Consumption','${loadPower.toStringAsFixed(2)} kW','',Colors.blue),
+                    _buildComplexItem('assets/images/MDB.png','Consumption','${loadPower.toStringAsFixed(2)} kW','',Colors.red),
                   ],
                 ),
               ],
@@ -223,22 +223,15 @@ class FlowPainter extends CustomPainter {
 
     // 1. Total Solar Logic (data[0])
     if (data[0] > 0.01) {
-      _drawPathAndDot(canvas, [pSolar, elbowSolar, elbowSolarDown, centerLeft], paintLine, Paint()..color = Colors.orange..style = PaintingStyle.fill);
+      _drawPathAndDot(canvas, [pSolar, elbowSolar, elbowSolarDown, centerLeft], paintLine, Paint()..color = Color(0xFFFFB300)..style = PaintingStyle.fill);
     }
 
     // 2. Grid Logic (data[1])
     if (data[1].abs() > 0.01) {
       List<Offset> points = [pGrid, elbowGrid, elbowGridDown, centerRight];
-      if (data[1] > 0) { // Import
-         _drawPathAndDot(canvas, points, paintLine, Paint()..color = Color.fromARGB(255, 255, 0, 0)..style = PaintingStyle.fill);
-      } else { // Export
-         _drawPathAndDot(canvas, points.reversed.toList(), paintLine, Paint()..color = Color.fromARGB(255, 0, 255, 0)..style = PaintingStyle.fill);
-      }
+      _drawPathAndDot(canvas, points.reversed.toList(), paintLine, Paint()..color = Palette.brandBlue..style = PaintingStyle.fill);
     }
 
-    // 3. Battery Logic (data[2])
-    // (+) Charge: House -> Battery
-    // (-) Discharge: Battery -> House
     if (data[2].abs() > 0.01) {
       List<Offset> points = [pBatt, elbowBatt, elbowBattUp, centerBotLeft];
       if (data[2] > 0) {
@@ -246,14 +239,14 @@ class FlowPainter extends CustomPainter {
         _drawPathAndDot(canvas, points.reversed.toList(), paintLine, Paint()..color = Color.fromARGB(255, 0, 255, 0)..style = PaintingStyle.fill);
       } else {
         // (-) Discharging : Battery -> House (Normal)
-        _drawPathAndDot(canvas, points, paintLine, Paint()..color = const Color.fromARGB(255, 255, 0, 0)..style = PaintingStyle.fill);
+        _drawPathAndDot(canvas, points, paintLine, Paint()..color = Color(0xFFE53935)..style = PaintingStyle.fill);
       }
     }
 
     // 4. Consumption Logic (data[4])
     if (data[4] > 0.01) {
       List<Offset> points = [pCons, elbowCons, elbowConsUp, centerBotRight];
-      _drawPathAndDot(canvas, points.reversed.toList(), paintLine, Paint()..color = Colors.blue..style = PaintingStyle.fill);
+      _drawPathAndDot(canvas, points.reversed.toList(), paintLine, Paint()..color = Color(0xFFE53935)..style = PaintingStyle.fill);
     }
   }
 

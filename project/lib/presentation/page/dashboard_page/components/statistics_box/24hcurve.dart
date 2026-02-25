@@ -780,22 +780,22 @@ class _HCurveState extends State<HCurve> {
 
     switch (_selectedType) {
       case GraphType.power:
-        items.add(_buildLegendItem(index: 0, color: Palette.lightBlue, text: 'PV Production'));
+        items.add(_buildLegendItem(index: 0, color: Color(0xFFFFB300), text: 'PV Production'));
         addSpace();
-        items.add(_buildLegendItem(index: 1, color: Palette.orange, text: 'Load Consumption'));
+        items.add(_buildLegendItem(index: 1, color: Color(0xFFE53935), text: 'Load Consumption'));
         addSpace();
-        items.add(_buildLegendItem(index: 2, color: Palette.red, text: 'Grid Power'));
+        items.add(_buildLegendItem(index: 2, color: Palette.brandBlue, text: 'Grid Power'));
         addSpace();
         items.add(_buildLegendItem(index: 3, color: Palette.green, text: 'BESS Power'));
         break;
       case GraphType.energy:
-        items.add(_buildLegendItem(index: 0, color: Colors.blue, text: 'PV Production'));
+        items.add(_buildLegendItem(index: 0, color: Color(0xFFFFB300), text: 'PV Production'));
         addSpace();
-        items.add(_buildLegendItem(index: 1, color: Colors.red, text: 'Consumption'));
+        items.add(_buildLegendItem(index: 1, color: Color(0xFFE53935), text: 'Consumption'));
         addSpace();
-        items.add(_buildLegendItem(index: 2, color: Colors.green, text: 'BESS Charge'));
+        items.add(_buildLegendItem(index: 2, color: Color(0xFF43A047), text: 'BESS Charge'));
         addSpace();
-        items.add(_buildLegendItem(index: 3, color: Colors.orange, text: 'BESS Discharge'));
+        items.add(_buildLegendItem(index: 3, color: Color(0xFF26A69A), text: 'BESS Discharge'));
         break;
       case GraphType.voltage:
         items.add(_buildLegendItem(index: 0, color: Colors.red, text: 'Phase 1'));
@@ -885,16 +885,16 @@ class _ChartDisplayState extends State<_ChartDisplay> {
 
     switch (widget.graphType) {
       case GraphType.power:
-        add(0, "EMS_SolarPower_kW", Palette.lightBlue);
-        add(1, "EMS_LoadPower_kW", Palette.orange);
-        add(2, "METER_KW", Palette.red);
+        add(0, "EMS_SolarPower_kW", Color(0xFFFFB300));
+        add(1, "EMS_LoadPower_kW", Color(0xFFE53935));
+        add(2, "METER_KW", Palette.brandBlue);
         add(3, "EMS_BatteryPower_kW", Palette.green);
         break;
       case GraphType.energy:
-        add(0, "EMS_EnergyProducedFromPV_Daily", Colors.blue);
-        add(1, "EMS_EnergyConsumption_Daily", Colors.red);
-        add(2, "BESS_Daily_Charge_Energy", Colors.green);
-        add(3, "BESS_Daily_Discharge_Energy", Colors.orange);
+        add(0, "EMS_EnergyProducedFromPV_Daily", Color(0xFFFFB300));
+        add(1, "EMS_EnergyConsumption_Daily", Color(0xFFE53935));
+        add(2, "BESS_Daily_Charge_Energy", Color(0xFF43A047));
+        add(3, "BESS_Daily_Discharge_Energy", Color(0xFF26A69A));
         break;
       case GraphType.voltage:
         add(0, "METER_V1", Colors.red);

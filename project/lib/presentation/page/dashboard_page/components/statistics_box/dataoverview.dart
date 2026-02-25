@@ -294,9 +294,9 @@ class TotalProduction extends StatelessWidget {
   final double prodBatteryCharge;
   final double prodFeedIn;
 
-  final Color colorSelfUsed = const Color(0xFF1976D2);
-  final Color colorFeedIn = const Color(0xFF90CAF9);
-  final Color colorBatteryCharge = const Color(0xFF42A5F5);
+  final Color colorSelfUsed = const Color(0xFFFFB300);
+  final Color colorFeedIn = const Color(0xFF29B6F6);
+  final Color colorBatteryCharge = const Color(0xFF43A047);
 
   List<PieChartSectionData> generateSections() {
     final dataList = [
@@ -399,9 +399,9 @@ class TotalConsumption extends StatelessWidget {
   final double consSelfUsed;
   final double consBatteryDischarge;
 
-  final Color colorProduction = const Color(0xFFFF8A80);
-  final Color colorPurchased = const Color(0xFFEF5350);
-  final Color colorDischarge = const Color(0xFFFFCCBC);
+  final Color colorProduction = const Color(0xFFFFB300);
+  final Color colorPurchased = const Color(0xFFE53935);
+  final Color colorDischarge = const Color(0xFF26A69A);
 
   List<PieChartSectionData> generateSections() {
     final dataList = [
