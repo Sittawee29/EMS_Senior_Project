@@ -943,8 +943,9 @@ class _ChartDisplayState extends State<_ChartDisplay> {
 
     List<FlSpot> spots = [];
     int maxPoints;
+    
     if (widget.selectedPeriod == TimePeriod.daily) {
-      maxPoints = 288;
+      maxPoints = 288; // คืนค่ากลับเป็น 288 จุด (สำหรับ 24 ชม.)
     } else if (widget.selectedPeriod == TimePeriod.monthly) {
       maxPoints = DateTime(widget.currentDate.year, widget.currentDate.month + 1, 0).day;
     } else {
@@ -1007,25 +1008,10 @@ class _ChartDisplayState extends State<_ChartDisplay> {
 
     if (widget.selectedPeriod == TimePeriod.daily) {
       // หาจุดต่ำสุดและสูงสุดของแกน X จากข้อมูลที่มีอยู่จริง
-      if (allPoints.isNotEmpty) {
-        minX = allPoints.map((e) => e.x).reduce(min);
-        maxX = allPoints.map((e) => e.x).reduce(max);
-        if (minX == maxX) maxX = minX + 1; // ป้องกัน Error กรณีมีจุดข้อมูลแค่จุดเดียว
-      } else {
-        maxX = (widget.timeLabels.length - 1).toDouble();
-      }
-      
-      // ปรับความถี่ในการแสดง Label ตามช่วงเวลาที่เหลืออยู่
-      double xRange = maxX - minX;
-      if (xRange <= 12) {
-        xInterval = 2; // ประมาณ 10 นาที
-      } else if (xRange <= 36) {
-        xInterval = 6; // ประมาณ 30 นาที
-      } else if (xRange <= 72) {
-        xInterval = 12; // ประมาณ 1 ชั่วโมง
-      } else {
-        xInterval = 24; // 2 ชั่วโมง
-      }
+      if (widget.selectedPeriod == TimePeriod.daily) {
+      minX = 0;
+      maxX = (widget.timeLabels.length - 1).toDouble();
+      xInterval = 24;
     } else if (widget.selectedPeriod == TimePeriod.monthly) {
       maxX = (widget.timeLabels.length - 1).toDouble(); 
       xInterval = 5;
@@ -1033,6 +1019,14 @@ class _ChartDisplayState extends State<_ChartDisplay> {
       maxX = 12;
       xInterval = 1;
     }
+
+  } else if (widget.selectedPeriod == TimePeriod.monthly) {
+    maxX = (widget.timeLabels.length - 1).toDouble(); 
+    xInterval = 5;
+  } else {
+    maxX = 12;
+    xInterval = 1;
+  }
 
     if (widget.selectedPeriod == TimePeriod.daily) {
       // ส่ง minX และ maxX เข้าไปวาดกราฟเส้น
