@@ -61,12 +61,15 @@ class _NavigationMenuState extends State<_NavigationMenu> {
           onTap: () => _onTabTap(const AlarmRoute()),
           text: 'Alarm',
         ),
+        /*
         _MenuItem(
           icon: Icons.paid,
           isSelected: currentUrl == '/ebilling',
           onTap: () => _onTabTap(const EBillingRoute()),
           text: 'E-Billing',
+        
         ),
+        */
         _MenuItem(
           // --- แก้ไขจุดที่ 1: เอา Icon() ออก ส่งแค่ Symbols.xxx ---
           icon: Symbols.file_export, 

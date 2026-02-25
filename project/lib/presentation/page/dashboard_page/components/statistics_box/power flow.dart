@@ -141,7 +141,7 @@ class _PowerFlowState extends State<PowerFlow> with SingleTickerProviderStateMix
                   ),
                 ),
                 // --- ส่วนกลาง: House ---
-                _buildItem('assets/images/inverter.png', '', ''),
+                _buildItem('assets/images/factory.png', '', ''),
                 // --- ส่วนล่าง: Battery & Consumption ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -149,7 +149,7 @@ class _PowerFlowState extends State<PowerFlow> with SingleTickerProviderStateMix
                     // Battery
                     _buildComplexItem('assets/images/BESS.png','Battery ${bessSOC.toStringAsFixed(1)}%',battText,battStatus,battColor),
                     // Consumption
-                    _buildComplexItem('assets/images/factory.png','Consumption','${loadPower.toStringAsFixed(2)} kW','',Colors.blue),
+                    _buildComplexItem('assets/images/MDB.png','Consumption','${loadPower.toStringAsFixed(2)} kW','',Colors.blue),
                   ],
                 ),
               ],
