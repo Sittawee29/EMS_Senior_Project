@@ -56,7 +56,10 @@ REDIS_PORT = 6379
 REDIS_DB = 0
 
 WEATHER_API_KEY = '635c661512b0b802dcf857383d4a9ed4' 
-WEATHER_CITY = 'Bangkok,TH'
+WEATHER_CITIES = {
+    "UTI": "Bang Sao Thong, Samut Prakan,TH",
+    "TPI": "Bangkok,TH"
+}
 
 # เชื่อมต่อ Redis
 try:
@@ -66,125 +69,347 @@ try:
 except Exception as e:
     print(f"\033[91m𐄂\033[0m Failed to connect to Redis: {e}")
 
-DEFAULT_KEYS = [
+UTI_DEFAULT_KEYS = [
     # --- METER ---
     "METER_V1", "METER_V2", "METER_V3",
     "METER_I1", "METER_I2", "METER_I3",
-    "METER_KW", "METER_Total_KWH",
-    "METER_Export_KVARH", "METER_Export_KWH", "METER_Import_KVARH", "METER_Import_KWH",
-    "METER_Total_KVARH", "METER_Hz", "METER_PF",
-    "METER_I_Total", "METER_KVAR", "METER_KW_Invert", "METER_Grid_Power_KW",
-    "EMS_RenewRatioDaily","EMS_RenewRatioLifetime",
+    "METER_KW", "METER_TOTAL_KWH",
+    "METER_EXPORT_KVARH", "METER_EXPORT_KWH", "METER_IMPORT_KVARH", "METER_IMPORT_KWH",
+    "METER_TOTAL_KVARH", "METER_HZ", "METER_PF",
+    "METER_I_TOTAL", "METER_KVAR", "METER_KW_INVERT", "METER_GRID_POWER_KW",
 
-    # --- EMS ---
-    "PV_Total_Energy", "PV_Daily_Energy", "Load_Total_Energy", "Load_Daily_Energy",
-    "GRID_Total_Import_Energy", "GRID_Daily_Import_Energy", "GRID_Total_Export_Energy", "GRID_Daily_Export_Energy",
-    "BESS_Daily_Charge_Energy", "BESS_Daily_Discharge_Energy", "EMS_CO2_Equivalent",
-    "EMS_EnergyProducedFromPV_Daily", "EMS_EnergyFeedToGrid_Daily", "EMS_EnergyConsumption_Daily",
-    "EMS_EnergyFeedFromGrid_Daily", "EMS_SolarPower_kW", "EMS_LoadPower_kW","EMS_BatteryPower_kW",
-    "EMS_EnergyProducedFromPV_kWh", "EMS_EnergyFeedFromGrid_kWh", "EMS_EnergyConsumption_kWh",
+    # --- EMS (เบิ้ล EMS_EMS_) ---
+    "EMS_AUTO_TARGET_SETPOINT_KW_ADD", # ตัวนี้ไม่เบิ้ลใน Redis
+    "EMS_EMS_PV_TOTAL_ENERGY", "EMS_EMS_PV_DAILY_ENERGY", "EMS_EMS_LOAD_TOTAL_ENERGY", "EMS_EMS_LOAD_DAILY_ENERGY",
+    "EMS_EMS_GRID_TOTAL_IMPORT_ENERGY", "EMS_EMS_GRID_DAILY_IMPORT_ENERGY", "EMS_EMS_GRID_TOTAL_EXPORT_ENERGY", "EMS_EMS_GRID_DAILY_EXPORT_ENERGY",
+    "EMS_EMS_BESS_DAILY_CHARGE_ENERGY", "EMS_EMS_BESS_DAILY_DISCHARGE_ENERGY", "EMS_EMS_CO2_EQUIVALENT",
+    "EMS_EMS_ENERGYPRODUCEDFROMPV_DAILY", "EMS_EMS_ENERGYFEEDTOGRID_DAILY", "EMS_EMS_ENERGYCONSUMPTION_DAILY",
+    "EMS_EMS_ENERGYFEEDFROMGRID_DAILY", "EMS_EMS_SOLARPOWER_KW", "EMS_EMS_LOADPOWER_KW","EMS_EMS_BATTERYPOWER_KW",
+    "EMS_EMS_ENERGYPRODUCEDFROMPV_KWH", "EMS_EMS_ENERGYFEEDFROMGRID_KWH", "EMS_EMS_ENERGYCONSUMPTION_KWH",
+    "EMS_EMS_RENEWRATIODAILY","EMS_EMS_RENEWRATIOLIFETIME",
 
-    # --- BESS ---
-    "BESS_SOC", "BESS_SOH", "BESS_V", "BESS_I", "BESS_KW", "BESS_Temperature",
-    "BESS_Total_Discharge", "BESS_Total_Charge", "BESS_SOC_MAX", "BESS_SOC_MIN",
-    "BESS_Power_KW_Invert", "BESS_Manual_Power_Setpoint", "BESS_PID_CycleTime",
-    "BESS_PID_Td", "BESS_PID_Ti", "BESS_PID_Gain", "BESS_Temp_Ambient",
-    "BESS_Alarm", "BESS_Fault", "BESS_Communication_Fault",
+    # --- BESS (บางตัวเบิ้ล BESS_BESS_ บางตัวไม่เบิ้ล) ---
+    "BESS_SOC", "BESS_SOH", "BESS_V", "BESS_I", "BESS_KW", "BESS_TEMPERATURE",
+    "BESS_TOTAL_DISCHARGE", "BESS_TOTAL_CHARGE", "BESS_SOC_MAX", "BESS_SOC_MIN",
+    "BESS_POWER_KW_INVERT", "BESS_MANUAL_POWER_SETPOINT", "BESS_PID_CYCLETIME",
+    "BESS_PID_TD", "BESS_PID_TI", "BESS_PID_GAIN", "BESS_BESS_TEMP_AMBIENT",
+    "BESS_BESS_ALARM", "BESS_BESS_FAULT", "BESS_BESS_COMMUNICATION_FAULT",
 
-    # --- PV1-4 & WEATHER (ย่อเพื่อให้ดูง่าย) ---
-    "PV1_Grid_Power_KW", "PV1_Load_Power_KW", "PV1_Daily_Energy_Power_KWh", "PV1_Total_Energy_Power_KWh",
-    "PV1_Power_Factor", "PV1_Reactive_Power_KVar", "PV1_Active_Power_KW", "PV1_Fault", "PV1_Communication_Fault",
-    "PV2_Energy_Daily_kW", "PV2_LifeTimeEnergyProduction_kWh_Start", "PV2_LifeTimeEnergyProduction_kWh",
-    "PV2_ReactivePower_kW", "PV2_ApparentPower_kW", "PV2_Power_kW", "PV2_LifeTimeEnergyProduction",
-    "PV2_PowerFactor_Percen", "PV2_ReactivePower", "PV2_ApparentPower", "PV2_Power", "PV2_Communication_Fault",
-    "PV3_Total_Power_Yields_Real", "PV3_Total_Apparent_Power_kW", "PV3_Total_Reactive_Power_kW", "PV3_Total_Active_Power_kW",
-    "PV4_Total_Power_Yields_Real", "PV4_Total_Apparent_Power_kW", "PV4_Total_Reactive_Power_kW", "PV4_Total_Active_Power_kW",
+    # --- PV1-4 (เบิ้ล PV1_PV1_ ฯลฯ) ---
+    "PV1_PV1_GRID_POWER_KW", "PV1_PV1_LOAD_POWER_KW", "PV1_PV1_DAILY_ENERGY_POWER_KWH", "PV1_PV1_TOTAL_ENERGY_POWER_KWH",
+    "PV1_PV1_POWER_FACTOR", "PV1_PV1_REACTIVE_POWER_KVAR", "PV1_PV1_ACTIVE_POWER_KW", "PV1_PV1_FAULT", "PV1_PV1_COMMUNICATION_FAULT",
+    
+    "PV2_PV2_ENERGY_DAILY_KW", "PV2_PV2_LIFETIMEENERGYPRODUCTION_KWH_START", "PV2_PV2_LIFETIMEENERGYPRODUCTION_KWH",
+    "PV2_PV2_REACTIVEPOWER_KW", "PV2_PV2_APPARENTPOWER_KW", "PV2_PV2_POWER_KW", "PV2_PV2_LIFETIMEENERGYPRODUCTION",
+    "PV2_PV2_POWERFACTOR_PERCEN", "PV2_PV2_REACTIVEPOWER", "PV2_PV2_APPARENTPOWER", "PV2_PV2_POWER", "PV2_PV2_COMMUNICATION_FAULT",
+    
+    "PV3_PV3_TOTAL_POWER_YIELDS_REAL", "PV3_PV3_TOTAL_APPARENT_POWER_KW", "PV3_PV3_TOTAL_REACTIVE_POWER_KW", "PV3_PV3_TOTAL_ACTIVE_POWER_KW",
+    "PV3_PV3_TOTAL_POWER_YIELDS", "PV3_PV3_DAILY_POWER_YIELDS", "PV3_PV3_NOMINAL_ACTIVE_POWER", "PV3_PV3_COMMUNICATION_FAULT",
+    
+    "PV4_PV4_TOTAL_POWER_YIELDS_REAL", "PV4_PV4_TOTAL_APPARENT_POWER_KW", "PV4_PV4_TOTAL_REACTIVE_POWER_KW", "PV4_PV4_TOTAL_ACTIVE_POWER_KW",
+    "PV4_PV4_TOTAL_POWER_YIELDS", "PV4_PV4_DAILY_POWER_YIELDS", "PV4_PV4_NOMINAL_ACTIVE_POWER", "PV4_PV4_COMMUNICATION_FAULT",
+    
+    # --- WEATHER ---
     "WEATHER_Temp", "WEATHER_TempMin", "WEATHER_TempMax", "WEATHER_Humidity", "WEATHER_WindSpeed",
-    "WEATHER_Sunrise", "WEATHER_Sunset", "WEATHER_FeelsLike", "WEATHER_Pressure", "WEATHER_Icon"
+    "WEATHER_Sunrise", "WEATHER_Sunset", "WEATHER_FeelsLike", "WEATHER_Pressure", "WEATHER_Icon","WEATHER_City"
 ]
 
-UNIT_MAPPING = {
+UTI_UNIT_MAPPING = {
     # --- METER ---
     "METER_V1": "V", "METER_V2": "V", "METER_V3": "V",
     "METER_I1": "A", "METER_I2": "A", "METER_I3": "A",
-    "METER_KW": "kW", "METER_Total_KWH": "kWh",
-    "METER_Export_KVARH": "kVarh", "METER_Export_KWH": "kWh", 
-    "METER_Import_KVARH": "kVarh", "METER_Import_KWH": "kWh",
-    "METER_Total_KVARH": "kVarh", "METER_Hz": "Hz", "METER_PF": "-",
-    "METER_I_Total": "A", "METER_KVAR": "kVar", "METER_KW_Invert": "kW", "METER_Grid_Power_KW": "kW",
-    "EMS_RenewRatioDaily": "%", "EMS_RenewRatioLifetime": "%",
+    "METER_KW": "kW", "METER_TOTAL_KWH": "kWh",
+    "METER_EXPORT_KVARH": "kVarh", "METER_EXPORT_KWH": "kWh", 
+    "METER_IMPORT_KVARH": "kVarh", "METER_IMPORT_KWH": "kWh",
+    "METER_TOTAL_KVARH": "kVarh", "METER_HZ": "Hz", "METER_PF": "-",
+    "METER_I_TOTAL": "A", "METER_KVAR": "kVar", "METER_KW_INVERT": "kW", "METER_GRID_POWER_KW": "kW",
 
-    # --- EMS ---
-    "PV_Total_Energy": "kWh", "PV_Daily_Energy": "kWh", "Load_Total_Energy": "kWh", "Load_Daily_Energy": "kWh",
-    "GRID_Total_Import_Energy": "kWh", "GRID_Daily_Import_Energy": "kWh", "GRID_Total_Export_Energy": "kWh", "GRID_Daily_Export_Energy": "kWh",
-    "BESS_Daily_Charge_Energy": "kWh", "BESS_Daily_Discharge_Energy": "kWh", "EMS_CO2_Equivalent": "kg",
-    "EMS_EnergyProducedFromPV_Daily": "kWh", "EMS_EnergyFeedToGrid_Daily": "kWh", "EMS_EnergyConsumption_Daily": "kWh",
-    "EMS_EnergyFeedFromGrid_Daily": "kWh", "EMS_SolarPower_kW": "kW", "EMS_LoadPower_kW": "kW", "EMS_BatteryPower_kW": "kW",
-    "EMS_EnergyProducedFromPV_kWh": "kWh", "EMS_EnergyFeedFromGrid_kWh": "kWh", "EMS_EnergyConsumption_kWh": "kWh",
+    # --- EMS (เบิ้ล EMS_EMS_) ---
+    "EMS_AUTO_TARGET_SETPOINT_KW_ADD": "kW",
+    "EMS_EMS_PV_TOTAL_ENERGY": "kWh", "EMS_EMS_PV_DAILY_ENERGY": "kWh", "EMS_EMS_LOAD_TOTAL_ENERGY": "kWh", "EMS_EMS_LOAD_DAILY_ENERGY": "kWh",
+    "EMS_EMS_GRID_TOTAL_IMPORT_ENERGY": "kWh", "EMS_EMS_GRID_DAILY_IMPORT_ENERGY": "kWh", "EMS_EMS_GRID_TOTAL_EXPORT_ENERGY": "kWh", "EMS_EMS_GRID_DAILY_EXPORT_ENERGY": "kWh",
+    "EMS_EMS_BESS_DAILY_CHARGE_ENERGY": "kWh", "EMS_EMS_BESS_DAILY_DISCHARGE_ENERGY": "kWh", "EMS_EMS_CO2_EQUIVALENT": "kg",
+    "EMS_EMS_ENERGYPRODUCEDFROMPV_DAILY": "kWh", "EMS_EMS_ENERGYFEEDTOGRID_DAILY": "kWh", "EMS_EMS_ENERGYCONSUMPTION_DAILY": "kWh",
+    "EMS_EMS_ENERGYFEEDFROMGRID_DAILY": "kWh", "EMS_EMS_SOLARPOWER_KW": "kW", "EMS_EMS_LOADPOWER_KW": "kW", "EMS_EMS_BATTERYPOWER_KW": "kW",
+    "EMS_EMS_ENERGYPRODUCEDFROMPV_KWH": "kWh", "EMS_EMS_ENERGYFEEDFROMGRID_KWH": "kWh", "EMS_EMS_ENERGYCONSUMPTION_KWH": "kWh",
+    "EMS_EMS_RENEWRATIODAILY": "%", "EMS_EMS_RENEWRATIOLIFETIME": "%",
 
-    # --- BESS ---
-    "BESS_SOC": "%", "BESS_SOH": "%", "BESS_V": "V", "BESS_I": "A", "BESS_KW": "kW", "BESS_Temperature": "°C",
-    "BESS_Total_Discharge": "kWh", "BESS_Total_Charge": "kWh", "BESS_SOC_MAX": "%", "BESS_SOC_MIN": "%",
-    "BESS_Power_KW_Invert": "kW", "BESS_Manual_Power_Setpoint": "kW", "BESS_PID_CycleTime": "s",
-    "BESS_PID_Td": "s", "BESS_PID_Ti": "s", "BESS_PID_Gain": "-", "BESS_Temp_Ambient": "°C",
-    "BESS_Alarm": "-", "BESS_Fault": "-", "BESS_Communication_Fault": "-",
+    # --- BESS (เบิ้ล BESS_BESS_ บางตัว) ---
+    "BESS_SOC": "%", "BESS_SOH": "%", "BESS_V": "V", "BESS_I": "A", "BESS_KW": "kW", "BESS_TEMPERATURE": "°C",
+    "BESS_TOTAL_DISCHARGE": "kWh", "BESS_TOTAL_CHARGE": "kWh", "BESS_SOC_MAX": "%", "BESS_SOC_MIN": "%",
+    "BESS_POWER_KW_INVERT": "kW", "BESS_MANUAL_POWER_SETPOINT": "kW", "BESS_PID_CYCLETIME": "s",
+    "BESS_PID_TD": "s", "BESS_PID_TI": "s", "BESS_PID_GAIN": "-", "BESS_BESS_TEMP_AMBIENT": "°C",
+    "BESS_BESS_ALARM": "-", "BESS_BESS_FAULT": "-", "BESS_BESS_COMMUNICATION_FAULT": "-",
 
     # --- PV1 ---
-    "PV1_Grid_Power_KW": "kW", "PV1_Load_Power_KW": "kW", "PV1_Daily_Energy_Power_KWh": "kWh", "PV1_Total_Energy_Power_KWh": "kWh",
-    "PV1_Power_Factor": "-", "PV1_Reactive_Power_KVar": "kVar", "PV1_Active_Power_KW": "kW", 
-    "PV1_Fault": "-", "PV1_Communication_Fault": "-",
+    "PV1_PV1_GRID_POWER_KW": "kW", "PV1_PV1_LOAD_POWER_KW": "kW", "PV1_PV1_DAILY_ENERGY_POWER_KWH": "kWh", "PV1_PV1_TOTAL_ENERGY_POWER_KWH": "kWh",
+    "PV1_PV1_POWER_FACTOR": "-", "PV1_PV1_REACTIVE_POWER_KVAR": "kVar", "PV1_PV1_ACTIVE_POWER_KW": "kW", 
+    "PV1_PV1_FAULT": "-", "PV1_PV1_COMMUNICATION_FAULT": "-",
 
     # --- PV2 ---
-    "PV2_Energy_Daily_kW": "kWh", "PV2_LifeTimeEnergyProduction_kWh_Start": "kWh", "PV2_LifeTimeEnergyProduction_kWh": "kWh",
-    "PV2_ReactivePower_kW": "kVar", "PV2_ApparentPower_kW": "kVA", "PV2_Power_kW": "kW", "PV2_LifeTimeEnergyProduction": "kWh",
-    "PV2_PowerFactor_Percen": "%", "PV2_ReactivePower": "kVar", "PV2_ApparentPower": "kVA", "PV2_Power": "kW", "PV2_Communication_Fault": "-",
+    "PV2_PV2_ENERGY_DAILY_KW": "kWh", "PV2_PV2_LIFETIMEENERGYPRODUCTION_KWH_START": "kWh", "PV2_PV2_LIFETIMEENERGYPRODUCTION_KWH": "kWh",
+    "PV2_PV2_REACTIVEPOWER_KW": "kVar", "PV2_PV2_APPARENTPOWER_KW": "kVA", "PV2_PV2_POWER_KW": "kW", "PV2_PV2_LIFETIMEENERGYPRODUCTION": "kWh",
+    "PV2_PV2_POWERFACTOR_PERCEN": "%", "PV2_PV2_REACTIVEPOWER": "kVar", "PV2_PV2_APPARENTPOWER": "kVA", "PV2_PV2_POWER": "kW", "PV2_PV2_COMMUNICATION_FAULT": "-",
 
     # --- PV3 & PV4 ---
-    "PV3_Total_Power_Yields_Real": "kWh", "PV3_Total_Apparent_Power_kW": "kVA", "PV3_Total_Reactive_Power_kW": "kVar", "PV3_Total_Active_Power_kW": "kW",
-    "PV4_Total_Power_Yields_Real": "kWh", "PV4_Total_Apparent_Power_kW": "kVA", "PV4_Total_Reactive_Power_kW": "kVar", "PV4_Total_Active_Power_kW": "kW",
-    # ... (สามารถเพิ่มตัวอื่นๆ ของ PV3/PV4 ตามรูปแบบเดียวกัน) ...
+    "PV3_PV3_TOTAL_POWER_YIELDS_REAL": "kWh", "PV3_PV3_TOTAL_APPARENT_POWER_KW": "kVA", "PV3_PV3_TOTAL_REACTIVE_POWER_KW": "kVar", "PV3_PV3_TOTAL_ACTIVE_POWER_KW": "kW",
+    "PV3_PV3_TOTAL_POWER_YIELDS": "kWh", "PV3_PV3_DAILY_POWER_YIELDS": "kWh", "PV3_PV3_NOMINAL_ACTIVE_POWER": "kW", "PV3_PV3_COMMUNICATION_FAULT": "-",
+    
+    "PV4_PV4_TOTAL_POWER_YIELDS_REAL": "kWh", "PV4_PV4_TOTAL_APPARENT_POWER_KW": "kVA", "PV4_PV4_TOTAL_REACTIVE_POWER_KW": "kVar", "PV4_PV4_TOTAL_ACTIVE_POWER_KW": "kW",
+    "PV4_PV4_TOTAL_POWER_YIELDS": "kWh", "PV4_PV4_DAILY_POWER_YIELDS": "kWh", "PV4_PV4_NOMINAL_ACTIVE_POWER": "kW", "PV4_PV4_COMMUNICATION_FAULT": "-",
 
     # --- WEATHER ---
     "WEATHER_Temp": "°C", "WEATHER_TempMin": "°C", "WEATHER_TempMax": "°C", "WEATHER_Sunrise": "timestamp", "WEATHER_Sunset": "timestamp",
     "WEATHER_FeelsLike": "°C", "WEATHER_Humidity": "%", "WEATHER_Pressure": "hPa", "WEATHER_WindSpeed": "m/s",
-    "WEATHER_Cloudiness": "%", "WEATHER_Icon": "-"
+    "WEATHER_Cloudiness": "%", "WEATHER_Icon": "-","WEATHER_City": "-"
+}
+
+# ==========================================
+# 1. รายชื่อตัวแปรทั้งหมด (Keys) ของ TPI
+# ==========================================
+TPI_DEFAULT_KEYS = [
+    # --- EMS (Energy Management System) ---
+    "EMS_PLOAD",
+    "EMS_KWHLOADTOTAL",
+    "EMS_KWHLOADDAILY",
+    "EMS_CO2E",
+    "EMS_RENEWRATIO",
+    "EMS_RENEWRATIOLIFETIME",
+
+    # --- METER (Main Power Meter) ---
+    "METER_P", "METER_Q", "METER_S", "METER_PF",
+    "METER_KWHTOTAL", "METER_KWHPOS", "METER_KWHNEG",
+    "METER_KWHTOTALDAILY", "METER_KWHPOSDAILY", "METER_KWHNEGDAILY",
+    "METER_V1", "METER_V2", "METER_V3",
+    "METER_V12", "METER_V23", "METER_V31",
+    "METER_I1", "METER_I2", "METER_I3",
+
+    # --- SOLAR (Inverters & EMI) ---
+    "SOLAR_SOLAR1_EMI1_IRRADIANCETOTAL",
+    "SOLAR_SOLAR1_EMI1_IRRADIANCEDAILY",
+    "SOLAR_SOLAR1_EMI1_TEMPAMBIENT",
+    "SOLAR_SOLAR1_EMI1_TEMPPV",
+    "SOLAR_SOLAR1_LOGGER1_P",
+    "SOLAR_SOLAR1_LOGGER1_Q",
+    "SOLAR_SOLAR1_LOGGER1_PF",
+    "SOLAR_SOLAR1_LOGGER1_KWHTOTAL",
+    "SOLAR_SOLAR1_LOGGER1_KWHDAILY",
+    "SOLAR_SOLAR1_LOGGER1_IDC",
+    "SOLAR_SOLAR1_LOGGER1_V12",
+    "SOLAR_SOLAR1_LOGGER1_V23",
+    "SOLAR_SOLAR1_LOGGER1_V31",
+    "SOLAR_SOLAR1_LOGGER1_I1",
+    "SOLAR_SOLAR1_LOGGER1_I2",
+    "SOLAR_SOLAR1_LOGGER1_I3",
+    "SOLAR_SOLAR1_METER2_P", "SOLAR_SOLAR1_METER2_Q", "SOLAR_SOLAR1_METER2_S", "SOLAR_SOLAR1_METER2_PF",
+    "SOLAR_SOLAR1_METER2_KWHTOTAL", "SOLAR_SOLAR1_METER2_KWHPOS", "SOLAR_SOLAR1_METER2_KWHNEG",
+    "SOLAR_SOLAR1_METER2_V1", "SOLAR_SOLAR1_METER2_V2", "SOLAR_SOLAR1_METER2_V3",
+    "SOLAR_SOLAR1_METER2_V12", "SOLAR_SOLAR1_METER2_V23", "SOLAR_SOLAR1_METER2_V31",
+    "SOLAR_SOLAR1_METER2_I1", "SOLAR_SOLAR1_METER2_I2", "SOLAR_SOLAR1_METER2_I3",
+    "SOLAR_SOLAR1_METER3_P", "SOLAR_SOLAR1_METER3_Q", "SOLAR_SOLAR1_METER3_S", "SOLAR_SOLAR1_METER3_PF",
+    "SOLAR_SOLAR1_METER3_KWHTOTAL", "SOLAR_SOLAR1_METER3_KWHPOS", "SOLAR_SOLAR1_METER3_KWHNEG",
+    "SOLAR_SOLAR1_METER3_V1", "SOLAR_SOLAR1_METER3_V2", "SOLAR_SOLAR1_METER3_V3",
+    "SOLAR_SOLAR1_METER3_V12", "SOLAR_SOLAR1_METER3_V23", "SOLAR_SOLAR1_METER3_V31",
+    "SOLAR_SOLAR1_METER3_I1", "SOLAR_SOLAR1_METER3_I2", "SOLAR_SOLAR1_METER3_I3",
+
+    # --- BESS (Battery Energy Storage System) ---
+    # SCU (System Control Unit)
+    "BESS_SCU_P", "BESS_SCU_I", "BESS_SCU_SOC", "BESS_SCU_SOH", "BESS_SCU_PINVERT",
+    "BESS_SCU_KWHCHARGETOTAL", "BESS_SCU_KWHDISCHARGETOTAL",
+    "BESS_SCU_KWHCHARGEDAILY", "BESS_SCU_KWHDISCHARGEDAILY",
+    
+    # Racks (Individual Battery Racks 1-5)
+    # หมายเหตุ: ใส่ตัวแปรตัวอย่างตามที่พบใน Log (สามารถก๊อปปี้เพิ่มให้ครบทุก Rack ได้)
+    "BESS_RACK1_KWHCHARGETOTAL","BESS_RACK1_KWHDISCHARGETOTAL","BESS_RACK1_KWHCHARGEDAILY","BESS_RACK1_KWHDISCHARGEDAILY","BESS_RACK1_TIMECHARGE","BESS_RACK1_TIMEDISCHARGE",
+    "BESS_RACK1_PCSCOMMFAULT","BESS_RACK1_PCSFAULT","BESS_RACK1_PCSALARM","BESS_RACK1_PCSDERATING","BESS_RACK1_PCSBOOTING","BESS_RACK1_PCSGRIDTIED",
+    "BESS_RACK1_PCSOFFGRID","BESS_RACK1_PCSFAIL","BESS_RACK1_PCSONOFF","BESS_RACK1_PCSSTANDBY","BESS_RACK1_PCSCHARGING","BESS_RACK1_PCSDISCHARGING",
+    "BESS_RACK1_PCSFULLYCHARGE","BESS_RACK1_PCSTOTALLYDISCHARGE",
+    "BESS_RACK1_V", "BESS_RACK1_I", "BESS_RACK1_P", "BESS_RACK1_SOC", "BESS_RACK1_SOH", "BESS_RACK1_STATE",
+    "BESS_RACK1_CELLV", "BESS_RACK1_CELLTEMP", 
+        
+    
+    "BESS_RACK2_KWHCHARGETOTAL","BESS_RACK2_KWHDISCHARGETOTAL","BESS_RACK2_KWHCHARGEDAILY","BESS_RACK2_KWHDISCHARGEDAILY","BESS_RACK2_TIMECHARGE","BESS_RACK2_TIMEDISCHARGE",
+    "BESS_RACK2_PCSCOMMFAULT","BESS_RACK2_PCSFAULT","BESS_RACK2_PCSALARM","BESS_RACK2_PCSDERATING","BESS_RACK2_PCSBOOTING","BESS_RACK2_PCSGRIDTIED",
+    "BESS_RACK2_PCSOFFGRID","BESS_RACK2_PCSFAIL","BESS_RACK2_PCSONOFF","BESS_RACK2_PCSSTANDBY","BESS_RACK2_PCSCHARGING","BESS_RACK2_PCSDISCHARGING",
+    "BESS_RACK2_PCSFULLYCHARGE","BESS_RACK2_PCSTOTALLYDISCHARGE",
+    "BESS_RACK2_V", "BESS_RACK2_I", "BESS_RACK2_P", "BESS_RACK2_SOC", "BESS_RACK2_SOH", "BESS_RACK2_STATE",
+    "BESS_RACK2_CELLV", "BESS_RACK2_CELLTEMP",
+
+    "BESS_RACK3_KWHCHARGETOTAL","BESS_RACK3_KWHDISCHARGETOTAL","BESS_RACK3_KWHCHARGEDAILY","BESS_RACK3_KWHDISCHARGEDAILY","BESS_RACK3_TIMECHARGE","BESS_RACK3_TIMEDISCHARGE",
+    "BESS_RACK3_PCSCOMMFAULT","BESS_RACK3_PCSFAULT","BESS_RACK3_PCSALARM","BESS_RACK3_PCSDERATING","BESS_RACK3_PCSBOOTING","BESS_RACK3_PCSGRIDTIED",
+    "BESS_RACK3_PCSOFFGRID","BESS_RACK3_PCSFAIL","BESS_RACK3_PCSONOFF","BESS_RACK3_PCSSTANDBY","BESS_RACK3_PCSCHARGING","BESS_RACK3_PCSDISCHARGING",
+    "BESS_RACK3_PCSFULLYCHARGE","BESS_RACK3_PCSTOTALLYDISCHARGE",
+    "BESS_RACK3_V", "BESS_RACK3_I", "BESS_RACK3_P", "BESS_RACK3_SOC", "BESS_RACK3_SOH", "BESS_RACK3_STATE",
+    "BESS_RACK3_CELLV", "BESS_RACK3_CELLTEMP",
+
+    "BESS_RACK4_KWHCHARGETOTAL","BESS_RACK4_KWHDISCHARGETOTAL","BESS_RACK4_KWHCHARGEDAILY","BESS_RACK4_KWHDISCHARGEDAILY","BESS_RACK4_TIMECHARGE","BESS_RACK4_TIMEDISCHARGE",
+    "BESS_RACK4_PCSCOMMFAULT","BESS_RACK4_PCSFAULT","BESS_RACK4_PCSALARM","BESS_RACK4_PCSDERATING","BESS_RACK4_PCSBOOTING","BESS_RACK4_PCSGRIDTIED",
+    "BESS_RACK4_PCSOFFGRID","BESS_RACK4_PCSFAIL","BESS_RACK4_PCSONOFF","BESS_RACK4_PCSSTANDBY","BESS_RACK4_PCSCHARGING","BESS_RACK4_PCSDISCHARGING",
+    "BESS_RACK4_PCSFULLYCHARGE","BESS_RACK4_PCSTOTALLYDISCHARGE",
+    "BESS_RACK4_V", "BESS_RACK4_I", "BESS_RACK4_P", "BESS_RACK4_SOC", "BESS_RACK4_SOH", "BESS_RACK4_STATE",
+    "BESS_RACK4_CELLV", "BESS_RACK4_CELLTEMP",
+
+    "BESS_RACK5_KWHCHARGETOTAL","BESS_RACK5_KWHDISCHARGETOTAL","BESS_RACK5_KWHCHARGEDAILY","BESS_RACK5_KWHDISCHARGEDAILY","BESS_RACK5_TIMECHARGE","BESS_RACK5_TIMEDISCHARGE",
+    "BESS_RACK5_PCSCOMMFAULT","BESS_RACK5_PCSFAULT","BESS_RACK5_PCSALARM","BESS_RACK5_PCSDERATING","BESS_RACK5_PCSBOOTING","BESS_RACK5_PCSGRIDTIED",
+    "BESS_RACK5_PCSOFFGRID","BESS_RACK5_PCSFAIL","BESS_RACK5_PCSONOFF","BESS_RACK5_PCSSTANDBY","BESS_RACK5_PCSCHARGING","BESS_RACK5_PCSDISCHARGING",
+    "BESS_RACK5_PCSFULLYCHARGE","BESS_RACK5_PCSTOTALLYDISCHARGE",
+    "BESS_RACK5_V", "BESS_RACK5_I", "BESS_RACK5_P", "BESS_RACK5_SOC", "BESS_RACK5_SOH", "BESS_RACK5_STATE",
+    "BESS_RACK5_CELLV", "BESS_RACK5_CELLTEMP",
+
+    "WEATHER_Temp",
+    "WEATHER_TempMin",
+    "WEATHER_TempMax",
+    "WEATHER_Sunrise",
+    "WEATHER_Sunset",
+    "WEATHER_FeelsLike",
+    "WEATHER_Humidity",
+    "WEATHER_Pressure",
+    "WEATHER_WindSpeed",
+    "WEATHER_Cloudiness",
+    "WEATHER_Icon",
+    "WEATHER_City"
+]
+
+ALL_PLANTS_KEYS = list(set(UTI_DEFAULT_KEYS + TPI_DEFAULT_KEYS))
+
+# ==========================================
+# 2. การจับคู่หน่วยของแต่ละตัวแปร (Unit Mapping) ของ TPI
+# ==========================================
+TPI_UNIT_MAPPING = {
+    # --- EMS (Energy Management System) ---
+    "EMS_PLOAD": "kW",
+    "EMS_KWHLOADTOTAL": "kWh",
+    "EMS_KWHLOADDAILY": "kWh",
+    "EMS_CO2E": "kgCO2e",
+    "EMS_RENEWRATIO": "%",
+    "EMS_RENEWRATIOLIFETIME": "%",
+
+    # --- METER (Main Power Meter) ---
+    "METER_P": "kW",
+    "METER_Q": "kVAR",
+    "METER_S": "kVA",
+    "METER_PF": "",
+    "METER_KWHTOTAL": "kWh",
+    "METER_KWHPOS": "kWh",
+    "METER_KWHNEG": "kWh",
+    "METER_KWHTOTALDAILY": "kWh",
+    "METER_KWHPOSDAILY": "kWh",
+    "METER_KWHNEGDAILY": "kWh",
+    "METER_V1": "V", "METER_V2": "V", "METER_V3": "V",
+    "METER_V12": "V", "METER_V23": "V", "METER_V31": "V",
+    "METER_I1": "A", "METER_I2": "A", "METER_I3": "A",
+
+    # --- SOLAR (Inverters & EMI) ---
+    "SOLAR_SOLAR1_EMI1_IRRADIANCETOTAL": "W/m²",
+    "SOLAR_SOLAR1_EMI1_IRRADIANCEDAILY": "kWh/m²",
+    "SOLAR_SOLAR1_EMI1_TEMPAMBIENT": "°C",
+    "SOLAR_SOLAR1_EMI1_TEMPPV": "°C",
+    "SOLAR_SOLAR1_LOGGER1_P": "kW",
+    "SOLAR_SOLAR1_LOGGER1_Q": "kVAR",
+    "SOLAR_SOLAR1_LOGGER1_PF": "",
+    "SOLAR_SOLAR1_LOGGER1_KWHTOTAL": "kWh",
+    "SOLAR_SOLAR1_LOGGER1_KWHDAILY": "kWh",
+    "SOLAR_SOLAR1_LOGGER1_IDC": "A",
+    "SOLAR_SOLAR1_LOGGER1_V12": "V",
+    "SOLAR_SOLAR1_LOGGER1_V23": "V",
+    "SOLAR_SOLAR1_LOGGER1_V31": "V",
+    "SOLAR_SOLAR1_LOGGER1_I1": "A",
+    "SOLAR_SOLAR1_LOGGER1_I2": "A",
+    "SOLAR_SOLAR1_LOGGER1_I3": "A",
+
+    "WEATHER_Temp": "°C", "WEATHER_TempMin": "°C", "WEATHER_TempMax": "°C", "WEATHER_Sunrise": "timestamp", "WEATHER_Sunset": "timestamp",
+    "WEATHER_FeelsLike": "°C", "WEATHER_Humidity": "%", "WEATHER_Pressure": "hPa", "WEATHER_WindSpeed": "m/s",
+    "WEATHER_Cloudiness": "%", "WEATHER_Icon": "-","WEATHER_City": "-",
+
+    # SOLAR Meter 2 & 3
+    **{f"SOLAR_SOLAR1_METER{m}_{k}": v for m in [2, 3] for k, v in {
+        "P": "kW", "Q": "kVAR", "S": "kVA", "PF": "",
+        "KWHTOTAL": "kWh", "KWHPOS": "kWh", "KWHNEG": "kWh",
+        "V1": "V", "V2": "V", "V3": "V", "V12": "V", "V23": "V", "V31": "V",
+        "I1": "A", "I2": "A", "I3": "A"
+    }.items()},
+
+    # --- BESS (Battery Energy Storage System) ---
+    # SCU
+    "BESS_SCU_P": "kW",
+    "BESS_SCU_I": "A",
+    "BESS_SCU_SOC": "%",
+    "BESS_SCU_SOH": "%",
+    "BESS_SCU_PINVERT": "kW",
+    "BESS_SCU_KWHCHARGETOTAL": "kWh",
+    "BESS_SCU_KWHDISCHARGETOTAL": "kWh",
+    "BESS_SCU_KWHCHARGEDAILY": "kWh",
+    "BESS_SCU_KWHDISCHARGEDAILY": "kWh",
+
+    # Racks 1-5 (ใช้ Loop เพื่อความกระชับและแม่นยำ)
+    **{f"BESS_RACK{i}_{k}": v for i in range(1, 6) for k, v in {
+        "KWHCHARGETOTAL": "kWh", "KWHDISCHARGETOTAL": "kWh",
+        "KWHCHARGEDAILY": "kWh", "KWHDISCHARGEDAILY": "kWh",
+        "TIMECHARGE": "min", "TIMEDISCHARGE": "min",
+        "V": "V", "I": "A", "P": "kW", "SOC": "%", "SOH": "%",
+        "CELLV": "V", "CELLTEMP": "°C",
+        "STATE": "status",
+        "PCSCOMMFAULT": "alarm", "PCSFAULT": "alarm", "PCSALARM": "alarm",
+        "PCSDERATING": "status", "PCSBOOTING": "status", "PCSGRIDTIED": "status",
+        "PCSOFFGRID": "status", "PCSFAIL": "alarm", "PCSONOFF": "status",
+        "PCSSTANDBY": "status", "PCSCHARGING": "status", "PCSDISCHARGING": "status",
+        "PCSFULLYCHARGE": "status", "PCSTOTALLYDISCHARGE": "status"
+    }.items()}
 }
 
 print("Initializing Redis keys...")
 pipe = redis_client.pipeline()
-for key in DEFAULT_KEYS:
-    pipe.setnx(key, 0.0)
+for plant in ["UTI", "TPI"]:
+    # เลือก Keys ให้ตรงตามโรงงาน
+    keys_to_init = UTI_DEFAULT_KEYS if plant == "UTI" else TPI_DEFAULT_KEYS
+    for key in keys_to_init:
+        pipe.setnx(f"{plant}:{key}", 0.0)
 pipe.execute()
 print("\033[92m🗸\033[0m Redis keys initialized complete.")
-last_mqtt_update = time.time()
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
-    # สร้าง SQL โดยเช็คว่าถ้าเป็น Icon ให้เก็บเป็น TEXT
+    clean_uti_keys = list(dict.fromkeys(UTI_DEFAULT_KEYS))
+    clean_tpi_keys = list(dict.fromkeys(TPI_DEFAULT_KEYS))
+    ALL_PLANTS_KEYS = list(dict.fromkeys(clean_uti_keys + clean_tpi_keys))
+    
     col_defs = []
-    for key in DEFAULT_KEYS:
-        if key == "WEATHER_Icon":
-            col_defs.append(f'"{key}" TEXT') # เก็บข้อความ
-        else:
-            col_defs.append(f'"{key}" REAL') # เก็บตัวเลข
+    seen_cols = set() # ตัวช่วยจำชื่อคอลัมน์ที่สร้างไปแล้ว (แบบพิมพ์เล็กทั้งหมด)
+    
+    for key in ALL_PLANTS_KEYS:
+        key_lower = key.lower() # แปลงเป็นพิมพ์เล็กเพื่อเช็คตัวซ้ำ
+        
+        # ถ้ายังไม่เคยมีคอลัมน์นี้ ให้สร้างใหม่
+        if key_lower not in seen_cols:
+            seen_cols.add(key_lower)
+            
+            # กำหนด Data Type
+            if key == "WEATHER_Icon" or "status" in key.lower() or "state" in key.lower() or "alarm" in key.lower():
+                col_defs.append(f'"{key}" TEXT')
+            else:
+                col_defs.append(f'"{key}" REAL')
             
     columns_sql = ", ".join(col_defs)
 
     create_table_sql = f'''
         CREATE TABLE IF NOT EXISTS system_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp DATETIME, 
+            timestamp DATETIME,
+            plant TEXT,
             {columns_sql}
         )
     '''
-    cursor.execute(create_table_sql)
     
-    # (ส่วน Alter table เดิม ตัดออกหรือคงไว้ก็ได้ แต่แนะนำให้ลบไฟล์ db เก่าทิ้งง่ายกว่า)
-    conn.commit()
-    conn.close()
-    print("\033[92m🗸\033[0m Database Initialized")
+    try:
+        cursor.execute(create_table_sql)
+        conn.commit()
+        print("\033[92m🗸\033[0m Database Initialized (Case-insensitive duplicates handled)")
+    except sqlite3.OperationalError as e:
+        print(f"\033[91m! Error during table creation:\033[0m {e}")
+    finally:
+        conn.close()
 
 def init_db_wal_mode():
     max_retries = 5
@@ -249,117 +474,84 @@ def get_energy_at_time(cursor, target_datetime):
 # ==========================================
 def on_connect(client, userdata, flags, rc):
     print("Connected to MQTT Broker!")
-    topics = ["EMS/#", "BESS/#", "METER/#", "PV1/#", "PV2/#", "PV3/#", "PV4/#"]
-    for t in topics: client.subscribe(t)
+    UTI_TOPICS = ["EMS/#", "BESS/#", "METER/#", "PV1/#", "PV2/#", "PV3/#", "PV4/#"]
+    TPI_TOPICS = ["tpi/#"]
+    for t in UTI_TOPICS + TPI_TOPICS: 
+        client.subscribe(t)
+
 
 def on_message(client, userdata, msg):
-    global latest_data, last_mqtt_update
     try:
-        topic = msg.topic
-        payload = msg.payload.decode("utf-8")
-        #print(f"Topic: {topic} | Value: {payload}")
-        updates = {}
+        original_topic = msg.topic 
+        topic_lower = original_topic.lower()
+        raw_payload = msg.payload.decode().strip()
+        
+        try:
+            payload_value = float(raw_payload)
+        except ValueError:
+            return 
 
-        if "{" in payload and "}" in payload:
-            try:
-                #print(f"DEBUG: JSON Detected -> {data_json}")
-                data_json = json.loads(payload)
-                
-                def clean_val(v):
-                    return round(float(v), 4) if isinstance(v, (int, float)) else v
+        if topic_lower.startswith("tpi/"):
+            topic_core = original_topic[4:]
+            key_name = topic_core.replace("/", "_").upper()
+            redis_key = f"TPI:{key_name}"
+            redis_client.set(redis_key, payload_value)
+        else:
+            if topic_lower.startswith("uti/"):
+                topic_core = original_topic[4:]
+            else:
+                topic_core = original_topic
+            key_name = topic_core.replace("/", "_").upper()
+            redis_key = f"UTI:{key_name}"
+            redis_client.set(redis_key, payload_value)
 
-                if "v1" in data_json: updates["METER_V1"] = clean_val(data_json["v1"])
-                if "v2" in data_json: updates["METER_V2"] = clean_val(data_json["v2"])
-                if "v3" in data_json: updates["METER_V3"] = clean_val(data_json["v3"])
-                if "i1" in data_json: updates["METER_I1"] = clean_val(data_json["i1"])
-                if "i2" in data_json: updates["METER_I2"] = clean_val(data_json["i2"])
-                if "i3" in data_json: updates["METER_I3"] = clean_val(data_json["i3"])
-                if "kwhtotal" in data_json: updates["METER_Total_KWH"] = clean_val(data_json["kwhtotal"])
-                if "p" in data_json: updates["METER_KW"] = clean_val(data_json["p"])
-
-                for key, val in data_json.items():
-                    if isinstance(val, (int, float)):
-                        
-                        updates[key] = round(val, 4)
-                last_mqtt_update = time.time()
-
-            except json.JSONDecodeError:
-                print(f"\033[91m𐄂\033[0m JSON Error: {payload}")
-        else: 
-            try:
-                value = float(payload)
-                if math.isnan(value) or math.isinf(value): value = 0.0
-                value = round(value, 4)
-
-                parts = topic.split("/")
-                suffix = parts[-1]
-                prefix = parts[0]
-                if suffix in DEFAULT_KEYS:
-                     key_name = suffix 
-                else:
-                     key_name = f"{prefix}_{suffix}"
-
-                updates[key_name] = value
-                
-            except ValueError:
-                pass 
-
-        if updates:
-            pipe = redis_client.pipeline()
-            for k, v in updates.items():
-                pipe.set(k, v) 
-            pipe.execute()
-
-    except Exception as e: 
-        print(f"MQTT Error: {e}")
-
+    except Exception as e:
+        print(f"MQTT on_message Error: {e}")
 # ==========================================
 # Weather Fetcher Loop
 # ==========================================
 def weather_loop():
     print("\033[92m🗸\033[0m Weather Fetcher Started")
     while True:
-        try:
-            # ยิง API ไปที่ OpenWeatherMap
-            url = f"https://api.openweathermap.org/data/2.5/weather?q={WEATHER_CITY}&units=metric&appid={WEATHER_API_KEY}"
-            response = requests.get(url, timeout=10)
+        # วนลูปดึงข้อมูลทีละโรงงาน ตามเมืองที่ตั้งค่าไว้
+        for plant, city in WEATHER_CITIES.items():
+            try:
+                url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&units=metric&appid={WEATHER_API_KEY}"
+                response = requests.get(url, timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    weather_update = {
+                        "WEATHER_City": city.replace(",TH", ""),
+                        "WEATHER_Temp": data['main']['temp'],
+                        "WEATHER_TempMin": data['main']['temp_min'],
+                        "WEATHER_TempMax": data['main']['temp_max'],
+                        "WEATHER_Sunrise": data['sys']['sunrise'],
+                        "WEATHER_Sunset": data['sys']['sunset'],
+                        "WEATHER_FeelsLike": data['main']['feels_like'],
+                        "WEATHER_Humidity": data['main']['humidity'],
+                        "WEATHER_Pressure": data['main']['pressure'],
+                        "WEATHER_WindSpeed": data['wind']['speed'],
+                        "WEATHER_Cloudiness": data.get('clouds', {}).get('all', 0),
+                        "WEATHER_Icon": data['weather'][0]['icon']
+                    }
+                    pipe = redis_client.pipeline()
+                    for k, v in weather_update.items():
+                        redis_key = f"{plant}:{k}"
+                        if k in ["WEATHER_Icon", "WEATHER_City"]:
+                            pipe.set(redis_key, v)
+                        else:
+                            pipe.set(redis_key, round(float(v), 2))
+                    pipe.execute()
+                else:
+                    print(f"Weather API Error ({plant} - {city}): {response.status_code}")
             
-            if response.status_code == 200:
-                data = response.json()
-                
-                # เตรียมข้อมูล (Key ต้องตรงกับใน DEFAULT_KEYS เป๊ะๆ)
-                weather_update = {
-                    "WEATHER_Temp": data['main']['temp'],
-                    "WEATHER_TempMin": data['main']['temp_min'],
-                    "WEATHER_TempMax": data['main']['temp_max'],
-                    "WEATHER_Sunrise": data['sys']['sunrise'],
-                    "WEATHER_Sunset": data['sys']['sunset'],
-                    "WEATHER_FeelsLike": data['main']['feels_like'],
-                    "WEATHER_Humidity": data['main']['humidity'],
-                    "WEATHER_Pressure": data['main']['pressure'],
-                    "WEATHER_WindSpeed": data['wind']['speed'],
-                    # เช็คว่ามี clouds/all ไหม
-                    "WEATHER_Cloudiness": data.get('clouds', {}).get('all', 0),
-                    "WEATHER_Icon": data['weather'][0]['icon']
-                }
-                
-                # บันทึกลง Redis
-                pipe = redis_client.pipeline()
-                for k, v in weather_update.items():
-                    # ถ้าไม่ใช่ Icon ให้แปลงเป็น float เพื่อปัดเศษ, ถ้าเป็น Icon ให้เก็บเลย
-                    if k == "WEATHER_Icon":
-                        pipe.set(k, v)
-                    else:
-                        pipe.set(k, round(float(v), 2))
-                pipe.execute()
-                
-            else:
-                print(f"Weather API Error: {response.status_code}")
-
-        except Exception as e:
-            print(f"Error fetching weather: {e}")
-        
-        # รอ 5 นาที (300 วินาที) แล้วทำใหม่
+            except Exception as e:
+                print(f"Error fetching weather for {plant}: {e}")
+            
+            # หน่วงเวลา 2 วินาทีระหว่างดึงแต่ละเมือง เพื่อป้องกัน API ของ OpenWeatherMap บล็อกรัว Request
+            time.sleep(2)
+        # เมื่อดึงครบ 2 โรงงานแล้ว ให้รอ 5 นาที (300 วินาที) แล้วค่อยทำใหม่
         time.sleep(300)
 
 # สั่งรัน Weather Loop ใน Thread แยก
@@ -373,66 +565,59 @@ weather_thread.start()
 # [EDITED] ฟังก์ชันนี้แก้ไขให้บันทึกทุก 5 นาที
 def db_saver_loop():
     global last_mqtt_update
-    print("\033[92m🗸\033[0m Database Saver Loop Started (Mode: Every 5 Minutes aligned to xx:00, xx:05, ...)")
+    print("\033[92m🗸\033[0m Database Saver Loop Started (Mode: Every 5 Minutes)")
     while True:
         try:
-            time_diff = time.time() - last_mqtt_update
-            if time_diff > 120:
-                print(f"\033[93m⚠\033[0m Warning: No data for {int(time_diff)}s. Reconnecting MQTT...")
             now = datetime.now()
-            
+            # ตรวจสอบว่าถึงเวลาบันทึก (ทุก 5 นาที)
             if now.minute % 5 == 0:
                 conn = sqlite3.connect(DB_NAME, timeout=30)
                 cursor = conn.cursor()
-                
                 local_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
-                pipe = redis_client.pipeline()
-                for key in DEFAULT_KEYS:
-                    pipe.get(key)
-                raw_values = pipe.execute()
-                
-                vals = []
-                for idx, v in enumerate(raw_values):
-                    key_name = DEFAULT_KEYS[idx] # ดูว่า Key ปัจจุบันคืออะไร
+                for current_plant in ["UTI", "TPI"]:
+                    # --- [FIX 1] เลือก Keys ให้ตรงกับโรงงานที่กำลังบันทึก ---
+                    keys_to_save = UTI_DEFAULT_KEYS if current_plant == "UTI" else TPI_DEFAULT_KEYS
                     
-                    if key_name == "WEATHER_Icon":
-                        # ถ้าเป็น Icon ให้เก็บเป็น String (ถ้าไม่มีข้อมูลให้ใส่ค่า default เป็น 01d)
-                        vals.append(str(v) if v else "01d")
-                    else:
-                        # ถ้าเป็นตัวเลข ให้ทำเหมือนเดิม
-                        try:
-                            val_float = float(v) if v else 0.0
-                            vals.append(round(val_float, 4))
-                        except:
-                            vals.append(0.0)
+                    pipe = redis_client.pipeline()
+                    for key in keys_to_save:
+                        pipe.get(f"{current_plant}:{key}")
+                    raw_values = pipe.execute()
+                
+                    vals = []
+                    for idx, v in enumerate(raw_values):
+                        key_name = keys_to_save[idx]
+                        if key_name == "WEATHER_Icon":
+                            vals.append(str(v) if v else "01d")
+                        else:
+                            try:
+                                val_float = float(v) if v else 0.0
+                                vals.append(round(val_float, 4))
+                            except:
+                                vals.append(0.0)
 
-                columns_str = ", ".join([f'"{k}"' for k in DEFAULT_KEYS])
-                placeholders = ", ".join(["?" for _ in DEFAULT_KEYS])
-                
-                sql = f'''
-                    INSERT INTO system_logs (timestamp, {columns_str})
-                    VALUES (?, {placeholders})
-                '''
-                
-                cursor.execute(sql, (local_time_str, *vals))
+                    # --- [FIX 2] เพิ่มเครื่องหมาย ? และส่งค่า current_plant ให้ครบถ้วน ---
+                    columns_str = ", ".join([f'"{k}"' for k in keys_to_save])
+                    placeholders = ", ".join(["?" for _ in keys_to_save])
+                    
+                    # เพิ่ม ? ตัวที่สองสำหรับคอลัมน์ plant
+                    sql = f'''
+                        INSERT INTO system_logs (timestamp, plant, {columns_str})
+                        VALUES (?, ?, {placeholders})
+                    '''
+                    
+                    # ส่งค่า current_plant เข้าไปด้วย (ลำดับ: timestamp, plant, ...vals)
+                    cursor.execute(sql, (local_time_str, current_plant, *vals))
                 
                 conn.commit()
                 conn.close()
                 print(f"\033[92m🗸\033[0m Archived data to DB at {local_time_str}")
-                
-                # สำคัญ: เมื่อบันทึกเสร็จแล้ว ให้ Sleep ข้ามนาทีนี้ไปเลย 
-                # (เช่น 60 วินาที) เพื่อป้องกันการบันทึกซ้ำหลายรอบในนาทีเดียวกัน
-                time.sleep(60) 
-            
+                time.sleep(60) # ป้องกันการบันทึกซ้ำในนาทีเดียวกัน
             else:
-                # ถ้ายังไม่ถึงเวลา ให้รอ 10 วินาที แล้ววนกลับมาเช็คใหม่
-                # การใช้ sleep น้อยๆ ช่วยให้เราไม่พลาดช่วงเปลี่ยนนาที
                 time.sleep(10)
-            
         except Exception as e:
             print(f"Error syncing Hot-to-Cold data: {e}")
-            time.sleep(10) # ถ้า Error ให้รอหน่อยแล้วค่อยเริ่มใหม่
+            time.sleep(10)
 
 db_thread = threading.Thread(target=db_saver_loop)
 db_thread.daemon = True
@@ -458,7 +643,6 @@ def on_disconnect(client, userdata, rc):
         except:
             pass
 
-# ... (ตรงส่วน Setup MQTT Client ด้านล่าง) ...
 mqtt_client = mqtt.Client()
 mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
 mqtt_client.on_connect = on_connect
@@ -470,21 +654,34 @@ mqtt_client.on_disconnect = on_disconnect
 # ==========================================
 
 @app.get("/api/dashboard")
-def get_dashboard_data():
+def get_dashboard_data(plant: str = "UTI"):
+    plant = plant.split('?')[0].upper() 
+    KEYS_TO_USE = UTI_DEFAULT_KEYS
+    if plant == "TPI":
+        KEYS_TO_USE = TPI_DEFAULT_KEYS
+        
     try:
         pipe = redis_client.pipeline()
-        for k in DEFAULT_KEYS:
-            pipe.get(k)
+        for k in KEYS_TO_USE:
+            pipe.get(f"{plant}:{k}") 
         values = pipe.execute()
-        
         data = {}
-        for i, key in enumerate(DEFAULT_KEYS):
+        success_count = 0 
+        
+        for i, key in enumerate(KEYS_TO_USE):
             val = values[i]
-            if key == "WEATHER_Icon":
-                data[key] = val if val else "01d"
+            if key in ["WEATHER_Icon", "WEATHER_City"]:
+                if val:
+                    data[key] = val.decode('utf-8') if isinstance(val, bytes) else str(val)
+                else:
+                    data[key] = "Unknown" if key == "WEATHER_City" else "01d"
             else:
                 try:
-                    data[key] = round(float(val), 4) if val else 0.0
+                    if val is not None:
+                        data[key] = round(float(val), 4)
+                        success_count += 1
+                    else:
+                        data[key] = 0.0
                 except:
                     data[key] = 0.0
 
@@ -495,7 +692,6 @@ def get_dashboard_data():
             data["EMS_RenewRatioDaily"] = round(pv_daily / load_daily, 4)
         else:
             data["EMS_RenewRatioDaily"] = 0.0
-
         pv_life = data.get("EMS_EnergyProducedFromPV_kWh", 0.0)
         load_life = data.get("EMS_EnergyConsumption_kWh", 0.0)
         
@@ -503,9 +699,10 @@ def get_dashboard_data():
             data["EMS_RenewRatioLifetime"] = round(pv_life / load_life, 4)
         else:
             data["EMS_RenewRatioLifetime"] = 0.0
-
         return data
+        
     except Exception as e:
+        print(f"API Error: {e}")
         return {"error": str(e)}
     
 # ==========================================
@@ -524,7 +721,6 @@ def get_data_range():
         if row and row[0] and row[1]:
             return {"min_date": row[0], "max_date": row[1]}
         else:
-            # ถ้าไม่มีข้อมูลเลย ให้ส่งวันปัจจุบันกลับไปป้องกัน Error
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             return {"min_date": now_str, "max_date": now_str}
     except Exception as e:
@@ -537,14 +733,12 @@ def get_data_range():
 @app.get("/api/history/daily")
 def get_daily_history(date: str = None):
     try:
-        # ถ้าไม่ส่ง date มา ให้ใช้วันปัจจุบัน
         target_date = date if date else datetime.now().strftime("%Y-%m-%d")
         
         conn = sqlite3.connect(DB_NAME)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        # Query ข้อมูลตามวันที่ระบุ
         sql = "SELECT * FROM system_logs WHERE date(timestamp) = ? ORDER BY timestamp ASC"
         cursor.execute(sql, (target_date,))
         rows = cursor.fetchall()
@@ -1061,7 +1255,7 @@ def export_custom_data(req: ExportRequest, response: Response):
                         c_name_l.value = var_name
                         
                         # ดึงหน่วยจาก UNIT_MAPPING ถ้าไม่มีให้ใส่ "-"
-                        c_unit_l.value = UNIT_MAPPING.get(var_name, "-")
+                        c_unit_l.value = UTI_UNIT_MAPPING.get(var_name, "-")
                         
                         c_name_l.font = Font(name='Arial', size=8); c_name_l.alignment = normal_align
                         c_unit_l.font = Font(name='Arial', size=8); c_unit_l.alignment = center_align
@@ -1086,7 +1280,7 @@ def export_custom_data(req: ExportRequest, response: Response):
                         c_name_r.value = var_name
                         
                         # ดึงหน่วยจาก UNIT_MAPPING ถ้าไม่มีให้ใส่ "-"
-                        c_unit_r.value = UNIT_MAPPING.get(var_name, "-")
+                        c_unit_r.value = UTI_UNIT_MAPPING.get(var_name, "-")
                         
                         c_name_r.font = Font(name='Arial', size=8); c_name_r.alignment = normal_align
                         c_unit_r.font = Font(name='Arial', size=8); c_unit_r.alignment = center_align
@@ -1220,7 +1414,7 @@ def export_custom_data(req: ExportRequest, response: Response):
                 # --- Left Side ---
                 idx_left = i
                 name_l = req.variables[idx_left] if idx_left < len(req.variables) else ""
-                unit_l = UNIT_MAPPING.get(name_l, "-") if name_l else ""
+                unit_l = UTI_UNIT_MAPPING.get(name_l, "-") if name_l else ""
                 
                 pdf.set_fill_color(*gray_color)
                 pdf.cell(col_w_pt, 6, str(i+1), border=1, align='C', fill=True)
@@ -1232,7 +1426,7 @@ def export_custom_data(req: ExportRequest, response: Response):
                 # --- Right Side ---
                 idx_right = i + 5
                 name_r = req.variables[idx_right] if idx_right < len(req.variables) else ""
-                unit_r = UNIT_MAPPING.get(name_r, "-") if name_r else ""
+                unit_r = UTI_UNIT_MAPPING.get(name_r, "-") if name_r else ""
                 
                 pdf.set_fill_color(*gray_color)
                 pdf.cell(col_w_pt, 6, str(i+6), border=1, align='C', fill=True)

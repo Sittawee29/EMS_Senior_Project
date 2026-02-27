@@ -221,32 +221,74 @@ class FlowPainter extends CustomPainter {
     final elbowCons = Offset(size.width * 0.625, size.height * 0.75);
     final elbowConsUp = Offset(size.width * 0.625, size.height * 0.525);
 
-    // 1. Total Solar Logic (data[0])
+    // --- เริ่มต้นแก้ไขจุดวาดเส้นทาง (Path Logic) ---
+
+    // 1. Total Solar Logic (data[0] = Solar Power)
+    // ทิศทาง: Solar -> House
     if (data[0] > 0.01) {
-      _drawPathAndDot(canvas, [pSolar, elbowSolar, elbowSolarDown, centerLeft], paintLine, Paint()..color = Color(0xFFFFB300)..style = PaintingStyle.fill);
+      List<Offset> points = [pSolar, elbowSolar, elbowSolarDown, centerLeft];
+      _drawPathAndDot(
+        canvas, 
+        points, // วิ่งปกติ (Solar -> House)
+        paintLine, 
+        Paint()..color = const Color(0xFFFFB300)..style = PaintingStyle.fill
+      );
     }
 
-    // 2. Grid Logic (data[1])
+    // 2. Grid Logic (data[1] = Grid Power)
     if (data[1].abs() > 0.01) {
       List<Offset> points = [pGrid, elbowGrid, elbowGridDown, centerRight];
-      _drawPathAndDot(canvas, points.reversed.toList(), paintLine, Paint()..color = Palette.brandBlue..style = PaintingStyle.fill);
-    }
-
-    if (data[2].abs() > 0.01) {
-      List<Offset> points = [pBatt, elbowBatt, elbowBattUp, centerBotLeft];
-      if (data[2] > 0) {
-        // (+) Charging : House -> Battery (Reversed)
-        _drawPathAndDot(canvas, points.reversed.toList(), paintLine, Paint()..color = Color.fromARGB(255, 0, 255, 0)..style = PaintingStyle.fill);
+      if (data[1] > 0) {
+        // (+) Import: เสาไฟ -> บ้าน
+        _drawPathAndDot(
+          canvas, 
+          points, // วิ่งปกติ (Grid -> House)
+          paintLine, 
+          Paint()..color = const Color.fromARGB(255, 255, 0, 0)..style = PaintingStyle.fill // สีแดง (รับเข้า)
+        );
       } else {
-        // (-) Discharging : Battery -> House (Normal)
-        _drawPathAndDot(canvas, points, paintLine, Paint()..color = Color(0xFFE53935)..style = PaintingStyle.fill);
+        // (-) Export: บ้าน -> เสาไฟ
+        _drawPathAndDot(
+          canvas, 
+          points.reversed.toList(), // วิ่งสวนทาง (House -> Grid)
+          paintLine, 
+          Paint()..color = const Color.fromARGB(255, 0, 255, 0)..style = PaintingStyle.fill // สีเขียว (จ่ายออก)
+        );
       }
     }
 
-    // 4. Consumption Logic (data[4])
+    // 3. Battery Logic (data[2] = BESS Power)
+    if (data[2].abs() > 0.01) {
+      List<Offset> points = [pBatt, elbowBatt, elbowBattUp, centerBotLeft];
+      if (data[2] > 0) {
+        // (+) Charging: บ้าน -> แบตเตอรี่
+        _drawPathAndDot(
+          canvas, 
+          points.reversed.toList(), // วิ่งสวนทาง (House -> Battery)
+          paintLine, 
+          Paint()..color = const Color.fromARGB(255, 0, 255, 0)..style = PaintingStyle.fill // สีเขียว (ชาร์จ)
+        );
+      } else {
+        // (-) Discharging: แบตเตอรี่ -> บ้าน
+        _drawPathAndDot(
+          canvas, 
+          points, // วิ่งปกติ (Battery -> House)
+          paintLine, 
+          Paint()..color = const Color.fromARGB(255, 255, 0, 0)..style = PaintingStyle.fill // สีแดง (ดึงมาใช้)
+        );
+      }
+    }
+
+    // 4. Consumption Logic (data[4] = Load)
+    // ทิศทาง: House -> Load
     if (data[4] > 0.01) {
       List<Offset> points = [pCons, elbowCons, elbowConsUp, centerBotRight];
-      _drawPathAndDot(canvas, points.reversed.toList(), paintLine, Paint()..color = Color(0xFFE53935)..style = PaintingStyle.fill);
+      _drawPathAndDot(
+        canvas, 
+        points.reversed.toList(), // วิ่งสวนทาง (House -> Load) เพื่อให้ออกไปหาโหลด
+        paintLine, 
+        Paint()..color = const Color(0xFFE53935)..style = PaintingStyle.fill
+      );
     }
   }
 

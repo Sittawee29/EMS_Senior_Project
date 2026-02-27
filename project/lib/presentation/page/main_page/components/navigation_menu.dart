@@ -1,7 +1,8 @@
 part of '../page.dart';
 
 class _NavigationMenu extends StatefulWidget {
-  const _NavigationMenu();
+  final Function(String) onPlantChanged; 
+  const _NavigationMenu({super.key, required this.onPlantChanged}); 
 
   @override
   State<_NavigationMenu> createState() => _NavigationMenuState();
@@ -9,6 +10,8 @@ class _NavigationMenu extends StatefulWidget {
 
 class _NavigationMenuState extends State<_NavigationMenu> {
   bool _isListenerAdded = false;
+  
+  String _selectedPlant = 'UTI';
 
   @override
   void didChangeDependencies() {
@@ -42,7 +45,53 @@ class _NavigationMenuState extends State<_NavigationMenu> {
             ),
           ),
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 10), // ปรับระยะห่างให้พอดีขึ้น
+        
+        // 2. เพิ่ม UI สำหรับ Switch Plant
+        Center(
+          child: Container(
+            width: 180, // กำหนดความกว้างให้ใกล้เคียงกับเมนู
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Palette.dirtyWhite.withOpacity(0.1), // สีพื้นหลังจางๆ
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Palette.dirtyWhite.withOpacity(0.3)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedPlant,
+                dropdownColor: Palette.lightBlue, // สีพื้นหลังตอนกาง Dropdown ออก
+                icon: Icon(
+                  Icons.arrow_drop_down, 
+                  color: Palette.dirtyWhite.withOpacity(0.8)
+                ),
+                isExpanded: true,
+                style: TextStyles.myriadProSemiBold12DirtyWhite, // ใช้ Style เดิมของโปรเจกต์
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      _selectedPlant = newValue;
+                    });
+                    
+                    // เรียกใช้งานฟังก์ชันเพื่อเปลี่ยน Plant ใน Service
+                    MqttService().changePlant(newValue);
+                    widget.onPlantChanged(newValue);
+                  }
+                },
+                items: <String>['UTI', 'TPI']
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ),
+        
+        const SizedBox(height: 30),
+        
         _MenuItem(
           icon: Symbols.bar_chart_4_bars,
           isSelected: currentUrl == '/dashboard',
@@ -61,16 +110,7 @@ class _NavigationMenuState extends State<_NavigationMenu> {
           onTap: () => _onTabTap(const AlarmRoute()),
           text: 'Alarm',
         ),
-        /*
         _MenuItem(
-          icon: Icons.paid,
-          isSelected: currentUrl == '/ebilling',
-          onTap: () => _onTabTap(const EBillingRoute()),
-          text: 'E-Billing',
-        ),
-        */
-        _MenuItem(
-          // --- แก้ไขจุดที่ 1: เอา Icon() ออก ส่งแค่ Symbols.xxx ---
           icon: Symbols.file_export, 
           isSelected: currentUrl == '/export',
           onTap: () => _onTabTap(const ExportRoute()),
@@ -128,10 +168,9 @@ class _MenuItem extends StatelessWidget {
             padding: const EdgeInsets.only(left: 43.0),
             child: Row(
               children: <Widget>[
-                // --- แก้ไขจุดที่ 2 และ 3: เปลี่ยน SvgPicture เป็น Icon ---
                 Icon(
-                  icon, // ใช้ตัวแปร icon ที่รับมา
-                  size: 20, // ปรับขนาดตามความเหมาะสม (ของเดิม svg 16 อาจจะเล็กไปสำหรับ IconData)
+                  icon,
+                  size: 20,
                   color: isSelected
                       ? Palette.dirtyWhite
                       : Palette.dirtyWhite.withOpacity(0.8),

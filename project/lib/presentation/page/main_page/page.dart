@@ -8,6 +8,7 @@ import '../../theme/palette.dart';
 import '../../theme/text_styles.dart';
 import '../../utils/color_extension.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import '../../../services/mqtt_service.dart';
 
 part 'components/appbar.dart';
 part 'components/navigation_menu.dart';
@@ -18,7 +19,8 @@ class MainPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    final MqttService _mqttService = MqttService();
+    return Scaffold(
       body: Stack(
         children: <Widget>[
           Row(
@@ -28,7 +30,11 @@ class MainPage extends StatelessWidget {
                 height: double.infinity,
                 child: ColoredBox(
                   color: Palette.darkBlue,
-                  child: _NavigationMenu(),
+                  child: _NavigationMenu(
+                    onPlantChanged: (newPlant) {
+                      _mqttService.changePlant(newPlant);
+                    },
+                  ),
                 ),
               ),
               Expanded(

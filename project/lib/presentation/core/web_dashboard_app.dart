@@ -15,7 +15,7 @@ class _WebDashboardAppState extends State<WebDashboardApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'EMS',
+      title: 'Energy Management System',
       routerDelegate: _appRouter.delegate(),
       routeInformationParser: _appRouter.defaultRouteParser(),
     );

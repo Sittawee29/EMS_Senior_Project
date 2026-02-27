@@ -10,7 +10,7 @@ class AlarmPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      body: StreamBuilder<DashboardData>(
+      body: StreamBuilder<dynamic>(
         stream: MqttService().dataStream,
         builder: (context, snapshot) {
           final data = snapshot.data ?? MqttService().currentData;

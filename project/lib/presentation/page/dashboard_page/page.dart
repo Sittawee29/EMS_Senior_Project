@@ -37,6 +37,8 @@ class _DashboardPageState extends State<DashboardPage> {
   DateTime _currentDate = DateTime.now();
   List<String> _holidayDates = [];
   Map<String, String> _holidayDetails = {};
+  String currentSelectedPlant = 'UTI';
+  
 
   @override
   void initState() {
@@ -71,41 +73,93 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<DashboardData>(
+    // ใช้ <dynamic> เพื่อให้รองรับได้ทั้งคลาส DashboardDataUTI และ DashboardDataTPI
+    return StreamBuilder<dynamic>(
       stream: _mqttService.dataStream,
-      initialData: DashboardData(),
+      // ตั้งค่า initialData ตามโรงไฟฟ้าที่เลือกอยู่ เพื่อไม่ให้เกิด Error ตอนเริ่มรัน
+      initialData: currentSelectedPlant == 'UTI' ? DashboardDataUTI() : DashboardDataTPI(),
       builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
         final data = snapshot.data!;
+        String activePlant = 'UTI';
+        List<double> powerFlowData = [0.0, 0.0, 0.0, 0.0, 0.0];
+        List<double> dataOverview = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        
+        dynamic row1Col1, row1Col2, row1Col3, row1Col4;
+        dynamic row2Col2, row2Col3, row2Col4;
 
+        if (data is DashboardDataUTI) {
+          activePlant = 'UTI';
+          // --- แมปข้อมูลสำหรับ UTI ---
+          powerFlowData = [
+            data.EMS_SolarPower_kW,
+            data.METER_Grid_Power_KW,
+            data.BESS_KW,
+            data.BESS_SOC,
+            (data.EMS_LoadPower_kW).abs()
+          ];
+          dataOverview = [
+            data.EMS_EnergyProducedFromPV_Daily,
+            data.BESS_Daily_Charge_Energy,
+            data.EMS_EnergyFeedToGrid_Daily,
+            data.EMS_EnergyConsumption_Daily,
+            data.EMS_EnergyFeedFromGrid_Daily,
+            data.BESS_Daily_Discharge_Energy
+          ];
+          
+          row1Col1 = data.EMS_EnergyConsumption_kWh;
+          row1Col2 = data.EMS_EnergyConsumption_Daily;
+          row1Col3 = data.EMS_EnergyProducedFromPV_kWh;
+          row1Col4 = data.EMS_EnergyProducedFromPV_Daily;
+          row2Col2 = data.EMS_CO2_Equivalent;
+          row2Col3 = data.EMS_RenewRatioDaily;
+          row2Col4 = data.EMS_RenewRatioLifetime;
+
+        } else if (data is DashboardDataTPI) {
+          activePlant = 'TPI';
+          powerFlowData = [
+            data.SOLAR_SOLAR1_LOGGER1_P,
+            data.METER_P,
+            -data.BESS_SCU_P,
+            data.BESS_SCU_SOC,
+            (data.EMS_PLOAD).abs()
+          ];
+          
+          dataOverview = [
+            data.SOLAR_SOLAR1_LOGGER1_KWHDAILY,
+            data.BESS_SCU_KWHCHARGEDAILY,
+            data.METER_KWHNEGDAILY,
+            data.EMS_KWHLOADDAILY,
+            data.METER_KWHPOSDAILY,
+            data.BESS_SCU_KWHDISCHARGEDAILY
+          ];
+          
+          row1Col1 = data.EMS_KWHLOADTOTAL; 
+          row1Col2 = data.EMS_KWHLOADDAILY; 
+          row1Col3 = data.SOLAR_SOLAR1_LOGGER1_KWHTOTAL; 
+          row1Col4 = data.SOLAR_SOLAR1_LOGGER1_KWHDAILY; 
+          row2Col2 = data.EMS_CO2E; 
+          row2Col3 = data.EMS_RENEWRATIO; 
+          row2Col4 = data.EMS_RENEWRATIOLIFETIME; 
+        }
+
+        // 3. นำตัวแปรกลางที่แมปค่าเสร็จแล้ว มาใส่ใน UI ให้ดูสะอาดตา
         return ListView(
           padding: const EdgeInsets.symmetric(horizontal: 40),
           children: <Widget>[
-            
-            
             const SizedBox(height: 22),
             Wrap(
               spacing: 22,
               runSpacing: 22,
               children: <Widget>[
                 _StatisticsBox(
-                   powerFlowData: [
-                      data.EMS_SolarPower_kW, // Solar
-                      data.METER_Grid_Power_KW, // Grid
-                      data.BESS_KW,
-                      data.BESS_SOC, // Battery % (ยังไม่มี topic ใน list นี้)
-                      data.EMS_LoadPower_kW // Cons
-                   ], 
-                   powerCurveData: {}, // ต้องสะสมค่า array เองหรือดึงจาก API ประวัติ
-                   dataOverview: [
-                      data.EMS_EnergyProducedFromPV_Daily, 
-                      data.BESS_Daily_Charge_Energy, 
-                      data.EMS_EnergyFeedToGrid_Daily,
-                      data.EMS_EnergyConsumption_Daily,
-                      data.EMS_EnergyFeedFromGrid_Daily,
-                      data.BESS_Daily_Discharge_Energy
-                   ],
+                   powerFlowData: powerFlowData,
+                   powerCurveData: const {},
+                   dataOverview: dataOverview,
                 ),
-                _WeatherBox(),
+                _WeatherBox(plant: activePlant),
               ],
             ),
             const SizedBox(height: 22),
@@ -118,20 +172,21 @@ class _DashboardPageState extends State<DashboardPage> {
                   _currentDate = newDate;
                 });
               },
-              column1: data.EMS_EnergyConsumption_kWh,
-              column2: data.EMS_EnergyConsumption_Daily,
-              column3: data.EMS_EnergyProducedFromPV_kWh,
-              column4: data.EMS_EnergyProducedFromPV_Daily,
+              // ใช้ตัวแปรกลางที่เราเตรียมไว้
+              column1: row1Col1,
+              column2: row1Col2,
+              column3: row1Col3,
+              column4: row1Col4,
             ),
             const SizedBox(height: 22),
             _InformationRow2(
               currentDate: _currentDate,
               holidayDates: _holidayDates,
               holidayDetails: _holidayDetails,
-              column2: data.EMS_CO2_Equivalent,
-              column3: data.EMS_RenewRatioDaily,
-              column4: data.EMS_RenewRatioLifetime,
-              
+              // ใช้ตัวแปรกลางที่เราเตรียมไว้
+              column2: row2Col2,
+              column3: row2Col3,
+              column4: row2Col4,
             ),
           ],
         );

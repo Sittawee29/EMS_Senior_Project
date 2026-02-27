@@ -15,7 +15,7 @@ class DeviceDetailPage extends StatefulWidget {
 class _DeviceDetailPageState extends State<DeviceDetailPage> {
   late DeviceModel currentDevice;
   
-  DashboardData Data = DashboardData(); 
+  DashboardDataUTI Data = DashboardDataUTI(); 
   StreamSubscription? _mqttSubscription;
 
   @override
@@ -23,18 +23,15 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     super.initState();
     currentDevice = widget.device;
     
-    // ✅ 2. เรียกฟังก์ชันเชื่อมต่อ MQTT Stream (แทนการใช้ Timer)
     _initMqttListener();
   }
 
   @override
   void dispose() {
-    // ✅ 3. ยกเลิกการดักฟังเมื่อปิดหน้า (สำคัญมาก)
     _mqttSubscription?.cancel();
     super.dispose();
   }
 
-  // ✅ 4. ฟังก์ชันดักฟังข้อมูล (หัวใจหลัก)
   void _initMqttListener() {
     // เชื่อมต่อกับ Stream ของ MqttService
     _mqttSubscription = MqttService().dataStream.listen((newData) {

@@ -19,7 +19,7 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
   late TabController _tabController;
   int _selectedIndex = 0;
 
-  DashboardData Data = DashboardData();
+  DashboardDataUTI Data = DashboardDataUTI();
   StreamSubscription? _mqttSubscription;
   
   // ✅ 1. สร้าง List เริ่มต้นด้วย Class ลูกที่ถูกต้อง
