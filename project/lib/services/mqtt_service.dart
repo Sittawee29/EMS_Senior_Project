@@ -600,6 +600,7 @@ class MqttService {
   factory MqttService() => _instance;
   MqttService._internal();
   String selectedPlant = 'UTI';
+  dynamic latestData;
   
 
   String get _apiUrl => "http://$serverIp:$serverPort/api/dashboard?plant=$selectedPlant";

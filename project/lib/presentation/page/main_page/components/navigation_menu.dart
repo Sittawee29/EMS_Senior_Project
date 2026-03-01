@@ -11,7 +11,13 @@ class _NavigationMenu extends StatefulWidget {
 class _NavigationMenuState extends State<_NavigationMenu> {
   bool _isListenerAdded = false;
   
-  String _selectedPlant = 'UTI';
+  late String _selectedPlant;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPlant = MqttService().selectedPlant;
+  }
 
   @override
   void didChangeDependencies() {
@@ -45,35 +51,32 @@ class _NavigationMenuState extends State<_NavigationMenu> {
             ),
           ),
         ),
-        const SizedBox(height: 10), // ปรับระยะห่างให้พอดีขึ้น
+        const SizedBox(height: 10),
         
-        // 2. เพิ่ม UI สำหรับ Switch Plant
         Center(
           child: Container(
-            width: 180, // กำหนดความกว้างให้ใกล้เคียงกับเมนู
+            width: 180,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: Palette.dirtyWhite.withOpacity(0.1), // สีพื้นหลังจางๆ
+              color: Palette.dirtyWhite.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Palette.dirtyWhite.withOpacity(0.3)),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: _selectedPlant,
-                dropdownColor: Palette.lightBlue, // สีพื้นหลังตอนกาง Dropdown ออก
+                dropdownColor: Palette.lightBlue,
                 icon: Icon(
                   Icons.arrow_drop_down, 
                   color: Palette.dirtyWhite.withOpacity(0.8)
                 ),
                 isExpanded: true,
-                style: TextStyles.myriadProSemiBold12DirtyWhite, // ใช้ Style เดิมของโปรเจกต์
+                style: TextStyles.myriadProSemiBold12DirtyWhite,
                 onChanged: (String? newValue) {
                   if (newValue != null) {
                     setState(() {
                       _selectedPlant = newValue;
                     });
-                    
-                    // เรียกใช้งานฟังก์ชันเพื่อเปลี่ยน Plant ใน Service
                     MqttService().changePlant(newValue);
                     widget.onPlantChanged(newValue);
                   }

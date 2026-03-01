@@ -73,10 +73,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    // ใช้ <dynamic> เพื่อให้รองรับได้ทั้งคลาส DashboardDataUTI และ DashboardDataTPI
     return StreamBuilder<dynamic>(
       stream: _mqttService.dataStream,
-      // ตั้งค่า initialData ตามโรงไฟฟ้าที่เลือกอยู่ เพื่อไม่ให้เกิด Error ตอนเริ่มรัน
       initialData: currentSelectedPlant == 'UTI' ? DashboardDataUTI() : DashboardDataTPI(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
