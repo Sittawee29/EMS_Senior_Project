@@ -39,18 +39,13 @@ MQTT_PORT = 7036
 MQTT_USER = "mqtt_user"
 MQTT_PASS = "ADMINktt5120@"
 
-# ==============================================================================
-# [FIXED] ตั้งค่า Path ของ Database ให้เป็นแบบตายตัว (Absolute Path)
-# เพื่อป้องกันปัญหาข้อมูลหายเมื่อ Run จากต่าง Folder
-# ==============================================================================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # หาตำแหน่งไฟล์ API_server.py
-DB_NAME = os.path.join(BASE_DIR, "energy_data.db")    # บังคับสร้าง db ไว้ข้างๆ ไฟล์นี้เสมอ
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_NAME = os.path.join(BASE_DIR, "energy_data.db")
 
 print(f"--------------------------------------------------")
-print(f"Database Path: {DB_NAME}") # แสดงตำแหน่งไฟล์ DB ให้เห็นชัดๆ
+print(f"Database Path: {DB_NAME}")
 print(f"--------------------------------------------------")
 
-# Redis Configuration
 REDIS_HOST = "localhost"
 REDIS_PORT = 6379
 REDIS_DB = 0
@@ -1554,6 +1549,17 @@ def get_holidays(year: str):
             
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+@app.get("/api/test-redis-volume")
+def test_redis_volume(size: int = 1000):
+    keys_to_fetch = [f"dummy_sensor:{i}" for i in range(size)]
+    raw_values = redis_client.mget(keys_to_fetch)
+    result_data = {}
+    for key, val in zip(keys_to_fetch, raw_values):
+        if val:
+            result_data[key] = json.loads(val)
+            
+    return {"status": "ok", "total_variables": size, "data": result_data}
 
 if __name__ == "__main__":
     print("Initializing Database...")
