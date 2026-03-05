@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 API_URL = "http://127.0.0.1:8000/api/dashboard"
 
-concurrent_users_list = [10, 50, 100, 200, 500, 1000]
+concurrent_users_list = [10, 50, 100, 200, 500, 800, 1000]
 avg_response_times = []
 
 print("Starting Load Testing (Concurrent Users)...")
