@@ -20,28 +20,74 @@ class _DataOverviewState extends State<DataOverview> {
   bool isLoading = false;
   int touchedIndexProd = -1;
   int touchedIndexCons = -1;
+  final MqttService _mqttService = MqttService();
+  StreamSubscription? _mqttSubscription;
+  String _currentPlant = '';
 
   @override
   void initState() {
     super.initState();
+    _currentPlant = _mqttService.selectedPlant;
+    
     if (widget.initialData != null && widget.initialData!.length >= 6) {
       data = widget.initialData!;
     } else {
-      // ถ้าไม่มีข้อมูลเริ่มต้น ให้ลองดึง Daily เอง
       fetchOverviewData("daily");
     }
+
+    _mqttSubscription = _mqttService.dataStream.listen((_) {
+      if (mounted) {
+        // ถ้า Plant ถูกเปลี่ยนที่ Navigation Menu
+        if (_currentPlant != _mqttService.selectedPlant) {
+          setState(() {
+            _currentPlant = _mqttService.selectedPlant;
+          });
+          if (selectedMode.toLowerCase() != 'daily') {
+            fetchOverviewData(selectedMode.toLowerCase());
+          }
+        }
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant DataOverview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (selectedMode.toLowerCase() == "daily" && widget.initialData != null) {
+      if (widget.initialData != oldWidget.initialData) {
+        setState(() {
+          data = widget.initialData!; 
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    // 3. ยกเลิกการดักฟังเมื่อเปลี่ยนหน้า
+    _mqttSubscription?.cancel();
+    super.dispose();
   }
 
   // ฟังก์ชันดึงข้อมูลจาก API (ต้อง import 'http' และ 'convert')
   Future<void> fetchOverviewData(String mode) async {
     setState(() {
       isLoading = true;
-      selectedMode = mode.capitalize(); // ทำให้ตัวแรกใหญ่เพื่อความสวยงาม
+      selectedMode = mode.substring(0, 1).toUpperCase() + mode.substring(1).toLowerCase();
     });
+    if (mode.toLowerCase() == 'daily') {
+      if (widget.initialData != null) {
+        setState(() {
+          data = widget.initialData!;
+          isLoading = false;
+        });
+      }
+      return; 
+    }
 
     try {
-      // ** แก้ไข URL ให้ตรงกับ IP ของ Server คุณ **
-      final url = Uri.parse('http://$serverIp:$serverPort/api/overview?mode=${mode.toLowerCase()}');
+      String currentPlant = _mqttService.selectedPlant;
+      final url = Uri.parse('http://$serverIp:$serverPort/api/overview?mode=${mode.toLowerCase()}&plant=$currentPlant');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {

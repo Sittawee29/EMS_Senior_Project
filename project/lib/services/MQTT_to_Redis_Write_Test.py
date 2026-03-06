@@ -22,7 +22,7 @@ print("-" * 50)
 # การทดสอบที่ 1: เขียนทีละ Message (แบบที่ Worker ทั่วไปทำ)
 # จำลองสถานการณ์: on_message ทำงานและสั่ง r.set() ทีละบรรทัด
 # =========================================================
-print("Testing Scenario 1: Single Writes (Simulating Worker Writing Each Message Individually)...")
+print("Testing Scenario 1: Single Writes (Simulating Worker Writing Each Message Individually)")
 start_time = time.perf_counter()
 
 for i in range(TOTAL_MESSAGES):
@@ -41,7 +41,7 @@ print("-" * 50)
 # การทดสอบที่ 2: เขียนแบบ Pipeline (แบบ Optimized)
 # จำลองสถานการณ์: Worker เก็บข้อมูลใส่ตะกร้า แล้วโยนโครมเดียวลง Redis
 # =========================================================
-print("Testing Scenario 2: Pipeline Write (Batching Writes)...")
+print("Testing Scenario 2: Pipeline Write (Batching Writes)")
 start_time = time.perf_counter()
 
 pipe = r.pipeline()

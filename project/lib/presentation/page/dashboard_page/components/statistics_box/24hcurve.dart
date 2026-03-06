@@ -21,7 +21,10 @@ class _HCurveState extends State<HCurve> {
   List<Map<String, dynamic>> _historyData = [];
   bool _isLoading = true;
   Timer? _refreshTimer;
+  final MqttService _mqttService = MqttService();
+  StreamSubscription? _mqttSubscription;
 
+  
   final Set<int> _hiddenIndices = {};
   bool _hasData(DateTime day) {
     if (_minDataDate == null || _maxDataDate == null) return true;
@@ -393,6 +396,12 @@ class _HCurveState extends State<HCurve> {
   void initState() {
     super.initState();
     _fetchDataRange();
+    _mqttSubscription = _mqttService.dataStream.listen((_) {
+      if (mounted) {
+        setState(() {
+        });
+      }
+    });
     _loadData();
     _fetchHolidays();
     _refreshTimer = Timer.periodic(const Duration(minutes: 5), (_) => _loadData());
@@ -400,6 +409,7 @@ class _HCurveState extends State<HCurve> {
 
   @override
   void dispose() {
+    _mqttSubscription?.cancel();
     _refreshTimer?.cancel();
     super.dispose();
   }
@@ -608,7 +618,7 @@ class _HCurveState extends State<HCurve> {
                 hiddenIndices: _hiddenIndices,
                 holidayDates: _holidayDates,
                 currentDate: _currentDate,
-                
+                selectedPlant: MqttService().selectedPlant,
               ),
 
         const SizedBox(height: 20),
@@ -830,6 +840,7 @@ class _ChartDisplay extends StatefulWidget {
   final Set<int> hiddenIndices;
   final List<String> holidayDates;
   final DateTime currentDate;
+  final String selectedPlant;
 
   const _ChartDisplay({
     required this.timeLabels,
@@ -839,6 +850,7 @@ class _ChartDisplay extends StatefulWidget {
     required this.hiddenIndices,
     required this.holidayDates,
     required this.currentDate,
+    required this.selectedPlant,
   });
 
   @override
@@ -885,46 +897,46 @@ class _ChartDisplayState extends State<_ChartDisplay> {
 
     switch (widget.graphType) {
       case GraphType.power:
-        add(0, "EMS_SolarPower_kW", Color(0xFFFFB300));
-        add(1, "EMS_LoadPower_kW", Color(0xFFE53935));
-        add(2, "METER_KW", Palette.brandBlue);
-        add(3, "EMS_BatteryPower_kW", Palette.green);
+        add(0, "Solar Power kW", const Color(0xFFFFB300));
+        add(1, "Load Power kW", const Color(0xFFE53935));
+        add(2, "Grid Power kW", Palette.brandBlue);
+        add(3, "BESS Power kW", Palette.green);
         break;
       case GraphType.energy:
-        add(0, "EMS_EnergyProducedFromPV_Daily", Color(0xFFFFB300));
-        add(1, "EMS_EnergyConsumption_Daily", Color(0xFFE53935));
-        add(2, "BESS_Daily_Charge_Energy", Color(0xFF43A047));
-        add(3, "BESS_Daily_Discharge_Energy", Color(0xFF26A69A));
+        add(0, "Solar Unit Daily", const Color(0xFFFFB300));
+        add(1, "Load Unit Daily", const Color(0xFFE53935));
+        add(2, "BESS Charge Unit Daily", const Color(0xFF43A047));
+        add(3, "BESS Discharge Unit Daily", const Color(0xFF26A69A));
         break;
       case GraphType.voltage:
-        add(0, "METER_V1", Colors.red);
-        add(1, "METER_V2", Colors.yellow);
-        add(2, "METER_V3", Colors.blue);
+        add(0, "V1", Colors.red);
+        add(1, "V2", Colors.yellow);
+        add(2, "V3", Colors.blue);
         break;
       case GraphType.current:
-        add(0, "METER_I1", Colors.red);
-        add(1, "METER_I2", Colors.yellow);
-        add(2, "METER_I3", Colors.blue);
+        add(0, "I1", Colors.red);
+        add(1, "I2", Colors.yellow);
+        add(2, "I3", Colors.blue);
         break;
       case GraphType.SoC:
-        add(0, "BESS_SOC", Colors.green);
+        add(0, "BESS SoC", Colors.green);
         break;
       case GraphType.co2:
-        add(0, "EMS_CO2_Equivalent", Colors.teal);
+        add(0, "CO2 Equivalent", Colors.teal);
         break;
     }
     return specs;
   }
 
-  double? _getValue(Map<String, dynamic> row, String key) {
-    if (row[key] == null) return null;
-    try { return double.parse(row[key].toString()); } catch (e) { return null; }
-  }
-
+  // กรองเฉพาะข้อมูลที่ตรงกับ Plant ที่ผู้ใช้เลือก
   List<FlSpot> _getPoints(String key) {
     Map<int, double> map = {};
     for (var r in widget.historyData) {
       if (r['timestamp'] == null) continue;
+      
+      // กรองแยก Plant ตรงนี้เลย!
+      if (r['plant'] != widget.selectedPlant) continue;
+
       try {
         DateTime dt = DateTime.parse(r['timestamp'].toString());
         int xIndex = 0;
@@ -960,6 +972,25 @@ class _ChartDisplayState extends State<_ChartDisplay> {
       }
     }
     return spots;
+  }
+
+  // ฟังก์ชันสำหรับดึงค่าและแปลงเป็น double อย่างปลอดภัย
+  double? _getValue(Map<String, dynamic> row, String key) {
+    if (!row.containsKey(key) || row[key] == null) {
+      return null;
+    }
+    
+    var val = row[key];
+    
+    if (val is double) {
+      return val;
+    } else if (val is int) {
+      return val.toDouble();
+    } else if (val is String) {
+      return double.tryParse(val);
+    }
+    
+    return null;
   }
 
   double _calculateNiceInterval(double range) {

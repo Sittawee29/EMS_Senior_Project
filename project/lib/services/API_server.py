@@ -352,6 +352,124 @@ TPI_UNIT_MAPPING = {
     }.items()}
 }
 
+TARGET_VARIABLES = {
+    #Power (kW)
+    "Solar Power kW": {
+        "UTI": "EMS_EMS_SOLARPOWER_KW",
+        "TPI": "SOLAR_SOLAR1_METER2_P"
+    },
+    "Grid Power kW": {
+        "UTI": "METER_GRID_POWER_KW",
+        "TPI": "METER_P"
+    },
+    "Load Power kW": {
+        "UTI": "EMS_EMS_LOADPOWER_KW",
+        "TPI": "EMS_PLOAD"
+    },
+    "BESS Power kW": {
+        "UTI": "BESS_KW",
+        "TPI": "BESS_SCU_P"
+    },
+    "BESS SoC": {
+        "UTI": "BESS_SOC",
+        "TPI": "BESS_SCU_SOC"
+    },
+    #Voltage (V)
+    "V1": {
+        "UTI": "METER_V1",
+        "TPI": "METER_V1"
+    },
+    "V2": {
+        "UTI": "METER_V2",
+        "TPI": "METER_V2"
+    },
+    "V3": {
+        "UTI": "METER_V3",
+        "TPI": "METER_V3"
+    },
+    #Current (A)
+    "I1": {
+        "UTI": "METER_I1",
+        "TPI": "METER_I1"
+    },
+    "I2": {
+        "UTI": "METER_I2",
+        "TPI": "METER_I2"
+    },
+    "I3": {
+        "UTI": "METER_I3",
+        "TPI": "METER_I3"
+    },
+    #Daily Unit (kWh)
+    "Solar Unit Daily": {
+        "UTI": "EMS_EMS_ENERGYPRODUCEDFROMPV_DAILY",
+        "TPI": "SOLAR_SOLAR1_LOGGER1_KWHDAILY"
+    },
+    "Grid Unit Daily": {
+        "UTI": "EMS_EMS_ENERGYFEEDFROMGRID_DAILY",
+        "TPI": "METER_KWHTOTALDAILY"
+    },
+    "Load Unit Daily": {
+        "UTI": "EMS_EMS_ENERGYCONSUMPTION_DAILY",
+        "TPI": "EMS_KWHLOADDAILY"
+    },
+    "BESS Charge Unit Daily": {
+        "UTI": "EMS_EMS_BESS_DAILY_CHARGE_ENERGY",
+        "TPI": "BESS_SCU_KWHCHARGEDAILY"
+    },
+    "BESS Discharge Unit Daily": {
+        "UTI": "EMS_EMS_BESS_DAILY_DISCHARGE_ENERGY",
+        "TPI": "BESS_SCU_KWHDISCHARGEDAILY"
+    },
+    #Total Unit (kWh)
+    "Solar Unit Total": {
+        "UTI": "EMS_EMS_ENERGYPRODUCEDFROMPV_KWH",
+        "TPI": "SOLAR_SOLAR1_LOGGER1_KWHTOTAL"
+    },
+    "Grid Unit Total": {
+        "UTI": "EMS_EMS_ENERGYFEEDFROMGRID_KWH",
+        "TPI": "METER_KWHTOTAL"
+    },
+    "Load Unit Total": {
+        "UTI": "EMS_EMS_ENERGYCONSUMPTION_KWH",
+        "TPI": "EMS_KWHTOTALLOADTOTAL"
+    },
+    "BESS Charge Unit Total": {
+        "UTI": "BESS_TOTAL_CHARGE",
+        "TPI": "BESS_SCU_KWHCHARGETOTAL"
+    },
+    "BESS Discharge Unit Total": {
+        "UTI": "BESS_TOTAL_DISCHARGE",
+        "TPI": "BESS_SCU_KWHDISCHARGETOTAL"
+    },
+    #Co2 Equivalent
+    "CO2 Equivalent": {
+        "UTI": "EMS_EMS_CO2_EQUIVALENT",
+        "TPI": "EMS_CO2E"
+    },
+    #Weather
+    "Weather Temp": {
+        "UTI": "WEATHER_Temp",
+        "TPI": "WEATHER_Temp"
+    },
+    "Weather Humidity": {
+        "UTI": "WEATHER_Humidity",
+        "TPI": "WEATHER_Humidity"
+    },
+    "Weather Cloudiness": {
+        "UTI": "WEATHER_Cloudiness",
+        "TPI": "WEATHER_Cloudiness"
+    },
+    "Weather Icon": {
+        "UTI": "WEATHER_Icon",
+        "TPI": "WEATHER_Icon"
+    },
+    "Weather City": {
+        "UTI": "WEATHER_City",
+        "TPI": "WEATHER_City"
+    },
+}
+
 print("Initializing Redis keys...")
 pipe = redis_client.pipeline()
 for plant in ["UTI", "TPI"]:
@@ -366,41 +484,32 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
-    clean_uti_keys = list(dict.fromkeys(UTI_DEFAULT_KEYS))
-    clean_tpi_keys = list(dict.fromkeys(TPI_DEFAULT_KEYS))
-    ALL_PLANTS_KEYS = list(dict.fromkeys(clean_uti_keys + clean_tpi_keys))
+    # 1. สร้าง String คอลัมน์ โดยแยกว่าอันไหนเป็น Text อันไหนเป็น ตัวเลข(REAL)
+    column_defs = []
+    text_columns = ["Weather Icon", "Weather City", "Weather Description"] # ระบุชื่อคอลัมน์ที่เป็นข้อความ
     
-    col_defs = []
-    seen_cols = set() # ตัวช่วยจำชื่อคอลัมน์ที่สร้างไปแล้ว (แบบพิมพ์เล็กทั้งหมด)
+    for key in TARGET_VARIABLES.keys():
+        if key in text_columns:
+            column_defs.append(f'"{key}" TEXT')
+        else:
+            column_defs.append(f'"{key}" REAL')
+            
+    dynamic_columns = ", ".join(column_defs)
     
-    for key in ALL_PLANTS_KEYS:
-        key_lower = key.lower() # แปลงเป็นพิมพ์เล็กเพื่อเช็คตัวซ้ำ
-        
-        # ถ้ายังไม่เคยมีคอลัมน์นี้ ให้สร้างใหม่
-        if key_lower not in seen_cols:
-            seen_cols.add(key_lower)
-            
-            # กำหนด Data Type
-            if key == "WEATHER_Icon" or "status" in key.lower() or "state" in key.lower() or "alarm" in key.lower():
-                col_defs.append(f'"{key}" TEXT')
-            else:
-                col_defs.append(f'"{key}" REAL')
-            
-    columns_sql = ", ".join(col_defs)
-
+    # 2. นำไปต่อกับคำสั่งสร้างตาราง
     create_table_sql = f'''
-        CREATE TABLE IF NOT EXISTS system_logs (
+        CREATE TABLE IF NOT EXISTS custom_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp DATETIME,
             plant TEXT,
-            {columns_sql}
+            {dynamic_columns}
         )
     '''
     
     try:
         cursor.execute(create_table_sql)
         conn.commit()
-        print("\033[92m🗸\033[0m Database Initialized (Case-insensitive duplicates handled)")
+        print("\033[92m🗸\033[0m Database Initialized (Dynamic Columns with TEXT/REAL types)")
     except sqlite3.OperationalError as e:
         print(f"\033[91m! Error during table creation:\033[0m {e}")
     finally:
@@ -435,6 +544,7 @@ def init_db_wal_mode():
 init_db_wal_mode()
 
 init_db()
+
 
 app = FastAPI()
 app.add_middleware(
@@ -559,65 +669,69 @@ weather_thread.start()
 # ==========================================
 # [EDITED] ฟังก์ชันนี้แก้ไขให้บันทึกทุก 5 นาที
 def db_saver_loop():
-    global last_mqtt_update
-    print("\033[92m🗸\033[0m Database Saver Loop Started (Mode: Every 5 Minutes)")
+    print("\033[92m🗸\033[0m Database Saver Loop Started")
     while True:
         try:
             now = datetime.now()
-            # ตรวจสอบว่าถึงเวลาบันทึก (ทุก 5 นาที)
+            # บันทึกทุกๆ 5 นาที
             if now.minute % 5 == 0:
                 conn = sqlite3.connect(DB_NAME, timeout=30)
                 cursor = conn.cursor()
                 local_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
-
-                for current_plant in ["UTI", "TPI"]:
-                    # --- [FIX 1] เลือก Keys ให้ตรงกับโรงงานที่กำลังบันทึก ---
-                    keys_to_save = UTI_DEFAULT_KEYS if current_plant == "UTI" else TPI_DEFAULT_KEYS
-                    
-                    pipe = redis_client.pipeline()
-                    for key in keys_to_save:
-                        pipe.get(f"{current_plant}:{key}")
-                    raw_values = pipe.execute()
                 
-                    vals = []
-                    for idx, v in enumerate(raw_values):
-                        key_name = keys_to_save[idx]
-                        if key_name == "WEATHER_Icon":
-                            vals.append(str(v) if v else "01d")
+                # วนลูปตามโรงงาน เพื่อสร้าง 2 Rows (UTI, TPI)
+                for plant in ["UTI", "TPI"]:
+                    columns = ["timestamp", "plant"]
+                    values = [local_time_str, plant]
+                    
+                    # วนลูปตามคอลัมน์ที่กำหนดไว้เพื่อดึงค่ามาต่อกัน
+                    # วนลูปตามคอลัมน์ที่กำหนดไว้เพื่อดึงค่ามาต่อกัน
+                    for key_name, plant_vars in TARGET_VARIABLES.items():
+                        var_name = plant_vars.get(plant) # ดึงตัวแปรที่ตรงกับโรงงานนี้
+                        
+                        if var_name:
+                            # ดึงค่าจาก Redis
+                            raw_val = redis_client.get(f"{plant}:{var_name}")
+                            
+                            if raw_val is not None:
+                                # Redis มักจะคืนค่าเป็น bytes (เช่น b'Bangkok') ต้องแปลงเป็น string ก่อน
+                                if isinstance(raw_val, bytes):
+                                    raw_val = raw_val.decode('utf-8')
+                                    
+                                try:
+                                    # ลองแปลงเป็นตัวเลขทศนิยม
+                                    val_to_save = round(float(raw_val), 4)
+                                except ValueError:
+                                    # ถ้า Error (แปลงไม่ได้เพราะเป็นข้อความ) ให้เก็บข้อความนั้นไปเลย
+                                    val_to_save = raw_val
+                            else:
+                                val_to_save = None # ถ้าไม่มีข้อมูลให้เป็น None (ค่าว่าง)
                         else:
-                            try:
-                                val_float = float(v) if v else 0.0
-                                vals.append(round(val_float, 4))
-                            except:
-                                vals.append(0.0)
-
-                    # --- [FIX 2] เพิ่มเครื่องหมาย ? และส่งค่า current_plant ให้ครบถ้วน ---
-                    columns_str = ", ".join([f'"{k}"' for k in keys_to_save])
-                    placeholders = ", ".join(["?" for _ in keys_to_save])
+                            val_to_save = None
+                        
+                        columns.append(f'"{key_name}"')
+                        values.append(val_to_save)
                     
-                    # เพิ่ม ? ตัวที่สองสำหรับคอลัมน์ plant
+                    # สร้างคำสั่ง INSERT ลง Database
+                    placeholders = ", ".join(["?"] * len(values))
+                    col_str = ", ".join(columns)
+                    
                     sql = f'''
-                        INSERT INTO system_logs (timestamp, plant, {columns_str})
-                        VALUES (?, ?, {placeholders})
+                        INSERT INTO custom_logs ({col_str})
+                        VALUES ({placeholders})
                     '''
-                    
-                    # ส่งค่า current_plant เข้าไปด้วย (ลำดับ: timestamp, plant, ...vals)
-                    cursor.execute(sql, (local_time_str, current_plant, *vals))
-                
+                    cursor.execute(sql, tuple(values))
+                            
                 conn.commit()
                 conn.close()
-                print(f"\033[92m🗸\033[0m Archived data to DB at {local_time_str}")
-                time.sleep(60) # ป้องกันการบันทึกซ้ำในนาทีเดียวกัน
+                print(f"\033[92m🗸\033[0m Archived UTI & TPI at {local_time_str}")
+                time.sleep(60)
             else:
                 time.sleep(10)
         except Exception as e:
-            print(f"Error syncing Hot-to-Cold data: {e}")
+            print(f"Error saving targeted data: {e}")
             time.sleep(10)
-
-db_thread = threading.Thread(target=db_saver_loop)
-db_thread.daemon = True
-db_thread.start()
-
+threading.Thread(target=db_saver_loop, daemon=True).start()
 def start_mqtt():
     client = mqtt.Client()
     client.username_pw_set(MQTT_USER, MQTT_PASS)
@@ -726,21 +840,21 @@ def get_data_range():
 # ==========================================
 # เปลี่ยนชื่อจาก /api/history/today เป็น /api/history/daily
 @app.get("/api/history/daily")
-def get_daily_history(date: str = None):
+def get_daily_history(date: str):
     try:
-        target_date = date if date else datetime.now().strftime("%Y-%m-%d")
-        
         conn = sqlite3.connect(DB_NAME)
-        conn.row_factory = sqlite3.Row
+        conn.row_factory = sqlite3.Row # เพื่อให้ได้ผลลัพธ์เป็น Dictionary (มีชื่อคอลัมน์)
         cursor = conn.cursor()
         
-        sql = "SELECT * FROM system_logs WHERE date(timestamp) = ? ORDER BY timestamp ASC"
-        cursor.execute(sql, (target_date,))
+        # เปลี่ยนชื่อตารางเป็น custom_logs
+        cursor.execute("SELECT * FROM custom_logs WHERE DATE(timestamp) = ?", (date,))
         rows = cursor.fetchall()
-        conn.close()
         
-        results = [dict(row) for row in rows]
-        return results
+        # แปลงข้อมูลเป็น List ของ Dictionary
+        result = [dict(row) for row in rows]
+        
+        conn.close()
+        return result # ส่งกลับไปเป็น List
     except Exception as e:
         return {"error": str(e)}
     
@@ -748,39 +862,33 @@ def get_daily_history(date: str = None):
 # 3. API History (Monthly)
 # ==========================================
 @app.get("/api/history/monthly")
-def get_month_history(year: int = None, month: int = None):
+def get_monthly_history(year: int, month: int):
     try:
-        now = datetime.now()
-        target_year = year if year else now.year
-        target_month = month if month else now.month
-        target_str = f"{target_year}-{target_month:02d}"
-
+        # แปลง year และ month ให้เป็นรูปแบบ "YYYY-MM" (เช่น 2026, 3 -> "2026-03")
+        target_month = f"{year}-{month:02d}"
+        
         conn = sqlite3.connect(DB_NAME)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-
-        # Query แบบ Group By วัน (เอาค่าล่าสุดของวัน)
-        sql = """
-        SELECT * FROM system_logs 
-        WHERE id IN (
-            SELECT MAX(id) 
-            FROM system_logs 
-            WHERE strftime('%Y-%m', timestamp) = ? 
-            GROUP BY strftime('%d', timestamp)
-        )
-        ORDER BY timestamp ASC
-        """
-        cursor.execute(sql, (target_str,))
+        
+        # Monthly: เอาค่าสุดท้าย (MAX) ของแต่ละวันมาโชว์
+        sql = '''
+            SELECT 
+                DATE(timestamp) as timestamp, 
+                plant,
+                MAX("Solar Unit Daily") as "Solar Unit Daily",
+                MAX("Load Unit Daily") as "Load Unit Daily",
+                MAX("BESS Charge Unit Daily") as "BESS Charge Unit Daily",
+                MAX("BESS Discharge Unit Daily") as "BESS Discharge Unit Daily"
+            FROM custom_logs
+            WHERE strftime('%Y-%m', timestamp) = ?
+            GROUP BY DATE(timestamp), plant
+        '''
+        cursor.execute(sql, (target_month,))
         rows = cursor.fetchall()
+        
         conn.close()
-
-        results = []
-        for row in rows:
-            d = dict(row)
-            if "EMS_LoadPower_kW" in d and d["EMS_LoadPower_kW"] is not None:
-                d["EMS_LoadPower_kW"] = abs(d["EMS_LoadPower_kW"])
-            results.append(d)
-        return results
+        return [dict(row) for row in rows]
     except Exception as e:
         return {"error": str(e)}
 
@@ -788,38 +896,45 @@ def get_month_history(year: int = None, month: int = None):
 # 4. API History (Yearly)
 # ==========================================
 @app.get("/api/history/yearly")
-def get_year_history(year: int = None):
+def get_yearly_history(year: int):  # รับค่า year เข้ามา (อาจจะเป็น int จาก Flutter)
     try:
-        now = datetime.now()
-        target_year = year if year else now.year
-        target_str = f"{target_year}"
-
+        # บังคับแปลงเป็นข้อความ (String) เพื่อให้เทียบกับ strftime('%Y') ใน SQLite ได้
+        target_year = str(year) 
+        
         conn = sqlite3.connect(DB_NAME)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-
-        # Query แบบ Group By เดือน (เอาค่าล่าสุดของเดือน)
-        sql = """
-        SELECT * FROM system_logs 
-        WHERE id IN (
-            SELECT MAX(id) 
-            FROM system_logs 
-            WHERE strftime('%Y', timestamp) = ? 
-            GROUP BY strftime('%m', timestamp)
-        )
-        ORDER BY timestamp ASC
-        """
-        cursor.execute(sql, (target_str,))
+        
+        sql = '''
+            WITH DailyMax AS (
+                SELECT 
+                    DATE(timestamp) as date_val,
+                    strftime('%Y-%m-01', timestamp) as month_timestamp,
+                    plant,
+                    MAX("Solar Unit Daily") as "Solar Unit Daily",
+                    MAX("Load Unit Daily") as "Load Unit Daily",
+                    MAX("BESS Charge Unit Daily") as "BESS Charge Unit Daily",
+                    MAX("BESS Discharge Unit Daily") as "BESS Discharge Unit Daily"
+                FROM custom_logs
+                WHERE strftime('%Y', timestamp) = ?
+                GROUP BY DATE(timestamp), plant
+            )
+            SELECT 
+                month_timestamp as timestamp,
+                plant,
+                SUM("Solar Unit Daily") as "Solar Unit Daily",
+                SUM("Load Unit Daily") as "Load Unit Daily",
+                SUM("BESS Charge Unit Daily") as "BESS Charge Unit Daily",
+                SUM("BESS Discharge Unit Daily") as "BESS Discharge Unit Daily"
+            FROM DailyMax
+            GROUP BY month_timestamp, plant
+        '''
+        # ส่ง target_year ที่เป็น String เข้าไป
+        cursor.execute(sql, (target_year,))
         rows = cursor.fetchall()
+        
         conn.close()
-
-        results = []
-        for row in rows:
-            d = dict(row)
-            if "EMS_LoadPower_kW" in d and d["EMS_LoadPower_kW"] is not None:
-                d["EMS_LoadPower_kW"] = abs(d["EMS_LoadPower_kW"])
-            results.append(d)
-        return results
+        return [dict(row) for row in rows]
     except Exception as e:
         return {"error": str(e)}
 
