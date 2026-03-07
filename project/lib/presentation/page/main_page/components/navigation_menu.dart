@@ -62,32 +62,60 @@ class _NavigationMenuState extends State<_NavigationMenu> {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Palette.dirtyWhite.withOpacity(0.3)),
             ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedPlant,
-                dropdownColor: Palette.lightBlue,
-                icon: Icon(
-                  Icons.arrow_drop_down, 
-                  color: Palette.dirtyWhite.withOpacity(0.8)
-                ),
-                isExpanded: true,
-                style: TextStyles.myriadProSemiBold12DirtyWhite,
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      _selectedPlant = newValue;
-                    });
-                    MqttService().changePlant(newValue);
-                    widget.onPlantChanged(newValue);
-                  }
-                },
-                items: <String>['UTI', 'TPI']
-                    .map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
+            child: PopupMenuButton<String>(
+              initialValue: _selectedPlant,
+              color: Palette.darkBlue,
+              elevation: 8,
+              offset: const Offset(-16, 48),
+              constraints: const BoxConstraints(
+                minWidth: 180,
+                maxWidth: 180,
+              ),
+              
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: BorderSide(color: Palette.dirtyWhite.withOpacity(0.3), width: 1),
+              ),
+              
+              onSelected: (String newValue) {
+                if (newValue != _selectedPlant) {
+                  setState(() {
+                    _selectedPlant = newValue;
+                  });
+                  MqttService().changePlant(newValue);
+                  widget.onPlantChanged(newValue);
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                return <String>['UTI', 'TPI'].map((String choice) {
+                  return PopupMenuItem<String>(
+                    value: choice,
+                    // 🌟 3. จัดระยะ Padding และความสูงให้ข้อความตรงกับในปุ่ม
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    height: 40, 
+                    child: Text(
+                      choice,
+                      style: TextStyles.myriadProSemiBold12DirtyWhite,
+                    ),
                   );
-                }).toList(),
+                }).toList();
+              },
+              // หน้าตาปุ่มจำลอง
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _selectedPlant,
+                      style: TextStyles.myriadProSemiBold12DirtyWhite,
+                    ),
+                    Icon(
+                      Icons.arrow_drop_down,
+                      color: Palette.dirtyWhite.withOpacity(0.8),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

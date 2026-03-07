@@ -26,40 +26,27 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
   String activePlant = 'UTI';
   
   List<DeviceModel> allDevices = [
-    InverterModel(
-      name: 'Inverter',
-      status: 'Waiting...',
-      sn: '2408214212',
-      inverterType: 'Three phase LV Hybrid',
-      ratedPower: '20kW',
-    ),
-    BatteryModel(
-      name: 'BESS Unit 1',
-      status: 'Waiting...',
-      //ratedCapacity: '874Ah',
-      //batteryType: 'Lithium',
-    ),
-    SolarModel(name: 'Solar Panel Zone 1', status: 'Waiting...'),
-    SolarModel(name: 'Solar Panel Zone 2', status: 'Waiting...'),
-    SolarModel(name: 'Solar Panel Zone 3', status: 'Waiting...'),
-    SolarModel(name: 'Solar Panel Zone 4', status: 'Waiting...'),
+    SolarModel(name: 'Solar System 1', status: 'Waiting...'),
+    SolarModel(name: 'Solar System 2', status: 'Waiting...'),
+    SolarModel(name: 'Solar System 3', status: 'Waiting...'),
+    SolarModel(name: 'Solar System 4', status: 'Waiting...'),
+    BatteryModel(name: 'BESS Systems 1',status: 'Waiting...',),
+    MeterModel(name: 'Solar System 1',status: 'Waiting...'),
   ];
 
   @override
   void initState() {
     super.initState();
     
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     activePlant = _mqttService.selectedPlant;
     currentData = _mqttService.latestData;
-    _updateDeviceStatusBasedOnPlant(); // อัปเดต UI รอบแรก
-
-    // 2. เฝ้าฟังว่ามีการสลับ Plant หรือมีข้อมูลใหม่เข้ามาหรือไม่
+    _updateDeviceStatusBasedOnPlant();
     _mqttSubscription = _mqttService.dataStream.listen((data) {
       if (mounted) {
         currentData = data;
         activePlant = _mqttService.selectedPlant;
-        _updateDeviceStatusBasedOnPlant(); // อัปเดต UI เมื่อข้อมูลเปลี่ยน
+        _updateDeviceStatusBasedOnPlant();
       }
     });
   }
@@ -89,14 +76,29 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
         }
 
         allDevices = [
-          InverterModel(
-            name: 'Inverter UTI', 
+          SolarModel(
+            name: 'Solar System 1', 
+            status: dataUTI.PV1_Active_Power_KW > 0 ? 'Active' : 'Offline',
+            currentPower: '${dataUTI.PV1_Active_Power_KW.toStringAsFixed(2)} kW',
+          ),
+          SolarModel(
+            name: 'Solar System 2', 
+            status: dataUTI.PV2_Active_Power_kW > 0 ? 'Active' : 'Offline',
+            currentPower: '${dataUTI.PV2_Active_Power_kW.toStringAsFixed(2)} kW',
+          ),
+          SolarModel(
+            name: 'Solar System 3', 
+            status: dataUTI.PV3_Active_Power_kW > 0 ? 'Active' : 'Offline',
+            currentPower: '${dataUTI.PV3_Active_Power_kW.toStringAsFixed(2)} kW',
+          ),
+          SolarModel(
+            name: 'Solar System 4', 
+            status: dataUTI.PV4_Active_Power_kW > 0 ? 'Active' : 'Offline',
+            currentPower: '${dataUTI.PV4_Active_Power_kW.toStringAsFixed(2)} kW',
+          ),
+          MeterModel(
+            name: 'Meter UTI', 
             status: dataUTI.METER_I_Total > 0 ? 'Active' : 'Offline',
-            sn: '2408214212', 
-            inverterType: 'Three phase LV Hybrid',
-            ratedPower: '20kW',
-            systemTime: DateTime.now().toString().split('.')[0], 
-
             Export_KWH: '${dataUTI.METER_Export_KWH.toStringAsFixed(2)} kWh',
             Import_KWH: '${dataUTI.METER_Import_KWH.toStringAsFixed(2)} kWh',
             Export_KVARH: '${dataUTI.METER_Export_KVARH.toStringAsFixed(2)} kVARh',
@@ -118,7 +120,7 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
           ),
 
           BatteryModel(
-            name: 'BESS Unit 1',
+            name: 'BESS System 1',
             status: bessStatusText,
             soc: '${dataUTI.BESS_SOC.toStringAsFixed(2)} %',
             soh: '${dataUTI.BESS_SOH.toStringAsFixed(2)} %',
@@ -141,27 +143,6 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
             pidTi: dataUTI.BESS_PID_Ti.toStringAsFixed(2),
             pidGain: dataUTI.BESS_PID_Gain.toStringAsFixed(2),
           ),
-
-          SolarModel(
-            name: 'Solar Panel Zone 1', 
-            status: dataUTI.PV1_Active_Power_KW > 0 ? 'Active' : 'Offline',
-            currentPower: '${dataUTI.PV1_Active_Power_KW.toStringAsFixed(2)} kW',
-          ),
-          SolarModel(
-            name: 'Solar Panel Zone 2', 
-            status: dataUTI.PV2_Active_Power_kW > 0 ? 'Active' : 'Offline',
-            currentPower: '${dataUTI.PV2_Active_Power_kW.toStringAsFixed(2)} kW',
-          ),
-          SolarModel(
-            name: 'Solar Panel Zone 3', 
-            status: dataUTI.PV3_Active_Power_kW > 0 ? 'Active' : 'Offline',
-            currentPower: '${dataUTI.PV3_Active_Power_kW.toStringAsFixed(2)} kW',
-          ),
-          SolarModel(
-            name: 'Solar Panel Zone 4', 
-            status: dataUTI.PV4_Active_Power_kW > 0 ? 'Active' : 'Offline',
-            currentPower: '${dataUTI.PV4_Active_Power_kW.toStringAsFixed(2)} kW',
-          ),
         ];
       } 
       else if (activePlant == 'TPI' && currentData is DashboardDataTPI) {
@@ -177,32 +158,13 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
         }
 
         allDevices = [
-          InverterModel(
-            name: 'Inverter TPI',
-            status: dataTPI.METER_I1 > 0 ? 'Active' : 'Offline',
-            sn: 'TPI-INV-999', 
-            inverterType: 'TPI Special Inverter',
-            ratedPower: '50kW',
-            systemTime: DateTime.now().toString().split('.')[0], 
-
-            Export_KWH: '${dataTPI.METER_KWHNEG.toStringAsFixed(2)} kWh',
-            Import_KWH: '${dataTPI.METER_KWHPOS.toStringAsFixed(2)} kWh',
-            PF: '${dataTPI.METER_PF.toStringAsFixed(2)}',
-            V1: '${dataTPI.METER_V1.toStringAsFixed(2)} V',
-            V2: '${dataTPI.METER_V2.toStringAsFixed(2)} V',
-            V3: '${dataTPI.METER_V3.toStringAsFixed(2)} V',
-            I1: '${dataTPI.METER_I1.toStringAsFixed(2)} A',
-            I2: '${dataTPI.METER_I2.toStringAsFixed(2)} A',
-            I3: '${dataTPI.METER_I3.toStringAsFixed(2)} A',
-            KW: '${dataTPI.METER_P.toStringAsFixed(2)} kW',
-            KVAR: '${dataTPI.METER_Q.toStringAsFixed(2)} kVAR',
-            // ตัวแปรไหนไม่มีใน TPI ก็ใส่ขีด - หรือค่าจำลองไว้ก่อน
-            LoadPower_kW: '${dataTPI.EMS_PLOAD.abs().toStringAsFixed(2)} kW',
-            GridPower_kW: '${dataTPI.METER_P.toStringAsFixed(2)} kW',
+          SolarModel(
+            name: 'Solar System 1', 
+            status: dataTPI.SOLAR_SOLAR1_LOGGER1_P > 0 ? 'Active' : 'Offline',
+            currentPower: '${dataTPI.SOLAR_SOLAR1_LOGGER1_P.toStringAsFixed(2)} kW',
           ),
-
           BatteryModel(
-            name: 'BESS Unit 1',
+            name: 'BESS System 1',
             status: bessStatusTextTPI,
             soc: '${dataTPI.BESS_RACKS[0]['SOC']?.toStringAsFixed(2) ?? '0.0'} %',
             soh: '${dataTPI.BESS_RACKS[0]['SOH']?.toStringAsFixed(2) ?? '0.0'} %',
@@ -216,7 +178,7 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
             dailyCharge: '${dataTPI.BESS_RACKS[0]['KWHCHARGEDAILY']?.toStringAsFixed(2) ?? '0.0'} kWh',
           ),
           BatteryModel(
-            name: 'BESS Unit 2',
+            name: 'BESS System 2',
             status: bessStatusTextTPI,
             soc: '${dataTPI.BESS_RACKS[1]['SOC']?.toStringAsFixed(2) ?? '0.0'} %',
             soh: '${dataTPI.BESS_RACKS[1]['SOH']?.toStringAsFixed(2) ?? '0.0'} %',
@@ -230,7 +192,7 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
             dailyCharge: '${dataTPI.BESS_RACKS[1]['KWHCHARGEDAILY']?.toStringAsFixed(2) ?? '0.0'} kWh',
           ),
           BatteryModel(
-            name: 'BESS Unit 3',
+            name: 'BESS System 3',
             status: bessStatusTextTPI,
             soc: '${dataTPI.BESS_RACKS[2]['SOC']?.toStringAsFixed(2) ?? '0.0'} %',
             soh: '${dataTPI.BESS_RACKS[2]['SOH']?.toStringAsFixed(2) ?? '0.0'} %',
@@ -244,7 +206,7 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
             dailyCharge: '${dataTPI.BESS_RACKS[2]['KWHCHARGEDAILY']?.toStringAsFixed(2) ?? '0.0'} kWh',
           ),
           BatteryModel(
-            name: 'BESS Unit 4',
+            name: 'BESS System 4',
             status: bessStatusTextTPI,
             soc: '${dataTPI.BESS_RACKS[3]['SOC']?.toStringAsFixed(2) ?? '0.0'} %',
             soh: '${dataTPI.BESS_RACKS[3]['SOH']?.toStringAsFixed(2) ?? '0.0'} %',
@@ -258,7 +220,7 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
             dailyCharge: '${dataTPI.BESS_RACKS[3]['KWHCHARGEDAILY']?.toStringAsFixed(2) ?? '0.0'} kWh',
           ),
           BatteryModel(
-            name: 'BESS Unit 5',
+            name: 'BESS System 5',
             status: bessStatusTextTPI,
             soc: '${dataTPI.BESS_RACKS[4]['SOC']?.toStringAsFixed(2) ?? '0.0'} %',
             soh: '${dataTPI.BESS_RACKS[4]['SOH']?.toStringAsFixed(2) ?? '0.0'} %',
@@ -271,11 +233,36 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
             dailyDischarge: '${dataTPI.BESS_RACKS[4]['KWHDISCHARGEDAILY']?.toStringAsFixed(2) ?? '0.0'} kWh',
             dailyCharge: '${dataTPI.BESS_RACKS[4]['KWHCHARGEDAILY']?.toStringAsFixed(2) ?? '0.0'} kWh',
           ),
-
-          SolarModel(
-            name: 'Solar Panel Logger 1 (TPI)', 
-            status: dataTPI.SOLAR_SOLAR1_LOGGER1_P > 0 ? 'Active' : 'Offline',
-            currentPower: '${dataTPI.SOLAR_SOLAR1_LOGGER1_P.toStringAsFixed(2)} kW',
+          MeterModel(
+            name: 'Meter TPI',
+            status: dataTPI.METER_I1 > 0 ? 'Active' : 'Offline',
+            P: '${dataTPI.METER_P.toStringAsFixed(2)} kW',
+            Q: '${dataTPI.METER_Q.toStringAsFixed(2)} kVAR',
+            PF: '${dataTPI.METER_PF.toStringAsFixed(2)}',
+            S: '${dataTPI.METER_S.toStringAsFixed(2)} kVA',
+            V1: '${dataTPI.METER_V1.toStringAsFixed(2)} V',
+            V2: '${dataTPI.METER_V2.toStringAsFixed(2)} V',
+            V3: '${dataTPI.METER_V3.toStringAsFixed(2)} V',
+            I1: '${dataTPI.METER_I1.toStringAsFixed(2)} A',
+            I2: '${dataTPI.METER_I2.toStringAsFixed(2)} A',
+            I3: '${dataTPI.METER_I3.toStringAsFixed(2)} A',
+            kwhtotal: '${(dataTPI.METER_KWHTOTAL/1000).toStringAsFixed(2)} MWh',
+            kwhpos: '${(dataTPI.METER_KWHPOS/1000).toStringAsFixed(2)} MWh',
+            kwhneg: '${(dataTPI.METER_KWHNEG/1000).toStringAsFixed(2)} MWh',
+            kwhtotaldaily: '${dataTPI.METER_KWHTOTALDAILY.toStringAsFixed(2)} kWh',
+            kwhposdaily: '${dataTPI.METER_KWHPOSDAILY.toStringAsFixed(2)} kWh',
+            kwhnegdaily: '${dataTPI.METER_KWHNEGDAILY.toStringAsFixed(2)} kWh',
+          ),
+          EMSModel(
+            name: 'EMS System TPI',
+            status: dataTPI.METER_I1 > 0 ? 'Active' : 'Offline',
+            
+            kwhloadtotal: '${(dataTPI.EMS_KWHLOADTOTAL/1000).toStringAsFixed(2)} MWh',
+            kwhloaddaily: '${dataTPI.EMS_KWHLOADDAILY.toStringAsFixed(2)} kWh',
+            pload: '${dataTPI.EMS_PLOAD.abs().toStringAsFixed(2)} kW',
+            co2e: '${dataTPI.EMS_CO2E.toStringAsFixed(2)} CO₂e',
+            renewratiolifetime: '${(dataTPI.EMS_RENEWRATIOLIFETIME*100).toStringAsFixed(2)} %',
+            renewratio: '${(dataTPI.EMS_RENEWRATIO*100).toStringAsFixed(2)} %',
           ),
         ];
       }
@@ -306,9 +293,10 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
               overlayColor: MaterialStateProperty.all(Colors.transparent),
               tabs: [
                 _DeviceCategoryTab(isSelected: _selectedIndex == 0, text: 'All'),
-                _DeviceCategoryTab(isSelected: _selectedIndex == 1, text: 'Inverter'),
-                _DeviceCategoryTab(isSelected: _selectedIndex == 2, text: 'BESS'),
-                _DeviceCategoryTab(isSelected: _selectedIndex == 3, text: 'Solar Panel'),
+                _DeviceCategoryTab(isSelected: _selectedIndex == 1, text: 'Solar Systems'),
+                _DeviceCategoryTab(isSelected: _selectedIndex == 2, text: 'BESS Systems'),
+                _DeviceCategoryTab(isSelected: _selectedIndex == 3, text: 'Meters'),
+                _DeviceCategoryTab(isSelected: _selectedIndex == 4, text: 'EMS Systems'),
               ],
             ),
           ),
@@ -318,9 +306,10 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
         controller: _tabController,
         children: [
           _DeviceListView(devices: allDevices),
-          _DeviceListView(devices: allDevices.where((d) => d.type == DeviceType.inverter).toList()),
+          _DeviceListView(devices: allDevices.where((d) => d.type == DeviceType.solar).toList()),
           _DeviceListView(devices: allDevices.where((d) => d.type == DeviceType.bess).toList()),
-          _DeviceListView(devices: allDevices.where((d) => d.type == DeviceType.solarPanel).toList()),
+          _DeviceListView(devices: allDevices.where((d) => d.type == DeviceType.meter).toList()),
+          _DeviceListView(devices: allDevices.where((d) => d.type == DeviceType.ems).toList()),
         ],
       ),
     );
@@ -382,12 +371,22 @@ class _DeviceListView extends StatelessWidget {
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DeviceDetailPage(device: device),
-                ),
-              );
+              if (device.type == DeviceType.solar) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SolarSubDevicePage(solarDevice: device as SolarModel),
+                  ),
+                );
+              } else {
+                // ไปหน้า Detail เดิม
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DeviceDetailPage(device: device),
+                  ),
+                );
+              }
             },
           ),
         );
@@ -409,9 +408,197 @@ class _DeviceListView extends StatelessWidget {
 
   IconData _getIcon(DeviceType type) {
     switch (type) {
-      case DeviceType.inverter: return Icons.bolt;
+      case DeviceType.solar: return Icons.bolt;
       case DeviceType.bess: return Icons.battery_charging_full;
-      case DeviceType.solarPanel: return Icons.wb_sunny;
+      case DeviceType.meter: return Icons.electric_meter;
+      case DeviceType.ems: return Icons.settings_applications;
+      case DeviceType.logger: return Icons.storage;
+      case DeviceType.emi: return Icons.solar_power_rounded;
     }
+  }
+}
+
+class SolarSubDevicePage extends StatefulWidget {
+  final SolarModel solarDevice;
+  const SolarSubDevicePage({Key? key, required this.solarDevice}) : super(key: key);
+
+  @override
+  State<SolarSubDevicePage> createState() => _SolarSubDevicePageState();
+}
+
+class _SolarSubDevicePageState extends State<SolarSubDevicePage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  int _selectedIndex = 0;
+  List<DeviceModel> subDevices = [];
+  final MqttService _mqttService = MqttService();
+  StreamSubscription? _mqttSubscription;
+  dynamic currentData;
+  String activePlant = 'UTI';
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      setState(() {
+        _selectedIndex = _tabController.index;
+      });
+    });
+    _initDefaultSubDevices();
+    activePlant = _mqttService.selectedPlant;
+    currentData = _mqttService.latestData;
+    _updateSubDevicesBasedOnPlant();
+    _mqttSubscription = _mqttService.dataStream.listen((data) {
+      if (mounted) {
+        setState(() {
+          currentData = data;
+          activePlant = _mqttService.selectedPlant;
+          _updateSubDevicesBasedOnPlant();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _mqttSubscription?.cancel();
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _initDefaultSubDevices() {
+    subDevices = [
+      SolarLoggerModel(name: 'Logger 1', status: 'Waiting...'),
+      SolarMeterModel(name: 'Meter of ${widget.solarDevice.name}', status: 'Waiting...'),
+      SolarEMIModel(name: 'EMI 1', status: 'Waiting...'),
+    ];
+  }
+
+  void _updateSubDevicesBasedOnPlant() {
+    if (currentData == null) return;
+
+    setState(() {
+      try {
+        dynamic data = currentData;
+        double v(String key, double Function() getObjVal) {
+          try {
+            if (data is Map) return double.parse((data[key] ?? 0).toString());
+            return double.parse((getObjVal() ?? 0).toString());
+          } catch (e) {
+            return 0.0;
+          }
+        }
+
+        if (activePlant == 'UTI') {
+          subDevices = [
+            SolarLoggerModel(
+              name: 'Solar Logger 1',
+              status: v('METER_I1', () => data.METER_I1) > 0 ? 'Active' : 'Offline',
+            ),
+            SolarMeterModel(
+              name: 'Meter of ${widget.solarDevice.name}', 
+              status: v('METER_I_Total', () => data.METER_I_Total) > 0 ? 'Active' : 'Offline',
+            ),
+            SolarEMIModel(
+              name: 'EMI 1', 
+              status: 'Active',
+            ),
+          ];
+
+        } else if (activePlant == 'TPI') {
+          subDevices = [
+            SolarLoggerModel(
+              name: 'Solar Logger 1',
+              status: v('SOLAR_SOLAR1_LOGGER1_P', () => data.SOLAR_SOLAR1_LOGGER1_P) > 0 ? 'Active' : 'Offline',
+              kwhtotal: '${(v('SOLAR_SOLAR1_LOGGER1_KWHTOTAL', () => data.SOLAR_SOLAR1_LOGGER1_KWHTOTAL) / 1000).toStringAsFixed(2)} MWh',
+              kwhdaily: '${v('SOLAR_SOLAR1_LOGGER1_KWHDAILY', () => data.SOLAR_SOLAR1_LOGGER1_KWHDAILY).toStringAsFixed(2)} kWh',
+              p: '${v('SOLAR_SOLAR1_LOGGER1_P', () => data.SOLAR_SOLAR1_LOGGER1_P).toStringAsFixed(2)} kW',
+              q: '${v('SOLAR_SOLAR1_LOGGER1_Q', () => data.SOLAR_SOLAR1_LOGGER1_Q).toStringAsFixed(2)} kVAR',
+              idc: '${v('SOLAR_SOLAR1_LOGGER1_IDC', () => data.SOLAR_SOLAR1_LOGGER1_IDC).toStringAsFixed(2)} A',
+              pf: '${v('SOLAR_SOLAR1_LOGGER1_PF', () => data.SOLAR_SOLAR1_LOGGER1_PF).toStringAsFixed(2)}',
+              v12: '${v('SOLAR_SOLAR1_LOGGER1_V12', () => data.SOLAR_SOLAR1_LOGGER1_V12).toStringAsFixed(2)} V',
+              i1: '${v('SOLAR_SOLAR1_LOGGER1_I1', () => data.SOLAR_SOLAR1_LOGGER1_I1).toStringAsFixed(2)} A',
+              v23: '${v('SOLAR_SOLAR1_LOGGER1_V23', () => data.SOLAR_SOLAR1_LOGGER1_V23).toStringAsFixed(2)} V',
+              i2: '${v('SOLAR_SOLAR1_LOGGER1_I2', () => data.SOLAR_SOLAR1_LOGGER1_I2).toStringAsFixed(2)} A',
+              v31: '${v('SOLAR_SOLAR1_LOGGER1_V31', () => data.SOLAR_SOLAR1_LOGGER1_V31).toStringAsFixed(2)} V',
+              i3: '${v('SOLAR_SOLAR1_LOGGER1_I3', () => data.SOLAR_SOLAR1_LOGGER1_I3).toStringAsFixed(2)} A',
+            ),
+            SolarMeterModel(
+              name: 'Meter of ${widget.solarDevice.name}', 
+              status: v('SOLAR_SOLAR1_METER2_P', () => data.SOLAR_SOLAR1_METER2_P) > 0 ? 'Active' : 'Offline',
+              kwhtotal: '${(v('SOLAR_SOLAR1_METER2_KWHTOTAL', () => data.SOLAR_SOLAR1_METER2_KWHTOTAL) / 1000).toStringAsFixed(2)} MWh',
+              kwhpos: '${(v('SOLAR_SOLAR1_METER2_KWHPOS', () => data.SOLAR_SOLAR1_METER2_KWHPOS) / 1000).toStringAsFixed(2)} MWh',
+              kwhneg: '${(v('SOLAR_SOLAR1_METER2_KWHNEG', () => data.SOLAR_SOLAR1_METER2_KWHNEG) / 1000).toStringAsFixed(2)} MWh',
+              p: '${v('SOLAR_SOLAR1_METER2_P', () => data.SOLAR_SOLAR1_METER2_P).toStringAsFixed(2)} kW',
+              q: '${v('SOLAR_SOLAR1_METER2_Q', () => data.SOLAR_SOLAR1_METER2_Q).toStringAsFixed(2)} kVAR',
+              pf: '${v('SOLAR_SOLAR1_METER2_PF', () => data.SOLAR_SOLAR1_METER2_PF).toStringAsFixed(2)}',
+              s: '${v('SOLAR_SOLAR1_METER2_S', () => data.SOLAR_SOLAR1_METER2_S).toStringAsFixed(2)} kVA',
+              v1: '${v('SOLAR_SOLAR1_METER2_V1', () => data.SOLAR_SOLAR1_METER2_V1).toStringAsFixed(2)} V',
+              i1: '${v('SOLAR_SOLAR1_METER2_I1', () => data.SOLAR_SOLAR1_METER2_I1).toStringAsFixed(2)} A',
+              v2: '${v('SOLAR_SOLAR1_METER2_V2', () => data.SOLAR_SOLAR1_METER2_V2).toStringAsFixed(2)} V',
+              i2: '${v('SOLAR_SOLAR1_METER2_I2', () => data.SOLAR_SOLAR1_METER2_I2).toStringAsFixed(2)} A',
+              v3: '${v('SOLAR_SOLAR1_METER2_V3', () => data.SOLAR_SOLAR1_METER2_V3).toStringAsFixed(2)} V',
+              i3: '${v('SOLAR_SOLAR1_METER2_I3', () => data.SOLAR_SOLAR1_METER2_I3).toStringAsFixed(2)} A',
+              v12: '${v('SOLAR_SOLAR1_METER2_V12', () => data.SOLAR_SOLAR1_METER2_V12).toStringAsFixed(2)} V',
+              v23: '${v('SOLAR_SOLAR1_METER2_V23', () => data.SOLAR_SOLAR1_METER2_V23).toStringAsFixed(2)} V',
+              v31: '${v('SOLAR_SOLAR1_METER2_V31', () => data.SOLAR_SOLAR1_METER2_V31).toStringAsFixed(2)} V', 
+            ),
+            SolarEMIModel(
+              name: 'EMI 1',
+              status: v('SOLAR_SOLAR1_EMI1_TEMPAMBIENT', () => data.SOLAR_SOLAR1_EMI1_TEMPAMBIENT) > 0 ? 'Active' : 'Offline',
+              tempambient: '${v('SOLAR_SOLAR1_EMI1_TEMPAMBIENT', () => data.SOLAR_SOLAR1_EMI1_TEMPAMBIENT).toStringAsFixed(1)} °C',
+              irradiancetotal: '${v('SOLAR_SOLAR1_EMI1_IRRADIANCETOTAL', () => data.SOLAR_SOLAR1_EMI1_IRRADIANCETOTAL).toStringAsFixed(2)} W/m²',
+              irradiancedaily: '${v('SOLAR_SOLAR1_EMI1_IRRADIANCEDAILY', () => data.SOLAR_SOLAR1_EMI1_IRRADIANCEDAILY).toStringAsFixed(2)} kWh/m²',
+              temppv: '${v('SOLAR_SOLAR1_EMI1_TEMPPV', () => data.SOLAR_SOLAR1_EMI1_TEMPPV).toStringAsFixed(1)} °C',
+            ),
+          ];
+        }
+      } catch (e) {
+        debugPrint('เกิดข้อผิดพลาดในการดึงข้อมูล: $e');
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.solarDevice.name),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(50),
+          child: Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.grey, width: 0.5)),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              padding: const EdgeInsets.only(left: 20),
+              tabAlignment: TabAlignment.start,
+              isScrollable: true,
+              indicatorSize: TabBarIndicatorSize.label,
+              indicatorColor: const Color.fromRGBO(28, 134, 223, 1),
+              labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+              overlayColor: MaterialStateProperty.all(Colors.transparent),
+              tabs: [
+                _DeviceCategoryTab(isSelected: _selectedIndex == 0, text: 'All'),
+                _DeviceCategoryTab(isSelected: _selectedIndex == 1, text: 'Loggers'),
+                _DeviceCategoryTab(isSelected: _selectedIndex == 2, text: 'Meters'),
+                _DeviceCategoryTab(isSelected: _selectedIndex == 3, text: 'EMIs'),
+              ],
+            ),
+          ),
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _DeviceListView(devices: subDevices),
+          _DeviceListView(devices: subDevices.where((d) => d.type == DeviceType.logger).toList()),
+          _DeviceListView(devices: subDevices.where((d) => d.type == DeviceType.meter).toList()),
+          _DeviceListView(devices: subDevices.where((d) => d.type == DeviceType.emi).toList()),
+        ],
+      ),
+    );
   }
 }

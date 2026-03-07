@@ -33,14 +33,10 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
   }
 
   void _initMqttListener() {
-    // เชื่อมต่อกับ Stream ของ MqttService
     _mqttSubscription = MqttService().dataStream.listen((newData) {
-      if (mounted) { // เช็คว่าหน้าจอยังเปิดอยู่ไหมก่อน setState
+      if (mounted) {
         setState(() {
-          // รับค่าใหม่มาใส่ตัวแปร Data ในหน้านี้
           Data = newData; 
-          
-          // แล้วสั่งอัปเดตข้อมูลลง UI
           _updateDeviceData(); 
         });
       }
@@ -49,19 +45,11 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
 
   void _updateDeviceData() {
     setState(() {
-      if (currentDevice is InverterModel) {
-        // ต้อง cast เป็น InverterModel ก่อนเพื่อดึงค่าเดิมบางตัวมาใช้
-        InverterModel oldData = currentDevice as InverterModel;
-        
-        currentDevice = InverterModel(
+      if (currentDevice is MeterModel) {
+        MeterModel oldData = currentDevice as MeterModel;
+        currentDevice = MeterModel(
           name: oldData.name,
           status: Data.METER_I_Total > 0 ? 'Active' : 'Offline',
-          sn: oldData.sn,
-          inverterType: oldData.inverterType,
-          ratedPower: oldData.ratedPower,
-          systemTime: DateTime.now().toString().split('.')[0], // เวลาปัจจุบัน
-
-          // Map ข้อมูล Inverter จาก Data
           Export_KWH: '${Data.METER_Export_KWH.toStringAsFixed(2)} kWh',
           Import_KWH: '${Data.METER_Import_KWH.toStringAsFixed(2)} kWh',
           Export_KVARH: '${Data.METER_Export_KVARH.toStringAsFixed(2)} kVARh',
@@ -80,16 +68,23 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
           KVAR: '${Data.METER_KVAR.toStringAsFixed(2)} kVAR',
           LoadPower_kW: '${Data.METER_KW_Invert.abs().toStringAsFixed(2)} kW',
           GridPower_kW: '${Data.METER_Grid_Power_KW.toStringAsFixed(2)} kW',
-          
-          // ข้อมูล Version (ถ้าใน MQTT ไม่มี ก็ใช้ค่าเดิมไปก่อน)
-          protocolVersion: oldData.protocolVersion,
-          mainVersion: oldData.mainVersion,
-          hmiVersion: oldData.hmiVersion,
-          firmwareVersion: oldData.firmwareVersion,
         );
       }
 
-      // 🔋 ส่วนของ Battery (ที่คุณทำไว้แล้ว)
+      else if (currentDevice is EMSModel) {
+        EMSModel oldData = currentDevice as EMSModel;
+        currentDevice = EMSModel(
+          name: oldData.name,
+          status: Data.METER_I_Total > 0 ? 'Active' : 'Offline',
+          pload: '${Data.EMS_LoadPower_kW.toStringAsFixed(2)} kW',
+          kwhloadtotal: '${(Data.EMS_EnergyConsumption_kWh/1000).toStringAsFixed(2)} MWh',
+          kwhloaddaily: '${Data.EMS_EnergyConsumption_Daily.toStringAsFixed(2)} kWh',
+          renewratio: '${Data.EMS_RenewRatioDaily.toStringAsFixed(2)} %',
+          co2e: '${Data.EMS_CO2_Equivalent.toStringAsFixed(2)} kgCO2e',
+          renewratiolifetime: '${Data.EMS_RenewRatioLifetime.toStringAsFixed(2)} %',
+        );
+      }
+
       else if (currentDevice is BatteryModel) {
         currentDevice = BatteryModel(
           name: currentDevice.name,
@@ -119,9 +114,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
         );
       }
 
-      // ☀️ ส่วนของ Solar (เพิ่มใหม่)
       else if (currentDevice is SolarModel) {
-        // เช็คชื่อเพื่อ map ข้อมูลให้ถูก Zone (PV1, PV2, PV3...)
         double solarPower = 0.0;
         String name = currentDevice.name;
 
@@ -134,6 +127,34 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
           name: name,
           status: solarPower > 0 ? 'Active' : 'Offline',
           currentPower: '${solarPower.toStringAsFixed(2)} kW',
+        );
+      }
+
+      else if (currentDevice is SolarLoggerModel) {
+        SolarLoggerModel oldData = currentDevice as SolarLoggerModel;
+        currentDevice = SolarLoggerModel(
+          name: oldData.name,
+          status: Data.PV1_Active_Power_KW > 0 ? 'Active' : 'Offline',
+          p: '${Data.PV1_Active_Power_KW.toStringAsFixed(2)} kW',
+          
+        );
+      }
+
+      else if (currentDevice is SolarMeterModel) {
+        SolarMeterModel oldData = currentDevice as SolarMeterModel;
+        currentDevice = SolarMeterModel(
+          name: oldData.name,
+          status: Data.METER_I_Total > 0 ? 'Active' : 'Offline',
+          p: '${Data.PV1_Active_Power_KW.toStringAsFixed(2)} kW',
+        );
+      }
+
+      else if (currentDevice is SolarEMIModel) {
+        SolarEMIModel oldData = currentDevice as SolarEMIModel;
+        currentDevice = SolarEMIModel(
+          name: oldData.name,
+          status: 'Active',
+          
         );
       }
     });
@@ -173,13 +194,10 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
         ),
         body: TabBarView(
           children: [
-            // --- Tab 1: Device Data ---
             SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: _buildDeviceContent(currentDevice),
             ),
-
-            // --- Tab 2: Architecture ---
             const Center(child: Text('Architecture View')),
           ],
         ),
@@ -188,64 +206,21 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
   }
 
   Widget _buildDeviceContent(DeviceModel device) {
-    if (device is InverterModel) {
-      return _buildInverterView(device);
-    } else if (device is BatteryModel) {
-      return _buildBatteryView(device);
-    } else if (device is SolarModel) {
-      return _buildSolarView(device);
-    } else {
-      return const Center(child: Text('Unknown Device Type'));
-    }
+    if (device is MeterModel) {return _buildMeterView(device);}
+    else if (device is EMSModel) {return _buildEMSView(device);}
+    else if (device is BatteryModel) {return _buildBatteryView(device);}
+    else if (device is SolarLoggerModel) {return _buildSolarLoggerView(device);}
+    else if (device is SolarMeterModel) {return _buildSolarMeterView(device);}
+    else if (device is SolarEMIModel) {return _buildSolarEMIView(device);}
+    else {return const Center(child: Text('Unknown Device Type'));}
   }
 
   // --- View Builders (เหมือนเดิม) ---
 
-  Widget _buildInverterView(InverterModel data) {
+  Widget _buildMeterView(MeterModel data) {
      return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Basic Information'),
-        const SizedBox(height: 16),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 16,
-          crossAxisSpacing: 20,
-          mainAxisSpacing: 5,
-          children: [
-            _buildTextItem('SN', data.sn),
-            _buildTextItem('Inverter Type', data.inverterType),
-            _buildTextItem('Rated Power', data.ratedPower),
-            _buildTextItem('System Time', data.systemTime),
-          ]),
-
-        const SizedBox(height: 16),
-        const Divider(), // เส้นขีดคั่น
-        const SizedBox(height: 16),
-
-        _buildSectionHeader('Version Information'),
-        const SizedBox(height: 16),
-        GridView.count(
-          crossAxisCount: 2,        // 2 คอลัมน์
-          shrinkWrap: true,         // ขยายตามเนื้อหา
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 16,      // ปรับสัดส่วนให้บรรทัดไม่สูงเกินไป (ยิ่งเลขเยอะ บรรทัดยิ่งเตี้ย)
-          crossAxisSpacing: 20,     // ระยะห่างแนวนอน
-          mainAxisSpacing: 5,       // ระยะห่างแนวตั้ง
-          children: [
-          _buildTextItem('Protocol Version', data.protocolVersion),
-          _buildTextItem('MAIN', data.mainVersion),
-          _buildTextItem('HMI', data.hmiVersion),
-          _buildTextItem('Arc Board Firmware', data.firmwareVersion), // Map ตามชื่อในรูป
-
-        ]),
-
-        const SizedBox(height: 16),
-        const Divider(), // เส้นขีดคั่น
-        const SizedBox(height: 16),
-
         _buildSectionHeader('Power Information'),
         const SizedBox(height: 16),
         GridView.count(
@@ -256,13 +231,9 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
           crossAxisSpacing: 20,     // ระยะห่างแนวนอน
           mainAxisSpacing: 5,       // ระยะห่างแนวตั้ง
           children: [
-          _buildTextItem('Export', data.Export_KWH),
-          _buildTextItem('Export', data.Export_KVARH),
-          _buildTextItem('Import', data.Import_KWH),
-          _buildTextItem('Import', data.Import_KVARH),
-          _buildTextItem('Total', data.Total_KWH),
-          _buildTextItem('Total', data.Total_KVARH),
-          _buildTextItem('Frequency (Hz)', data.Hz),
+          _buildTextItem('P', data.P),
+          _buildTextItem('Q', data.Q),
+          _buildTextItem('S', data.S),
           _buildTextItem('Power Factor (PF)', data.PF),
           _buildTextItem('Voltage V1', data.V1),
           _buildTextItem('Current I1', data.I1),
@@ -270,11 +241,39 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
           _buildTextItem('Current I2', data.I2),
           _buildTextItem('Voltage V3', data.V3),
           _buildTextItem('Current I3', data.I3),
-          _buildTextItem('Active Power (kW)', data.KW),
-          _buildTextItem('Reactive Power (kVAR)', data.KVAR),
-          _buildTextItem('Load Power (kW)', data.LoadPower_kW),
-          _buildTextItem('Grid Power (kW)', data.GridPower_kW),
+          _buildTextItem('Power Total', data.kwhtotal),
+          _buildTextItem('Power Total Daily', data.kwhtotaldaily),
+          _buildTextItem('Power Positive', data.kwhpos),
+          _buildTextItem('Power Positive Daily', data.kwhposdaily),
+          _buildTextItem('Power Negative', data.kwhneg),
+          _buildTextItem('Power Negative Daily', data.kwhnegdaily),
         ]),
+      ],
+    );
+  }
+
+  Widget _buildEMSView(EMSModel data) {
+     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('EMS Information'),
+        const SizedBox(height: 16),
+        GridView.count(
+          crossAxisCount: 2,        // 2 คอลัมน์
+          shrinkWrap: true,         // ขยายตามเนื้อหา
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 16,      // ปรับสัดส่วนให้บรรทัดไม่สูงเกินไป (ยิ่งเลขเยอะ บรรทัดยิ่งเตี้ย)
+          crossAxisSpacing: 20,     // ระยะห่างแนวนอน
+          mainAxisSpacing: 5,       // ระยะห่างแนวตั้ง
+          children: [
+            _buildTextItem('Total Unit Consumption', data.kwhloadtotal),
+            _buildTextItem('Daily Unit Consumption', data.kwhloaddaily),
+            _buildTextItem('Power Consumption', data.pload),
+            _buildTextItem('CO₂e Emissions', data.co2e),
+            _buildTextItem('Lifetime Renewable Ratio', data.renewratiolifetime),
+            _buildTextItem('Renewable Ratio', data.renewratio),
+          ],
+        ),
 
       ],
     );
@@ -316,13 +315,94 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     );
   }
 
-  Widget _buildSolarView(SolarModel data) {
-    return Column(
+  Widget _buildSolarLoggerView(SolarLoggerModel data) {
+     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Solar Generation'),
+        _buildSectionHeader('Solar Logger'),
         const SizedBox(height: 16),
-        _buildTextItem('Power Output', data.currentPower),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 16,
+          crossAxisSpacing: 20,
+          mainAxisSpacing: 5,
+          children: [
+            _buildTextItem('Total Unit PV', data.kwhtotal),
+            _buildTextItem('Daily Unit PV', data.kwhdaily),
+            _buildTextItem('Power PV', data.p),
+            _buildTextItem('Reactive Power PV', data.q),
+            _buildTextItem('DC Current', data.idc),
+            _buildTextItem('Power Factor', data.pf),
+            _buildTextItem('Line Voltage 1-2', data.v12),
+            _buildTextItem('Line Voltage 2-3', data.v23),
+            _buildTextItem('Line Voltage 3-1', data.v31),
+            _buildTextItem('Phase Current 1', data.i1),
+            _buildTextItem('Phase Current 2', data.i2),
+            _buildTextItem('Phase Current 3', data.i3),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSolarMeterView(SolarMeterModel data) {
+     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Solar Meter'),
+        const SizedBox(height: 16),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 16,
+          crossAxisSpacing: 20,
+          mainAxisSpacing: 5,
+          children: [
+            _buildTextItem('Total Unit PV', data.kwhtotal),
+            _buildTextItem('Power PV', data.p),
+            _buildTextItem('Positive Unit PV', data.kwhpos),
+            _buildTextItem('Reactive Power PV', data.q),
+            _buildTextItem('Negative Unit PV', data.kwhneg),
+            _buildTextItem('Apparent Power PV', data.s),
+            _buildTextItem('Power Factor', data.pf),
+            _buildTextItem('Phase Current 1', data.i1),
+            _buildTextItem('Phase Current 2', data.i2),
+            _buildTextItem('Phase Current 3', data.i3),
+            _buildTextItem('Line Voltage 1-2', data.v12),
+            _buildTextItem('Voltage Phase 1', data.v1),
+            _buildTextItem('Line Voltage 2-3', data.v23),
+            _buildTextItem('Voltage Phase 2', data.v2),
+            _buildTextItem('Line Voltage 3-1', data.v31),
+            _buildTextItem('Voltage Phase 3', data.v3),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSolarEMIView(SolarEMIModel data) {
+     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Solar EMI'),
+        const SizedBox(height: 16),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 16,
+          crossAxisSpacing: 20,
+          mainAxisSpacing: 5,
+          children: [
+            _buildTextItem('Ambient Temperature', data.tempambient),
+            _buildTextItem('Temperature PV', data.temppv),
+            _buildTextItem('Irradiance Total', data.irradiancetotal),
+            _buildTextItem('Irradiance Daily', data.irradiancedaily),
+          ],
+        ),
       ],
     );
   }

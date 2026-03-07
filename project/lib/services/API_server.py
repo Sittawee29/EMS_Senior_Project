@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
-import os # <--- เพิ่ม import os
+import os
 from fastapi import APIRouter
 
 class ExportRequest(BaseModel):
@@ -356,7 +356,7 @@ TARGET_VARIABLES = {
     #Power (kW)
     "Solar Power kW": {
         "UTI": "EMS_EMS_SOLARPOWER_KW",
-        "TPI": "SOLAR_SOLAR1_METER2_P"
+        "TPI": "SOLAR_SOLAR1_LOGGER1_P"
     },
     "Grid Power kW": {
         "UTI": "METER_GRID_POWER_KW",
@@ -942,101 +942,92 @@ def get_yearly_history(year: int):  # รับค่า year เข้ามา
 # 5. API สำหรับ Overview Chart (Daily/Monthly/Yearly)
 # ==========================================
 @app.get("/api/overview")
-def get_overview_summary(mode: str = "daily", date_str: str = None):
+def get_overview_summary(plant: str = "UTI", mode: str = "daily", date_str: str = None):
     try:
         # -------------------------------------------------------
-        # 1. โหมด Daily: ดึงค่า Realtime จาก Redis (เหมือนเดิม)
+        # 1. โหมด Daily: ดึงค่า Realtime จาก Redis (ต้องใช้คีย์ดิบ)
         # -------------------------------------------------------
         if mode == "daily":
-            keys_map = [
-                "PV_Daily_Energy",           
-                "BESS_Daily_Charge_Energy",  
-                "GRID_Daily_Export_Energy",  
-                "Load_Daily_Energy",         
-                "GRID_Daily_Import_Energy",  
-                "BESS_Daily_Discharge_Energy"
-            ]
+            # สำหรับ Redis ยังคงต้องใช้คีย์เดิมตามแต่ละโรงงาน
+            redis_mapping = {
+                "UTI": [
+                    "EMS_EMS_ENERGYPRODUCEDFROMPV_DAILY",
+                    "EMS_EMS_BESS_DAILY_CHARGE_ENERGY",
+                    "EMS_EMS_ENERGYFEEDTOGRID_DAILY",     # Grid Export
+                    "EMS_EMS_ENERGYCONSUMPTION_DAILY",    # Load
+                    "EMS_EMS_ENERGYFEEDFROMGRID_DAILY",   # Grid Import
+                    "EMS_EMS_BESS_DAILY_DISCHARGE_ENERGY"
+                ],
+                "TPI": [
+                    "SOLAR_SOLAR1_LOGGER1_KWHDAILY",
+                    "BESS_SCU_KWHCHARGEDAILY",
+                    "METER_KWHTOTALDAILY",                # Grid Export (ถ้ามี)
+                    "EMS_KWHLOADDAILY",                   # Load
+                    "METER_KWHTOTALDAILY",                # Grid Import
+                    "BESS_SCU_KWHDISCHARGEDAILY"
+                ]
+            }
+            target_keys = redis_mapping.get(plant.upper(), redis_mapping["UTI"])
             pipe = redis_client.pipeline()
-            for k in keys_map: pipe.get(k)
+            for k in target_keys: 
+                pipe.get(k)
             res = pipe.execute()
-            data = [float(x) if x else 0.0 for x in res]
-            return data
+            return [float(x) if x else 0.0 for x in res]
 
         # -------------------------------------------------------
-        # 2. โหมด Monthly / Yearly: ดึงจาก SQLite
+        # 2. โหมด Monthly / Yearly: ดึงจาก SQLite (ใช้ชื่อคอลัมน์ที่ถูก Map แล้ว)
         # -------------------------------------------------------
         now = datetime.now()
         target_date = now 
         if date_str:
-            try:
-                target_date = datetime.strptime(date_str, "%Y-%m-%d")
-            except:
-                pass # ถ้า format ผิด ให้ใช้เวลาปัจจุบัน
+            try: target_date = datetime.strptime(date_str, "%Y-%m-%d")
+            except: pass
 
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         
-        # SQL Condition สำหรับกรองช่วงเวลา
         time_filter = ""
-        debug_msg = ""
-
         if mode == "monthly":
-            # กรอง "เดือน-ปี" เช่น '2026-01'
             t_str = target_date.strftime('%Y-%m')
             time_filter = f"strftime('%Y-%m', timestamp) = '{t_str}'"
-            debug_msg = f"เดือน {t_str}"
-        
         elif mode == "yearly":
-            # กรอง "ปี" เช่น '2026'
             t_str = target_date.strftime('%Y')
             time_filter = f"strftime('%Y', timestamp) = '{t_str}'"
-            debug_msg = f"ปี {t_str}"
 
         # -------------------------------------------------------
-        # SQL LOGIC: 
-        # 1. Subquery: หา MAX(id) ของแต่ละวัน (คือแถวสุดท้ายของวันนั้นๆ)
-        # 2. Main Query: เอาค่าพลังงานของ id เหล่านั้นมารวมกัน (SUM)
+        # จุดสำคัญที่แก้: ใช้ชื่อคอลัมน์ "Solar Unit Daily" แทนคีย์ MQTT
+        # ลำดับข้อมูลที่แอปต้องการ: [PV, Charge, Export, Load, Import, Discharge]
         # -------------------------------------------------------
         sql = f"""
             SELECT 
-                SUM("PV_Daily_Energy"),
-                SUM("BESS_Daily_Charge_Energy"),
-                SUM("GRID_Daily_Export_Energy"),
-                SUM("Load_Daily_Energy"),
-                SUM("GRID_Daily_Import_Energy"),
-                SUM("BESS_Daily_Discharge_Energy")
-            FROM system_logs 
+                SUM(COALESCE("Solar Unit Daily", 0)),
+                SUM(COALESCE("BESS Charge Unit Daily", 0)),
+                0, -- Grid Export (ฐานข้อมูลคุณรวมเหลือแค่ Grid Unit Daily ตัวเดียว เลยใส่ 0 ไว้ก่อน)
+                SUM(COALESCE("Load Unit Daily", 0)),
+                SUM(COALESCE("Grid Unit Daily", 0)), -- Grid Import
+                SUM(COALESCE("BESS Discharge Unit Daily", 0))
+            FROM custom_logs
             WHERE id IN (
                 SELECT MAX(id) 
-                FROM system_logs 
-                WHERE {time_filter}
-                GROUP BY strftime('%Y-%m-%d', timestamp)
+                FROM custom_logs
+                WHERE {time_filter} AND plant = '{plant.upper()}'
+                GROUP BY DATE(timestamp)
             )
         """
         
-        # --- เพิ่มส่วน Debug เพื่อเช็คว่าเจอวันไหนบ้าง ---
-        check_sql = f"""
-            SELECT strftime('%Y-%m-%d', timestamp), MAX(id) 
-            FROM system_logs 
-            WHERE {time_filter} 
-            GROUP BY strftime('%Y-%m-%d', timestamp)
-        """
-        cursor.execute(check_sql)
-        # ------------------------------------------------
-
         cursor.execute(sql)
         row = cursor.fetchone()
         conn.close()
         
-        if row:
-            # แปลง None เป็น 0.0
-            result = [float(x) if x is not None else 0.0 for x in row]
+        if row and any(x is not None for x in row):
+            # ปัดเศษ 2 ตำแหน่ง
+            result = [round(float(x), 2) if x is not None else 0.0 for x in row]
             return result
         else:
             return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     except Exception as e:
-        print(f"Error overview: {e}")
+        print(f"Error overview summary: {e}")
         return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 @app.get("/api/export_csv")
