@@ -469,7 +469,8 @@ class _SolarSubDevicePageState extends State<SolarSubDevicePage> with SingleTick
   void _initDefaultSubDevices() {
     subDevices = [
       SolarLoggerModel(name: 'Logger 1', status: 'Waiting...'),
-      SolarMeterModel(name: 'Meter of ${widget.solarDevice.name}', status: 'Waiting...'),
+      SolarMeterModel(name: 'Meter 1', status: 'Waiting...'),
+      SolarMeterModel(name: 'Meter 2', status: 'Waiting...'),
       SolarEMIModel(name: 'EMI 1', status: 'Waiting...'),
     ];
   }
@@ -524,7 +525,7 @@ class _SolarSubDevicePageState extends State<SolarSubDevicePage> with SingleTick
               i3: '${v('SOLAR_SOLAR1_LOGGER1_I3', () => data.SOLAR_SOLAR1_LOGGER1_I3).toStringAsFixed(2)} A',
             ),
             SolarMeterModel(
-              name: 'Meter of ${widget.solarDevice.name}', 
+              name: 'Meter 2', 
               status: v('SOLAR_SOLAR1_METER2_P', () => data.SOLAR_SOLAR1_METER2_P) > 0 ? 'Active' : 'Offline',
               kwhtotal: '${(v('SOLAR_SOLAR1_METER2_KWHTOTAL', () => data.SOLAR_SOLAR1_METER2_KWHTOTAL) / 1000).toStringAsFixed(2)} MWh',
               kwhpos: '${(v('SOLAR_SOLAR1_METER2_KWHPOS', () => data.SOLAR_SOLAR1_METER2_KWHPOS) / 1000).toStringAsFixed(2)} MWh',
@@ -542,6 +543,26 @@ class _SolarSubDevicePageState extends State<SolarSubDevicePage> with SingleTick
               v12: '${v('SOLAR_SOLAR1_METER2_V12', () => data.SOLAR_SOLAR1_METER2_V12).toStringAsFixed(2)} V',
               v23: '${v('SOLAR_SOLAR1_METER2_V23', () => data.SOLAR_SOLAR1_METER2_V23).toStringAsFixed(2)} V',
               v31: '${v('SOLAR_SOLAR1_METER2_V31', () => data.SOLAR_SOLAR1_METER2_V31).toStringAsFixed(2)} V', 
+            ),
+            SolarMeterModel(
+              name: 'Meter 3', 
+              status: v('SOLAR_SOLAR1_METER3_P', () => data.SOLAR_SOLAR1_METER3_P) > 0 ? 'Active' : 'Offline',
+              kwhtotal: '${(v('SOLAR_SOLAR1_METER3_KWHTOTAL', () => data.SOLAR_SOLAR1_METER3_KWHTOTAL) / 1000).toStringAsFixed(2)} MWh',
+              kwhpos: '${(v('SOLAR_SOLAR1_METER3_KWHPOS', () => data.SOLAR_SOLAR1_METER3_KWHPOS) / 1000).toStringAsFixed(2)} MWh',
+              kwhneg: '${(v('SOLAR_SOLAR1_METER3_KWHNEG', () => data.SOLAR_SOLAR1_METER3_KWHNEG) / 1000).toStringAsFixed(2)} MWh',
+              p: '${v('SOLAR_SOLAR1_METER3_P', () => data.SOLAR_SOLAR1_METER3_P).toStringAsFixed(2)} kW',
+              q: '${v('SOLAR_SOLAR1_METER3_Q', () => data.SOLAR_SOLAR1_METER3_Q).toStringAsFixed(2)} kVAR',
+              pf: '${v('SOLAR_SOLAR1_METER3_PF', () => data.SOLAR_SOLAR1_METER3_PF).toStringAsFixed(2)}',
+              s: '${v('SOLAR_SOLAR1_METER3_S', () => data.SOLAR_SOLAR1_METER3_S).toStringAsFixed(2)} kVA',
+              v1: '${v('SOLAR_SOLAR1_METER3_V1', () => data.SOLAR_SOLAR1_METER3_V1).toStringAsFixed(2)} V',
+              i1: '${v('SOLAR_SOLAR1_METER3_I1', () => data.SOLAR_SOLAR1_METER3_I1).toStringAsFixed(2)} A',
+              v2: '${v('SOLAR_SOLAR1_METER3_V2', () => data.SOLAR_SOLAR1_METER3_V2).toStringAsFixed(2)} V',
+              i2: '${v('SOLAR_SOLAR1_METER3_I2', () => data.SOLAR_SOLAR1_METER3_I2).toStringAsFixed(2)} A',
+              v3: '${v('SOLAR_SOLAR1_METER3_V3', () => data.SOLAR_SOLAR1_METER3_V3).toStringAsFixed(2)} V',
+              i3: '${v('SOLAR_SOLAR1_METER3_I3', () => data.SOLAR_SOLAR1_METER3_I3).toStringAsFixed(2)} A',
+              v12: '${v('SOLAR_SOLAR1_METER3_V12', () => data.SOLAR_SOLAR1_METER3_V12).toStringAsFixed(2)} V',
+              v23: '${v('SOLAR_SOLAR1_METER3_V23', () => data.SOLAR_SOLAR1_METER3_V23).toStringAsFixed(2)} V',
+              v31: '${v('SOLAR_SOLAR1_METER3_V31', () => data.SOLAR_SOLAR1_METER3_V31).toStringAsFixed(2)} V', 
             ),
             SolarEMIModel(
               name: 'EMI 1',

@@ -231,9 +231,9 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
           crossAxisSpacing: 20,     // ระยะห่างแนวนอน
           mainAxisSpacing: 5,       // ระยะห่างแนวตั้ง
           children: [
-          _buildTextItem('P', data.P),
-          _buildTextItem('Q', data.Q),
-          _buildTextItem('S', data.S),
+          _buildTextItem('Power', data.P),
+          _buildTextItem('Reactive Power', data.Q),
+          _buildTextItem('Apparent Power', data.S),
           _buildTextItem('Power Factor (PF)', data.PF),
           _buildTextItem('Voltage V1', data.V1),
           _buildTextItem('Current I1', data.I1),
@@ -336,10 +336,10 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
             _buildTextItem('DC Current', data.idc),
             _buildTextItem('Power Factor', data.pf),
             _buildTextItem('Line Voltage 1-2', data.v12),
-            _buildTextItem('Line Voltage 2-3', data.v23),
-            _buildTextItem('Line Voltage 3-1', data.v31),
             _buildTextItem('Phase Current 1', data.i1),
+            _buildTextItem('Line Voltage 2-3', data.v23),
             _buildTextItem('Phase Current 2', data.i2),
+            _buildTextItem('Line Voltage 3-1', data.v31),
             _buildTextItem('Phase Current 3', data.i3),
           ],
         ),

@@ -1,6 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import '../../../../services/mqtt_service.dart'; // ตรวจสอบ path ให้ถูกต้อง
+import '../../../../services/mqtt_service.dart';
 
 @RoutePage()
 class AlarmPage extends StatelessWidget {
@@ -14,59 +14,162 @@ class AlarmPage extends StatelessWidget {
         stream: MqttService().dataStream,
         builder: (context, snapshot) {
           final data = snapshot.data ?? MqttService().currentData;
+          if (data == null) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+          final currentPlant = MqttService().selectedPlant;
+          List<Map<String, dynamic>> alarmList = [];
+          try {
+            if (currentPlant == 'UTI') {
+              alarmList = [
+                {
+                  "name": "Solar System 1",
+                  "detail": "Solar System 1 Fault",
+                  "value": data.PV1_Fault
+                },
+                {
+                  "name": "Solar System 1",
+                  "detail": "Communication Link Failure",
+                  "value": data.PV1_Communication_Fault
+                },
+                {
+                  "name": "Solar System 2",
+                  "detail": "Communication Link Failure",
+                  "value": data.PV2_Communication_Fault
+                },
+                {
+                  "name": "Solar System 3",
+                  "detail": "Communication Link Failure",
+                  "value": data.PV3_Communication_Fault
+                },
+                {
+                  "name": "Solar System 4",
+                  "detail": "Communication Link Failure",
+                  "value": data.PV4_Communication_Fault
+                },
+                {
+                  "name": "BESS System 1",
+                  "detail": "BESS System 1 Fault",
+                  "value": data.BESS_Fault 
+                },
+                {
+                  "name": "BESS System 1",
+                  "detail": "Communication Link Failure",
+                  "value": data.BESS_Communication_Fault
+                },
+              ];
+            } else if (currentPlant == 'TPI') {
+              final racks = data.BESS_RACKS;
+              if (racks == null || racks.length < 5) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+              alarmList = [
+                //BESS System 1
+                {
+                  "name": "BESS System 1",
+                  "detail": "BESS System 1 Fault",
+                  "value": data.BESS_RACKS[0]['PSCFAULT']
+                },
+                {
+                  "name": "BESS System 1",
+                  "detail": "BESS System 1 Communication Fault",
+                  "value": data.BESS_RACKS[0]['PSCCOMMFAULT']
+                },
+                {
+                  "name": "BESS System 1",
+                  "detail": "BESS System 1 Alarm",
+                  "value": data.BESS_RACKS[0]['PSCALARM']
+                },
+                //BESS System 2
+                {
+                  "name": "BESS System 2",
+                  "detail": "BESS System 2 Fault",
+                  "value": data.BESS_RACKS[1]['PSCFAULT']
+                },
+                {
+                  "name": "BESS System 2",
+                  "detail": "BESS System 2 Communication Fault",
+                  "value": data.BESS_RACKS[1]['PSCCOMMFAULT']
+                },
+                {
+                  "name": "BESS System 2",
+                  "detail": "BESS System 2 Alarm",
+                  "value": data.BESS_RACKS[1]['PSCALARM']
+                },
+                //BESS System 3
+                {
+                  "name": "BESS System 3",
+                  "detail": "BESS System 3 Fault",
+                  "value": data.BESS_RACKS[2]['PSCFAULT']
+                },
+                {
+                  "name": "BESS System 3",
+                  "detail": "BESS System 3 Communication Fault",
+                  "value": data.BESS_RACKS[2]['PSCCOMMFAULT']
+                },
+                {
+                  "name": "BESS System 3",
+                  "detail": "BESS System 3 Alarm",
+                  "value": data.BESS_RACKS[2]['PSCALARM']
+                },
+                //BESS System 4
+                {
+                  "name": "BESS System 4",
+                  "detail": "BESS System 4 Fault",
+                  "value": data.BESS_RACKS[3]['PSCFAULT']
+                },
+                {
+                  "name": "BESS System 4",
+                  "detail": "BESS System 4 Communication Fault",
+                  "value": data.BESS_RACKS[3]['PSCCOMMFAULT']
+                },
+                {
+                  "name": "BESS System 4",
+                  "detail": "BESS System 4 Alarm",
+                  "value": data.BESS_RACKS[3]['PSCALARM']
+                },
+                //BESS System 5
+                {
+                  "name": "BESS System 5",
+                  "detail": "BESS System 5 Fault",
+                  "value": data.BESS_RACKS[4]['PSCFAULT']
+                },
+                {
+                  "name": "BESS System 5",
+                  "detail": "BESS System 5 Communication Fault",
+                  "value": data.BESS_RACKS[4]['PSCCOMMFAULT']
+                },
+                {
+                  "name": "BESS System 5",
+                  "detail": "BESS System 5 Alarm",
+                  "value": data.BESS_RACKS[4]['PSCALARM']
+                },
+              ];
+            }
+          }
+          catch (e) {
+            return Center(
+              child: Text("Data Error: $e", style: const TextStyle(color: Colors.red)),
+            );
+          }
 
-          // 1. Mapping ข้อมูล
-          final List<Map<String, dynamic>> alarmList = [
-            {
-              "name": "BESS System",
-              "detail": "Battery Energy Storage Fault",
-              "value": data.BESS_Fault
-            },
-            {
-              "name": "BESS Communication",
-              "detail": "Comms Link Failure",
-              "value": data.BESS_Communication_Fault
-            },
-            {
-              "name": "PV1 System",
-              "detail": "Inverter/Panel Fault",
-              "value": data.PV1_Fault
-            },
-            {
-              "name": "PV1 Communication",
-              "detail": "Comms Link Failure",
-              "value": data.PV1_Communication_Fault
-            },
-            {
-              "name": "PV2 Communication",
-              "detail": "Comms Link Failure",
-              "value": data.PV2_Communication_Fault
-            },
-            {
-              "name": "PV3 Communication",
-              "detail": "Comms Link Failure",
-              "value": data.PV3_Communication_Fault
-            },
-            {
-              "name": "PV4 Communication",
-              "detail": "Comms Link Failure",
-              "value": data.PV4_Communication_Fault
-            },
-          ];
-
-          // 2. เช็ค Fault รวม
-          int activeFaults = alarmList.where((e) => (e['value'] as double) == 1.0).length;
+          int activeFaults = alarmList.where((e) {
+            final val = e['value'];
+            return val != null && (val as double) == 1.0;
+          }).length;
+          
           bool isSystemNormal = activeFaults == 0;
 
           return Column(
             children: [
-              // --- Header Summary ---
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  // ถ้าจะให้ Header กระพริบด้วย ต้องทำแยกอีก Widget
-                  // ในที่นี้เอาแค่เปลี่ยนสีตามปกติ
                   color: isSystemNormal ? Colors.green : Colors.red,
                   boxShadow: [
                     BoxShadow(
@@ -85,7 +188,7 @@ class AlarmPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      isSystemNormal ? "SYSTEM NORMAL" : "SYSTEM CRITICAL",
+                      isSystemNormal ? "SYSTEM NORMAL - $currentPlant" : "SYSTEM CRITICAL - $currentPlant",
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -95,15 +198,14 @@ class AlarmPage extends StatelessWidget {
                     ),
                     Text(
                       isSystemNormal 
-                          ? "All systems are operating normally." 
-                          : "$activeFaults Active Alarm(s) Detected!",
+                          ? "All systems in $currentPlant are operating normally." 
+                          : "$activeFaults Active Alarm(s) Detected in $currentPlant!",
                       style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ],
                 ),
               ),
 
-              // --- Alarm List ---
               Expanded(
                 child: ListView.separated(
                   padding: const EdgeInsets.all(16),
@@ -111,9 +213,8 @@ class AlarmPage extends StatelessWidget {
                   separatorBuilder: (ctx, i) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final item = alarmList[index];
-                    final bool isFault = (item['value'] as double) == 1.0;
+                    final bool isFault = item['value'] != null && (item['value'] as double) == 1.0;
                     
-                    // ใช้ Widget ใหม่ที่สร้างขึ้นด้านล่างแทน
                     return BlinkingAlarmCard(
                       name: item['name'],
                       detail: item['detail'],
@@ -130,9 +231,6 @@ class AlarmPage extends StatelessWidget {
   }
 }
 
-// -------------------------------------------------------------
-// สร้าง Widget ใหม่แยกออกมาเพื่อจัดการ Animation (การกระพริบ)
-// -------------------------------------------------------------
 class BlinkingAlarmCard extends StatefulWidget {
   final String name;
   final String detail;
@@ -144,14 +242,12 @@ class BlinkingAlarmCard extends StatefulWidget {
     required this.detail,
     required this.isFault,
   });
-
   @override
   State<BlinkingAlarmCard> createState() => _BlinkingAlarmCardState();
 }
 
 class _BlinkingAlarmCardState extends State<BlinkingAlarmCard>
-    with SingleTickerProviderStateMixin { // Mixin นี้จำเป็นสำหรับ AnimationController
-  
+  with SingleTickerProviderStateMixin { 
   late AnimationController _controller;
   late Animation<Color?> _colorAnimation;
 
@@ -159,48 +255,42 @@ class _BlinkingAlarmCardState extends State<BlinkingAlarmCard>
   void initState() {
     super.initState();
     
-    // ตั้งค่าตัวควบคุม Animation (ระยะเวลา 1 รอบ = 500ms)
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 250),
       vsync: this,
     );
 
-    // กำหนดสีที่จะกระพริบสลับกัน (ขาว <-> แดงอ่อน)
-    // ใช้แดงอ่อน (red[100]) เพื่อให้ยังอ่านตัวหนังสือสีดำออก
     _colorAnimation = ColorTween(
       begin: Colors.white, 
-      end: const Color(0xFFFFCDD2), // สีแดงอ่อน (Red 100)
+      end: const Color(0xFFFFCDD2), 
     ).animate(_controller);
 
-    // ถ้าเข้ามาแล้วเป็น Fault เลย ให้เริ่มกระพริบทันที
     if (widget.isFault) {
-      _controller.repeat(reverse: true); // เล่นวนไป-กลับ
+      _controller.repeat(reverse: true); 
     }
   }
 
   @override
   void didUpdateWidget(covariant BlinkingAlarmCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // เช็คว่าสถานะ Fault เปลี่ยนไปหรือไม่
     if (widget.isFault != oldWidget.isFault) {
       if (widget.isFault) {
-        _controller.repeat(reverse: true); // เริ่มกระพริบ
+        _controller.repeat(reverse: true); 
       } else {
-        _controller.stop(); // หยุดกระพริบ
-        _controller.reset(); // กลับไปเป็นสีขาว
+        _controller.stop(); 
+        _controller.reset(); 
       }
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose(); // คืน Memory เมื่อหน้านี้ปิดลง
+    _controller.dispose(); 
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // ธีมสีของ icon และ text
     final Color statusColor = widget.isFault ? Colors.red : Colors.green;
     final String statusText = widget.isFault ? "FAULT" : "NORMAL";
     final IconData icon = widget.isFault ? Icons.error_outline : Icons.check_circle;
@@ -211,7 +301,6 @@ class _BlinkingAlarmCardState extends State<BlinkingAlarmCard>
         return Card(
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          // ใช้สีจาก Animation ถ้าเป็น Fault, ถ้าไม่ใช้สีขาว
           color: widget.isFault ? _colorAnimation.value : Colors.white,
           child: Container(
             decoration: BoxDecoration(
