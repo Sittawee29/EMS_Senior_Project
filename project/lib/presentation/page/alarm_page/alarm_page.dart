@@ -256,7 +256,7 @@ class _BlinkingAlarmCardState extends State<BlinkingAlarmCard>
     super.initState();
     
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
 

@@ -10,6 +10,7 @@ import 'DeviceDetailPage/DeviceDetailPage.dart';
 @RoutePage()
 class DevicePage extends StatefulWidget {
   const DevicePage({super.key});
+  static final ValueNotifier<dynamic> mqttDataNotifier = ValueNotifier<dynamic>(null);
   
   @override
   State<DevicePage> createState() => _DevicePageState();
@@ -25,14 +26,31 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
   dynamic currentData; 
   String activePlant = 'UTI';
   
-  List<DeviceModel> allDevices = [
-    SolarModel(name: 'Solar System 1', status: 'Waiting...'),
-    SolarModel(name: 'Solar System 2', status: 'Waiting...'),
-    SolarModel(name: 'Solar System 3', status: 'Waiting...'),
-    SolarModel(name: 'Solar System 4', status: 'Waiting...'),
-    BatteryModel(name: 'BESS Systems 1',status: 'Waiting...',),
-    MeterModel(name: 'Solar System 1',status: 'Waiting...'),
-  ];
+  List<DeviceModel> allDevices = [];
+  void _initDefaultDevices() {
+    if (activePlant == 'UTI') {
+      allDevices = [
+        SolarModel(name: 'Solar System 1', status: 'Waiting...'),
+        SolarModel(name: 'Solar System 2', status: 'Waiting...'),
+        SolarModel(name: 'Solar System 3', status: 'Waiting...'),
+        SolarModel(name: 'Solar System 4', status: 'Waiting...'),
+        BatteryModel(name: 'BESS System 1', status: 'Waiting...'),
+        MeterModel(name: 'Meter UTI', status: 'Waiting...'),
+      ];
+    } else if (activePlant == 'TPI') {
+      allDevices = [
+        SolarModel(name: 'Solar System 1', status: 'Waiting...'),
+        BatteryModel(name: 'BESS System 1', status: 'Waiting...'),
+        BatteryModel(name: 'BESS System 2', status: 'Waiting...'),
+        BatteryModel(name: 'BESS System 3', status: 'Waiting...'),
+        BatteryModel(name: 'BESS System 4', status: 'Waiting...'),
+        BatteryModel(name: 'BESS System 5', status: 'Waiting...'),
+        MeterModel(name: 'Meter TPI', status: 'Waiting...'),
+        EMSModel(name: 'EMS System TPI', status: 'Waiting...'),
+      ];
+    }
+  }
+  
 
   @override
   void initState() {
@@ -40,16 +58,34 @@ class _DevicePageState extends State<DevicePage> with SingleTickerProviderStateM
     
     _tabController = TabController(length: 5, vsync: this);
     activePlant = _mqttService.selectedPlant;
+    
+    // 🟢 3. เรียกใช้งานฟังก์ชัน เพื่อวาดโครงสร้างอุปกรณ์เริ่มต้น (Waiting) ให้ตรงกับ Plant 
+    _initDefaultDevices(); 
+    
     currentData = _mqttService.latestData;
     _updateDeviceStatusBasedOnPlant();
+
+    // ฟัง Stream จาก MQTT แบบ Real-time ตามเดิม
     _mqttSubscription = _mqttService.dataStream.listen((data) {
       if (mounted) {
-        currentData = data;
-        activePlant = _mqttService.selectedPlant;
-        _updateDeviceStatusBasedOnPlant();
+        DevicePage.mqttDataNotifier.value = data;
+
+        setState(() {
+          currentData = data;
+          
+          // 🟢 ตรวจสอบว่าถ้ามีการเปลี่ยน Plant กลางอากาศ ให้วาดโครงร่างใหม่
+          if (activePlant != _mqttService.selectedPlant) {
+             activePlant = _mqttService.selectedPlant;
+             _initDefaultDevices(); 
+          }
+          
+          _updateDeviceStatusBasedOnPlant();
+        });
       }
     });
   }
+
+  
 
   @override
   void dispose() {
@@ -444,9 +480,9 @@ class _SolarSubDevicePageState extends State<SolarSubDevicePage> with SingleTick
         _selectedIndex = _tabController.index;
       });
     });
-    _initDefaultSubDevices();
     activePlant = _mqttService.selectedPlant;
     currentData = _mqttService.latestData;
+    _initDefaultSubDevices();
     _updateSubDevicesBasedOnPlant();
     _mqttSubscription = _mqttService.dataStream.listen((data) {
       if (mounted) {
@@ -467,12 +503,20 @@ class _SolarSubDevicePageState extends State<SolarSubDevicePage> with SingleTick
   }
 
   void _initDefaultSubDevices() {
-    subDevices = [
-      SolarLoggerModel(name: 'Logger 1', status: 'Waiting...'),
-      SolarMeterModel(name: 'Meter 1', status: 'Waiting...'),
-      SolarMeterModel(name: 'Meter 2', status: 'Waiting...'),
-      SolarEMIModel(name: 'EMI 1', status: 'Waiting...'),
-    ];
+    if (activePlant == 'UTI') {
+      subDevices = [
+        SolarLoggerModel(name: 'Logger 1', status: 'Waiting...'),
+        SolarMeterModel(name: 'Meter 1', status: 'Waiting...'),
+        SolarEMIModel(name: 'EMI 1', status: 'Waiting...'),
+      ];
+    } else if (activePlant == 'TPI') {
+      subDevices = [
+        SolarLoggerModel(name: 'Logger 1', status: 'Waiting...'),
+        SolarMeterModel(name: 'Meter 1', status: 'Waiting...'),
+        SolarMeterModel(name: 'Meter 2', status: 'Waiting...'),
+        SolarEMIModel(name: 'EMI 1', status: 'Waiting...'),
+      ];
+    }
   }
 
   void _updateSubDevicesBasedOnPlant() {
